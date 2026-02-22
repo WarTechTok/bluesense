@@ -5,10 +5,10 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-// const API_BASE_URL = "http://192.168.100.224:8080";
+const API_BASE_URL = "http://192.168.100.224:8080";
 
 // OPTION 2: Redmi Hotspot (current)
-const API_BASE_URL = "http://10.122.57.40:8080";
+//const API_BASE_URL = "http://10.122.57.40:8080";
 
 // OPTION 3: School WiFi
 // const API_BASE_URL = "http://[SCHOOL-IP-HERE]:8080";

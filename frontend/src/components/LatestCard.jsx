@@ -4,15 +4,12 @@ import SensorCard from "./SensorCard";
 
 function LatestCard({ selectedReading, liveData, loading }) {
   const [displayData, setDisplayData] = useState(null);
-  const [prevData, setPrevData] = useState(null);
   const [isChanging, setIsChanging] = useState(false);
 
   // Smooth update when new data arrives
   useEffect(() => {
     const newData = selectedReading || liveData;
     if (newData && JSON.stringify(newData) !== JSON.stringify(displayData)) {
-      // Store previous data
-      setPrevData(displayData);
       // Show change animation
       setIsChanging(true);
       // Update to new data
@@ -25,7 +22,7 @@ function LatestCard({ selectedReading, liveData, loading }) {
   if (loading && !displayData) return <p>Loading pool data...</p>;
   if (!displayData) return <p>No data available</p>;
 
-  // ✅ SIMPLIFIED pH MEANING - 3 CATEGORIES ONLY!
+  // ✅ pH MEANING - 3 CATEGORIES
   const getPHMeaning = (ph) => {
     if (!ph && ph !== 0) return { status: "⚠️ NO DATA", color: "gray", message: "No pH data" };
     if (ph < 7.0) {
@@ -49,30 +46,46 @@ function LatestCard({ selectedReading, liveData, loading }) {
     };
   };
 
-  // ✅ SIMPLIFIED TEMP MEANING - 3 CATEGORIES ONLY!
+  // ✅ FIXED TEMP MEANING - USING COLOR NAMES!
   const getTempMeaning = (temp) => {
     if (!temp && temp !== 0) return { status: "⚠️ NO DATA", color: "gray", message: "No temp data" };
+    
+    if (temp < 20) {
+      return { 
+        status: "❄️ TOO COLD", 
+        color: "blue",
+        message: "Water is freezing! Not safe for swimming." 
+      };
+    }
     if (temp < 26) {
       return { 
         status: "🔵 COLD", 
-        color: "blue", 
+        color: "blue",
         message: "Water is cold. Not comfortable for swimming." 
       };
     }
     if (temp <= 32) {
       return { 
         status: "🟢 COMFORTABLE", 
-        color: "green", 
+        color: "green",
         message: "Ideal swimming temperature!" 
       };
     }
+    if (temp <= 35) {
+      return { 
+        status: "🟠 WARM", 
+        color: "orange",
+        message: "Water is warm. Still okay for swimming." 
+      };
+    }
     return { 
-      status: "🔥 HOT", 
-      color: "orange", 
-      message: "Water is warm. Still okay but may feel hot." 
+      status: "🔥 TOO HOT", 
+      color: "red",
+      message: "Water is too hot! Not safe for swimming." 
     };
   };
 
+  // ✅ TURBIDITY MEANING
   const getTurbidityMeaning = (turb) => {
     if (!turb) return { status: "⚠️ NO DATA", color: "gray", message: "No turbidity data" };
     if (turb === "Clear" || turb === "Clear Water") {
@@ -108,7 +121,7 @@ function LatestCard({ selectedReading, liveData, loading }) {
   const turb = getTurbidityMeaning(displayData.turbidity);
 
   // Debug log
-  console.log("🔄 Cards Updating - pH:", displayData.ph, "Status:", ph.status);
+  console.log("🔄 Cards Updating - Temp:", displayData.temperature, "Status:", temp.status);
 
   const displayTimestamp = selectedReading
     ? `📌 Historical: ${selectedReading.displayTime || new Date(selectedReading.timestamp).toLocaleString("en-PH", {
