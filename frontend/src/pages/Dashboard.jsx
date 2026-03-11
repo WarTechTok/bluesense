@@ -1,5 +1,10 @@
-// src/pages/Dashboard.jsx
+// frontend/src/pages/Dashboard.jsx
+// ============================================
+// DASHBOARD - main monitoring page with auth links
+// ============================================
+
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";  // ← ADD THIS IMPORT
 import LatestCard from "../components/LatestCard";
 import HistoryView from "../components/history/HistoryView";
 
@@ -41,6 +46,7 @@ function Dashboard() {
         <h1>Pool Monitoring Dashboard</h1>
         
         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+          {/* LIVE indicator */}
           <div style={{ 
             display: "flex", 
             alignItems: "center",
@@ -56,6 +62,7 @@ function Dashboard() {
             <span style={{ color: "#10B981", fontWeight: "500" }}>LIVE</span>
           </div>
           
+          {/* History button */}
           <button
             onClick={() => setShowHistory(!showHistory)}
             style={{
@@ -70,6 +77,36 @@ function Dashboard() {
           >
             {showHistory ? "✕ Close History" : "📊 View History"}
           </button>
+
+          {/* 🔴 NEW: Login Button */}
+          <Link to="/login">
+            <button style={{
+              padding: "8px 16px",
+              backgroundColor: "#3B82F6",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}>
+              Login
+            </button>
+          </Link>
+
+          {/* 🔴 NEW: Register Button */}
+          <Link to="/register">
+            <button style={{
+              padding: "8px 16px",
+              backgroundColor: "#10B981",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}>
+              Register
+            </button>
+          </Link>
         </div>
       </div>
 
