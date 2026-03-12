@@ -18,9 +18,20 @@ function Login() {
     setLoading(true);
     try {
       const res = await axios.post('http://localhost:8080/api/auth/login', form);
-      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('authToken', res.data.token);
+      localStorage.setItem('userRole', res.data.user.role);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/dashboard');
+      
+      // ============================================
+      // REDIRECT BASED ON USER ROLE
+      // ============================================
+      // Admin users go to /admin/dashboard
+      // Regular users go to /dashboard
+      if (res.data.user.role === 'admin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
     } finally {

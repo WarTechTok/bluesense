@@ -71,9 +71,11 @@ const login = async (req, res) => {
     }
 
     // Create JWT token
+    const secretKey = process.env.JWT_SECRET || "your_jwt_secret_key_bluesense_2026";
+    console.log(`🔑 JWT Created: SECRET_KEY=${secretKey}, USER_ID=${user._id}, ROLE=${user.role}`);
     const token = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
+      secretKey,
       { expiresIn: "7d" }
     );
 
