@@ -63,6 +63,30 @@ const RoomManagement = () => {
 
   const handleSubmit = async () => {
     try {
+      // ============================================
+      // FORM VALIDATION
+      // ============================================
+      if (!formData.name || formData.name.trim() === '') {
+        alert('❌ Room Name is required');
+        return;
+      }
+      if (!formData.capacity || formData.capacity === '') {
+        alert('❌ Capacity is required');
+        return;
+      }
+      if (parseInt(formData.capacity) <= 0) {
+        alert('❌ Capacity must be greater than 0');
+        return;
+      }
+      if (!formData.price || formData.price === '') {
+        alert('❌ Price per Night is required');
+        return;
+      }
+      if (parseInt(formData.price) < 0) {
+        alert('❌ Price cannot be negative');
+        return;
+      }
+
       if (editingRoom) {
         await adminApi.updateRoom(editingRoom._id, formData);
       } else {
@@ -70,11 +94,11 @@ const RoomManagement = () => {
       }
       setIsModalOpen(false);
       fetchRooms();
-      alert('Room saved successfully!');
+      alert('✅ Room saved successfully!');
     } catch (error) {
       console.error('Error saving room:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error saving room';
-      alert(errorMsg);
+      alert('❌ ' + errorMsg);
     }
   };
 
@@ -141,7 +165,7 @@ const RoomManagement = () => {
   const columns = [
     { key: 'name', label: 'Room Name' },
     { key: 'capacity', label: 'Capacity' },
-    { key: 'price', label: 'Price', render: (value) => `$${value}` },
+    { key: 'price', label: 'Price', render: (value) => `₱${value}` },
     { key: 'description', label: 'Description' },
     { key: 'status', label: 'Status', render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> },
     {
@@ -216,15 +240,18 @@ const RoomManagement = () => {
             <label>Capacity *</label>
             <input
               type="number"
+              min="1"
               value={formData.capacity}
               onChange={(e) => setFormData({ ...formData, capacity: e.target.value })}
               required
             />
           </div>
           <div className="form-group">
-            <label>Price per Night *</label>
+            <label>Price per Night (₱) *</label>
             <input
               type="number"
+              min="0"
+              step="0.01"
               value={formData.price}
               onChange={(e) => setFormData({ ...formData, price: e.target.value })}
               required

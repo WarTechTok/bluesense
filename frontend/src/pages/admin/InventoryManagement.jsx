@@ -62,6 +62,30 @@ const InventoryManagement = () => {
 
   const handleSubmit = async () => {
     try {
+      // ============================================
+      // FORM VALIDATION
+      // ============================================
+      if (!formData.item || formData.item.trim() === '') {
+        alert('❌ Item Name is required');
+        return;
+      }
+      if (!formData.quantity || formData.quantity === '') {
+        alert('❌ Quantity is required');
+        return;
+      }
+      if (parseInt(formData.quantity) < 0) {
+        alert('❌ Quantity cannot be negative');
+        return;
+      }
+      if (!formData.unit || formData.unit.trim() === '') {
+        alert('❌ Unit is required');
+        return;
+      }
+      if (parseInt(formData.lowStockAlert) < 0) {
+        alert('❌ Low Stock Alert cannot be negative');
+        return;
+      }
+
       if (editingItem) {
         await adminApi.updateInventoryQuantity(editingItem._id, formData.quantity);
       } else {
@@ -69,9 +93,10 @@ const InventoryManagement = () => {
       }
       setIsModalOpen(false);
       fetchInventory();
+      alert('✅ Inventory item saved successfully!');
     } catch (error) {
       console.error('Error saving inventory item:', error);
-      alert('Error saving inventory item');
+      alert('❌ Error saving inventory item');
     }
   };
 
@@ -83,13 +108,30 @@ const InventoryManagement = () => {
 
   const handleSubmitUsage = async () => {
     try {
+      // ============================================
+      // FORM VALIDATION
+      // ============================================
+      if (!usageData.quantityUsed || usageData.quantityUsed === '') {
+        alert('❌ Quantity Used is required');
+        return;
+      }
+      if (parseInt(usageData.quantityUsed) <= 0) {
+        alert('❌ Quantity Used must be greater than 0');
+        return;
+      }
+      if (!usageData.usedBy || usageData.usedBy.trim() === '') {
+        alert('❌ Used By field is required');
+        return;
+      }
+
       await adminApi.recordInventoryUsage(editingItem._id, usageData);
       setIsUsageModalOpen(false);
       fetchInventory();
       fetchLowStockItems();
+      alert('✅ Usage recorded successfully!');
     } catch (error) {
       console.error('Error recording usage:', error);
-      alert('Error recording usage');
+      alert('❌ Error recording usage');
     }
   };
 

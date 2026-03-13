@@ -71,7 +71,7 @@ const Dashboard = () => {
         />
         <StatCard
           title="Monthly Revenue"
-          value={`$${(stats?.monthlyRevenue || 0).toLocaleString()}`}
+          value={`₱${(stats?.monthlyRevenue || 0).toLocaleString()}`}
           icon="💰"
           color="#764ba2"
         />

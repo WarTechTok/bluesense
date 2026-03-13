@@ -54,7 +54,7 @@ const SalesTracking = () => {
       <div className="sales-summary">
         <div className="summary-card">
           <h3>Total Sales ({selectedPeriod})</h3>
-          <p className="summary-value">${totalSales.toLocaleString()}</p>
+          <p className="summary-value">₱{totalSales.toLocaleString()}</p>
         </div>
         <div className="summary-card">
           <h3>Number of Transactions</h3>
@@ -62,7 +62,7 @@ const SalesTracking = () => {
         </div>
         <div className="summary-card">
           <h3>Average Sale</h3>
-          <p className="summary-value">${sales.length > 0 ? (totalSales / sales.length).toFixed(2) : 0}</p>
+          <p className="summary-value">₱{sales.length > 0 ? (totalSales / sales.length).toFixed(2) : 0}</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@ const SalesTracking = () => {
                   <tr key={idx}>
                     <td>{sale._id}</td>
                     <td>{sale.reservation?.guestName || 'N/A'}</td>
-                    <td>${sale.amount}</td>
+                    <td>₱{sale.amount}</td>
                     <td>{new Date(sale.date).toLocaleDateString()}</td>
                   </tr>
                 ))

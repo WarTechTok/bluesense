@@ -10,6 +10,8 @@
   align-items: center;
   z-index: 1000;
   animation: fadeIn 0.3s ease;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 @keyframes fadeIn {
@@ -25,13 +27,16 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: 100%;
+  max-width: 550px;
+  max-height: auto;
   animation: slideIn 0.3s ease;
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 @keyframes slideIn {
@@ -85,7 +90,8 @@
 .modal-body {
   padding: 30px 25px;
   flex: 1;
-  overflow-y: auto;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .modal-footer {
@@ -140,12 +146,16 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .form-group label {
@@ -164,6 +174,7 @@
   font-size: 14px;
   font-family: inherit;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .form-group input:focus,

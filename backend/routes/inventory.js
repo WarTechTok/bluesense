@@ -24,12 +24,12 @@ router.get('/:id', authenticate, inventoryController.getInventoryById);
 // ============================================
 // CREATE INVENTORY ITEM - add new supply/equipment (Admin only)
 // ============================================
-router.post('/', authenticate, authorize('Admin'), inventoryController.createInventoryItem);
+router.post('/', authenticate, authorize('admin'), inventoryController.createInventoryItem);
 
 // ============================================
 // UPDATE INVENTORY QUANTITY - adjust stock levels (Admin only)
 // ============================================
-router.put('/:id', authenticate, authorize('Admin'), inventoryController.updateInventoryQuantity);
+router.put('/:id', authenticate, authorize('admin'), inventoryController.updateInventoryQuantity);
 
 // ============================================
 // RECORD USAGE - log item usage with staff attribution (Authenticated)
@@ -44,6 +44,6 @@ router.get('/alerts/low-stock', authenticate, inventoryController.getLowStockIte
 // ============================================
 // DELETE INVENTORY ITEM - remove supply/equipment (Admin only)
 // ============================================
-router.delete('/:id', authenticate, authorize('Admin'), inventoryController.deleteInventoryItem);
+router.delete('/:id', authenticate, authorize('admin'), inventoryController.deleteInventoryItem);
 
 module.exports = router;

@@ -15,14 +15,14 @@ const { authenticate, authorize } = require('../middleware/role');
 // Query params: startDate, endDate
 // Returns PDF or data object
 // ============================================
-router.get('/reservation', authenticate, authorize('Admin'), reportController.getReservationReport);
+router.get('/reservation', authenticate, authorize('admin'), reportController.getReservationReport);
 
 // ============================================
 // GET SALES REPORT - revenue & transaction analysis (Admin only)
 // Query params: startDate, endDate
 // Returns PDF or data object
 // ============================================
-router.get('/sales', authenticate, authorize('Admin'), reportController.getSalesReport);
+router.get('/sales', authenticate, authorize('admin'), reportController.getSalesReport);
 
 // ============================================
 // GET INVENTORY USAGE REPORT - supply consumption tracking
@@ -36,12 +36,12 @@ router.get('/inventory-usage', authenticate, reportController.getInventoryUsageR
 // Query params: startDate, endDate
 // Returns PDF or data object
 // ============================================
-router.get('/staff-activity', authenticate, authorize('Admin'), reportController.getStaffActivityReport);
+router.get('/staff-activity', authenticate, authorize('admin'), reportController.getStaffActivityReport);
 
 // ============================================
 // EXPORT REPORT - download report in JSON format (Admin only)
 // Query params: reportType, startDate, endDate
 // ============================================
-router.get('/export', authenticate, authorize('Admin'), reportController.exportReportAsJSON);
+router.get('/export', authenticate, authorize('admin'), reportController.exportReportAsJSON);
 
 module.exports = router;

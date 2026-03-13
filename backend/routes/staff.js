@@ -13,43 +13,43 @@ const { authenticate, authorize } = require('../middleware/role');
 // ============================================
 // GET ALL STAFF - retrieve all staff accounts (Admin only)
 // ============================================
-router.get('/', authenticate, authorize('Admin'), staffController.getAllStaff);
+router.get('/', authenticate, authorize('admin'), staffController.getAllStaff);
 
 // ============================================
 // GET STAFF BY ID - retrieve staff member details (Admin only)
 // ============================================
-router.get('/:id', authenticate, authorize('Admin'), staffController.getStaffById);
+router.get('/:id', authenticate, authorize('admin'), staffController.getStaffById);
 
 // ============================================
 // CREATE STAFF ACCOUNT - add new staff member (Admin only)
 // Password automatically hashed with bcryptjs
 // ============================================
-router.post('/', authenticate, authorize('Admin'), staffController.createStaffAccount);
+router.post('/', authenticate, authorize('admin'), staffController.createStaffAccount);
 
 // ============================================
 // UPDATE STAFF - modify staff member info (Admin only)
 // ============================================
-router.put('/:id', authenticate, authorize('Admin'), staffController.updateStaff);
+router.put('/:id', authenticate, authorize('admin'), staffController.updateStaff);
 
 // ============================================
 // DISABLE STAFF ACCOUNT - deactivate user login (Admin only)
 // ============================================
-router.put('/:id/disable', authenticate, authorize('Admin'), staffController.disableStaffAccount);
+router.put('/:id/disable', authenticate, authorize('admin'), staffController.disableStaffAccount);
 
 // ============================================
 // ACTIVATE STAFF ACCOUNT - re-enable user login (Admin only)
 // ============================================
-router.put('/:id/activate', authenticate, authorize('Admin'), staffController.activateStaffAccount);
+router.put('/:id/activate', authenticate, authorize('admin'), staffController.activateStaffAccount);
 
 // ============================================
 // RESET PASSWORD - reset staff password (Admin only)
 // New password hashed before saving
 // ============================================
-router.put('/:id/reset-password', authenticate, authorize('Admin'), staffController.resetPassword);
+router.put('/:id/reset-password', authenticate, authorize('admin'), staffController.resetPassword);
 
 // ============================================
 // DELETE STAFF - remove staff account (Admin only)
 // ============================================
-router.delete('/:id', authenticate, authorize('Admin'), staffController.deleteStaff);
+router.delete('/:id', authenticate, authorize('admin'), staffController.deleteStaff);
 
 module.exports = router;

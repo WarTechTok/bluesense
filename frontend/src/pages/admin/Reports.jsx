@@ -104,7 +104,7 @@ const Reports = () => {
 
           {reportType === 'sales' && (
             <div className="report-summary">
-              <h4>Total Sales: ${reportData.totalSales?.toLocaleString() || 0}</h4>
+              <h4>Total Sales: ₱{reportData.totalSales?.toLocaleString() || 0}</h4>
               <p>Number of Transactions: {reportData.sales?.length || 0}</p>
             </div>
           )}
@@ -167,7 +167,7 @@ const Reports = () => {
                     <>
                       <td>{row._id}</td>
                       <td>{row.reservation?.guestName || 'N/A'}</td>
-                      <td>${row.amount}</td>
+                      <td>₱{row.amount}</td>
                       <td>{new Date(row.date).toLocaleDateString()}</td>
                     </>
                   )}

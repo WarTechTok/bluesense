@@ -23,12 +23,12 @@ router.get('/:id', authenticate, roomController.getRoomById);
 // ============================================
 // CREATE ROOM - add new room/pool (Admin only)
 // ============================================
-router.post('/', authenticate, authorize('Admin'), roomController.createRoom);
+router.post('/', authenticate, authorize('admin'), roomController.createRoom);
 
 // ============================================
 // UPDATE ROOM - modify room/pool details (Admin only)
 // ============================================
-router.put('/:id', authenticate, authorize('Admin'), roomController.updateRoom);
+router.put('/:id', authenticate, authorize('admin'), roomController.updateRoom);
 
 // ============================================
 // STAFF ASSIGNMENT ROUTES (Admin only)
@@ -37,12 +37,12 @@ router.put('/:id', authenticate, authorize('Admin'), roomController.updateRoom);
 // ============================================
 // ASSIGN STAFF TO ROOM - add staff member to check room
 // ============================================
-router.put('/:id/assign-staff', authenticate, authorize('Admin'), roomController.assignStaffToRoom);
+router.put('/:id/assign-staff', authenticate, authorize('admin'), roomController.assignStaffToRoom);
 
 // ============================================
 // REMOVE STAFF FROM ROOM - unassign staff from room
 // ============================================
-router.delete('/:id/remove-staff/:staffId', authenticate, authorize('Admin'), roomController.removeStaffFromRoom);
+router.delete('/:id/remove-staff/:staffId', authenticate, authorize('admin'), roomController.removeStaffFromRoom);
 
 // ============================================
 // GET ROOM STAFF - retrieve all assigned staff for a room
@@ -52,6 +52,6 @@ router.get('/:id/staff', authenticate, roomController.getRoomStaff);
 // ============================================
 // DELETE ROOM - remove room/pool from system (Admin only)
 // ============================================
-router.delete('/:id', authenticate, authorize('Admin'), roomController.deleteRoom);
+router.delete('/:id', authenticate, authorize('admin'), roomController.deleteRoom);
 
 module.exports = router;

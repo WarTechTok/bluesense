@@ -28,21 +28,21 @@ router.post('/', authenticate, reservationController.createReservation);
 // ============================================
 // UPDATE RESERVATION - modify booking details (Admin only)
 // ============================================
-router.put('/:id', authenticate, authorize('Admin'), reservationController.updateReservation);
+router.put('/:id', authenticate, authorize('admin'), reservationController.updateReservation);
 
 // ============================================
 // CONFIRM RESERVATION - approve booking & create sale record (Admin only)
 // ============================================
-router.put('/:id/confirm', authenticate, authorize('Admin'), reservationController.confirmReservation);
+router.put('/:id/confirm', authenticate, authorize('admin'), reservationController.confirmReservation);
 
 // ============================================
 // CANCEL RESERVATION - cancel booking (Admin only)
 // ============================================
-router.put('/:id/cancel', authenticate, authorize('Admin'), reservationController.cancelReservation);
+router.put('/:id/cancel', authenticate, authorize('admin'), reservationController.cancelReservation);
 
 // ============================================
 // DELETE RESERVATION - remove booking (Admin only)
 // ============================================
-router.delete('/:id', authenticate, authorize('Admin'), reservationController.deleteReservation);
+router.delete('/:id', authenticate, authorize('admin'), reservationController.deleteReservation);
 
 module.exports = router;
