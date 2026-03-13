@@ -1,6 +1,6 @@
 // backend/models/User.js
 // ============================================
-// USER MODEL - for admin, staff, and customers
+// USER MODEL - with forgot password fields
 // ============================================
 
 const mongoose = require("mongoose");
@@ -25,10 +25,27 @@ const userSchema = new mongoose.Schema({
     default: "customer"
   },
   phone: {
-    type: String  // contact number ng customer
+    type: String
   },
   address: {
-    type: String  // optional
+    type: String
+  },
+  failedAttempts: {
+    type: Number,
+    default: 0
+  },
+  lastFailedAttempt: {
+    type: Date,
+    default: null
+  },
+  // 🔴 NEW: For forgot password
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
   }
 }, { timestamps: true });
 

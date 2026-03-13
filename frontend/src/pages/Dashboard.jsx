@@ -110,7 +110,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <LatestCard 
+      <LatestCard
         selectedReading={selectedReading}
         liveData={liveData}
         loading={loading}

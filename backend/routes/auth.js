@@ -1,6 +1,6 @@
 // backend/routes/auth.js
 // ============================================
-// AUTH ROUTES - for registration and login
+// AUTH ROUTES - for registration, login, and password reset
 // ============================================
 
 const express = require("express");
@@ -11,7 +11,9 @@ const {
   registerStaff, 
   getAllCustomers, 
   getAllStaff, 
-  getUserById 
+  getUserById,
+  forgotPassword,      // 🔴 ADD THIS
+  resetPassword        // 🔴 ADD THIS
 } = require("../controllers/authController");
 const { verifyToken, isAdmin } = require("../middleware/auth");
 
@@ -27,6 +29,16 @@ router.post("/login", login);
 
 // GET /api/auth/:id - get specific user (public for booking reference)
 router.get("/:id", getUserById);
+
+// ============================================
+// FORGOT PASSWORD ROUTES - 🔴 NEW SECTION
+// ============================================
+
+// POST /api/auth/forgot-password - request reset link
+router.post("/forgot-password", forgotPassword);
+
+// POST /api/auth/reset-password/:token - set new password with token
+router.post("/reset-password/:token", resetPassword);
 
 // ============================================
 // ADMIN ONLY ROUTES
