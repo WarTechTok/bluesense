@@ -7,7 +7,17 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const fs = require("fs");
+const path = require("path");
 const sendEmail = require("../utils/sendEmail");
+
+// ============================================
+// LOAD LOGO AS BASE64 - so it always shows in email
+// ============================================
+const logoPath = path.join(__dirname, "../public/images/Logo.jpg");
+const logoBase64 = fs.existsSync(logoPath)
+  ? `data:image/jpeg;base64,${fs.readFileSync(logoPath).toString("base64")}`
+  : null;
 
 // ============================================
 // PASSWORD VALIDATION - 8-16 chars, uppercase, lowercase, number, special
@@ -284,18 +294,13 @@ const forgotPassword = async (req, res) => {
     const resetURL = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
 
     // Email HTML with Catherine's Oasis branding
-    // Get logo URL
-    const logoUrl = `${process.env.BACKEND_URL || "http://localhost:8080"}/images/logo.jpg`;
-
     const message = `
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
     
-    <!-- Header with ACTUAL LOGO -->
+    <!-- Header with EMBEDDED LOGO (base64 - always visible) -->
     <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
       <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
-        <img src="${logoUrl}" 
-             alt="Catherine's Oasis" 
-             style="width: 100%; height: auto; display: block; border-radius: 16px;">
+        ${logoBase64 ? `<img src="${logoBase64}" alt="Catherine's Oasis" style="width: 100%; height: auto; display: block; border-radius: 16px;">` : `<div style="width:80px;height:80px;background:#0284c7;border-radius:16px;"></div>`}
       </div>
       <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">Catherine's Oasis</h1>
     </div>

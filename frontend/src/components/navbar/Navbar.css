@@ -1,0 +1,152 @@
+/* src/components/navbar/Navbar.css */
+/* ============================================
+   NAVBAR - Styles for the main navigation bar
+   ============================================ */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid #e0f0ff;
+  box-shadow: 0 2px 12px rgba(2, 132, 199, 0.06);
+}
+
+.navbar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+/* ── Logo ── */
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.navbar-logo-icon {
+  font-size: 22px;
+}
+
+.navbar-logo-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0c4a6e;
+  letter-spacing: -0.3px;
+}
+
+/* ── Nav Links ── */
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.navbar-links a {
+  text-decoration: none;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.navbar-links a:hover {
+  color: #0284c7;
+}
+
+/* ── Action Buttons ── */
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-outline {
+  padding: 8px 18px;
+  border: 1.5px solid #0284c7;
+  border-radius: 8px;
+  color: #0284c7;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background: #f0f9ff;
+}
+
+.btn-primary {
+  padding: 8px 18px;
+  background: #0284c7;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #0369a1;
+}
+
+/* ── Hamburger (Mobile) ── */
+.navbar-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.navbar-hamburger span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #0c4a6e;
+  border-radius: 2px;
+}
+
+/* ── Mobile Responsive ── */
+@media (max-width: 768px) {
+  .navbar-links {
+    display: none;
+    position: absolute;
+    top: 68px;
+    left: 0;
+    right: 0;
+    background: white;
+    flex-direction: column;
+    padding: 16px 24px;
+    border-bottom: 1px solid #e0f0ff;
+    gap: 16px;
+  }
+
+  .navbar-links.open {
+    display: flex;
+  }
+
+  .navbar-hamburger {
+    display: flex;
+  }
+
+  .navbar-actions .btn-outline {
+    display: none;
+  }
+}
