@@ -1,6 +1,6 @@
 // backend/models/User.js
 // ============================================
-// USER MODEL - with forgot password fields
+// USER MODEL - with forgot password, Google OAuth, and avatar fields
 // ============================================
 
 const mongoose = require("mongoose");
@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  // 🔴 NEW: For forgot password
+  // For forgot password
   resetPasswordToken: {
     type: String,
     default: null
@@ -46,7 +46,35 @@ const userSchema = new mongoose.Schema({
   resetPasswordExpires: {
     type: Date,
     default: null
+  },
+  // ============================================
+  // 🔴 NEW FIELDS - Google OAuth and Avatar
+  // ============================================
+  
+  // Google ID for users who sign in with Google
+  googleId: {
+    type: String,
+    default: null
+  },
+  
+  // Google profile picture URL
+  googleAvatar: {
+    type: String,
+    default: null
+  },
+  
+  // Custom uploaded avatar URL
+  avatar: {
+    type: String,
+    default: null
+  },
+  
+  // Email verification status
+  isEmailVerified: {
+    type: Boolean,
+    default: false
   }
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

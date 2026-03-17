@@ -1,0 +1,253 @@
+/* src/pages/Register.css */
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  padding: 40px 20px;
+}
+
+.register-card {
+  width: 100%;
+  max-width: 480px; /* Wider for more space */
+  background: white;
+  border-radius: 24px;
+  padding: 48px 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+}
+
+/* Logo */
+.register-logo-link {
+  display: block;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.register-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  background: transparent;
+  display: inline-block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+/* Header */
+.register-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.register-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.register-subtitle {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Error Messages */
+.register-error {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border: 1px solid #fee2e2;
+}
+
+.validation-errors {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.validation-error-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #dc2626;
+  line-height: 1.5;
+}
+
+.validation-error-item:last-child {
+  margin-bottom: 0;
+}
+
+.error-dot {
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.error-message {
+  flex: 1;
+}
+
+/* Form */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  width: 100%;
+}
+
+.register-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: white;
+}
+
+.register-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.register-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: white;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.register-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Password Wrapper */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input {
+  padding-right: 45px;
+}
+
+.eye-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eye-icon {
+  width: 18px;
+  height: 18px;
+  color: #9ca3af;
+}
+
+.eye-button:hover .eye-icon {
+  color: #3b82f6;
+}
+
+/* Submit Button */
+.register-submit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 8px;
+}
+
+.register-submit-btn:hover:not(.disabled) {
+  background: #2563eb;
+}
+
+.register-submit-btn.disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.register-footer {
+  text-align: center;
+  padding-top: 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.register-footer p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+
+.register-footer a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.register-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Add or update this in your Register.css */
+.password-note {
+  font-size: 11px;  /* Smaller text like Reset Password */
+  color: #6b7280;
+  margin: -8px 0 12px 0;
+  line-height: 1.5;
+  padding: 0 4px;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .register-card {
+    padding: 32px 24px;
+  }
+  
+  .register-logo {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .register-title {
+    font-size: 1.8rem;
+  }
+}

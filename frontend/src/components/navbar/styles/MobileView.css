@@ -1,0 +1,593 @@
+/* src/components/navbar/styles/MobileView.css */
+/* ============================================
+   MOBILE VIEW - Sidebar menu, view profile,
+   and edit profile modal styles
+   ============================================ */
+
+/* ── Mobile Sidebar Overlay ── */
+.mobile-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.mobile-sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Mobile Sidebar ── */
+.mobile-sidebar {
+  position: fixed;
+  top: 0;
+  right: -280px;
+  width: 280px;
+  height: 100vh;
+  background: white;
+  z-index: 1001;
+  transition: right 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-sidebar.active {
+  right: 0;
+}
+
+.mobile-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.mobile-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+}
+
+.mobile-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+/* ── Mobile Profile Section ── */
+.mobile-profile-section {
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mobile-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mobile-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-avatar-initials {
+  color: #666;
+  font-size: 20px;
+}
+
+.mobile-user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-user-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 1rem;
+}
+
+.mobile-user-email {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.mobile-profile-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s;
+}
+
+.mobile-profile-btn:hover {
+  background: #f8f8f8;
+}
+
+.mobile-profile-btn.logout {
+  background: white;
+  border: 1px solid #fee;
+  color: #dc2626;
+}
+
+.mobile-profile-btn.logout:hover {
+  background: #fee;
+}
+
+.mobile-profile-icon {
+  width: 20px;
+  text-align: center;
+  color: #999;
+}
+
+/* ── Mobile Auth Section ── */
+.mobile-auth-section {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-login-btn,
+.mobile-register-btn {
+  text-decoration: none;
+  color: white;
+  font-size: 1rem;
+  padding: 12px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  text-align: center;
+  transition: background 0.2s;
+}
+
+.mobile-login-btn:hover,
+.mobile-register-btn:hover {
+  background: #2563eb;
+}
+
+/* ── Mobile Nav Links ── */
+.mobile-nav-links {
+  list-style: none;
+  padding: 20px;
+  margin: 0;
+}
+
+.mobile-nav-links li {
+  margin-bottom: 16px;
+}
+
+.mobile-nav-links a {
+  text-decoration: none;
+  color: #333;
+  font-size: 1rem;
+  display: block;
+  padding: 4px 0;
+}
+
+.mobile-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 0 20px;
+}
+
+/* ── Mobile Sign Out at Bottom ── */
+.mobile-signout-bottom {
+  padding: 20px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* ── Mobile View Profile Sidebar ── */
+.mobile-view-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 400px;
+  height: 100vh;
+  background: white;
+  z-index: 2000;
+  overflow-y: auto;
+  animation: slideInMobile 0.3s ease;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes slideInMobile {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.mobile-view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+  position: sticky;
+  top: 0;
+  background: white;
+}
+
+.mobile-view-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.mobile-view-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+  padding: 4px;
+}
+
+.mobile-view-content {
+  padding: 20px;
+}
+
+.mobile-view-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.mobile-view-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-view-avatar span {
+  font-size: 40px;
+  color: #666;
+}
+
+.mobile-view-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.mobile-view-email {
+  font-size: 1rem;
+  color: #666;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.mobile-view-info {
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobile-view-google {
+  margin: 16px 0;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  color: #666;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.mobile-view-edit-btn {
+  width: 100%;
+  padding: 14px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background 0.2s;
+}
+
+.mobile-view-edit-btn:hover {
+  background: #2563eb;
+}
+
+/* ════════════════════════════════════════════
+   MOBILE EDIT PROFILE MODAL
+   Centered modal matching PC EditProfileModal
+   ════════════════════════════════════════════ */
+
+/* ── Overlay ── */
+.mobile-edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  padding: 16px;
+  animation: overlayFadeIn 0.25s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Modal Box ── */
+.mobile-edit-modal {
+  background: white;
+  border-radius: 24px;
+  padding: 28px 24px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalScaleIn 0.25s ease;
+}
+
+@keyframes modalScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Close Button ── */
+.mobile-edit-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 26px;
+  cursor: pointer;
+  color: #9ca3af;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.mobile-edit-modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* ── Title ── */
+.mobile-edit-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+/* ── Avatar Section ── */
+.mobile-edit-modal-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.mobile-edit-modal-avatar-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border: 4px solid white;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-edit-modal-avatar-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mobile-edit-modal-avatar-img span {
+  font-size: 40px;
+  color: #9ca3af;
+}
+
+.mobile-edit-modal-avatar-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 30px;
+  padding: 8px 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: #4b5563;
+  transition: background 0.2s;
+}
+
+.mobile-edit-modal-avatar-btn:hover {
+  background: #f3f4f6;
+}
+
+/* ── Form Fields ── */
+.mobile-edit-modal-field {
+  margin-bottom: 20px;
+}
+
+.mobile-edit-modal-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.mobile-edit-modal-field input,
+.mobile-edit-modal-field textarea {
+  width: 100%;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 0;
+  font-size: 1rem;
+  color: #1f2937;
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.mobile-edit-modal-field input:focus,
+.mobile-edit-modal-field textarea:focus {
+  border-bottom-color: #3b82f6;
+}
+
+.mobile-edit-modal-field input:disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  padding: 8px 10px;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.mobile-edit-modal-field textarea {
+  resize: vertical;
+  min-height: 70px;
+  padding-top: 8px;
+}
+
+/* ── Action Buttons ── */
+.mobile-edit-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.mobile-edit-modal-cancel {
+  flex: 1;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.2s;
+}
+
+.mobile-edit-modal-cancel:hover {
+  background: #f3f4f6;
+}
+
+.mobile-edit-modal-save {
+  flex: 1;
+  padding: 12px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: white;
+  transition: background 0.2s;
+}
+
+.mobile-edit-modal-save:hover {
+  background: #2563eb;
+}
+
+/* ── Prevent background scroll ── */
+body.mobile-view-open {
+  overflow: hidden;
+}
+
+/* ── Hide on desktop ── */
+@media (min-width: 769px) {
+  .mobile-sidebar,
+  .mobile-sidebar-overlay,
+  .mobile-view-sidebar {
+    display: none !important;
+  }
+}
+
+/* ── Very small screens ── */
+@media (max-width: 380px) {
+  .mobile-edit-modal {
+    width: 95%;
+    padding: 20px 16px;
+  }
+
+  .mobile-edit-modal-title {
+    font-size: 1.3rem;
+  }
+}

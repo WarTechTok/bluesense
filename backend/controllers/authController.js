@@ -1,6 +1,6 @@
 // backend/controllers/authController.js
 // ============================================
-// AUTH CONTROLLER - with password validation, cooldown, and forgot password
+// AUTH CONTROLLER - with password validation, cooldown, forgot password, Google OAuth, and Profile
 // ============================================
 
 const User = require("../models/User");
@@ -200,6 +200,10 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        address: user.address,
+        avatar: user.avatar,
+        googleAvatar: user.googleAvatar
       },
     });
   } catch (error) {
@@ -276,7 +280,6 @@ const forgotPassword = async (req, res) => {
     }
 
     // Generate reset token
-    const crypto = require("crypto");
     const resetToken = crypto.randomBytes(32).toString("hex");
 
     // Hash token before saving
@@ -340,7 +343,6 @@ const forgotPassword = async (req, res) => {
 `;
 
     // Send REAL email
-    const sendEmail = require("../utils/sendEmail");
     const result = await sendEmail({
       email: user.email,
       subject: "🔐 Password Reset Request - Catherine's Oasis",
@@ -387,7 +389,7 @@ const resetPassword = async (req, res) => {
     if (!user) {
       console.log("❌ DEBUG - No user found with this token");
 
-      // Check kung may user na may ganitong token kahit expired
+      // Check if there's a user with this token even if expired
       const expiredUser = await User.findOne({
         resetPasswordToken: hashedToken,
       });
@@ -486,6 +488,207 @@ const getUserById = async (req, res) => {
   }
 };
 
+// ============================================
+// GOOGLE LOGIN - Handle Google OAuth callback
+// ============================================
+const googleLogin = async (req, res) => {
+  try {
+    // This will be called after Google OAuth success
+    const { id, email, name, picture } = req.user;
+    
+    // Check if user exists
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Create new user from Google data
+      user = new User({
+        name,
+        email,
+        googleId: id,
+        googleAvatar: picture,
+        role: 'customer',
+        isEmailVerified: true,
+        password: await bcrypt.hash(crypto.randomBytes(20).toString('hex'), 10)
+      });
+      await user.save();
+    } else {
+      // Update Google info if existing user
+      user.googleId = id;
+      user.googleAvatar = picture;
+      user.isEmailVerified = true;
+      await user.save();
+    }
+    
+    // Generate JWT
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "7d" }
+    );
+    
+    // 🔴 FIX: Redirect to frontend with token in URL
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendURL}/oauth-redirect?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.googleAvatar || user.avatar,
+      googleId: user.googleId
+    }))}`);
+    
+  } catch (error) {
+    console.error("Google login error:", error);
+    res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=google_auth_failed`);
+  }
+};
+
+// ============================================
+// GET PROFILE - Get current user profile
+// ============================================
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================================
+// UPDATE PROFILE - COMPLETE DEBUG VERSION
+// ============================================
+const updateProfile = async (req, res) => {
+  console.log("\n========== 🔍 PROFILE UPDATE DEBUG START ==========");
+  
+  try {
+    // 1. Check if user exists in request
+    console.log("1. req.user:", req.user);
+    if (!req.user) {
+      console.log("❌ No user in request - token missing or invalid");
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
+    // 2. Check request body
+    console.log("2. req.body:", req.body);
+    console.log("2a. req.body.name:", req.body.name);
+    console.log("2b. req.body.phone:", req.body.phone);
+    console.log("2c. req.body.address:", req.body.address);
+
+    // 3. Check file upload
+    console.log("3. req.file:", req.file);
+    if (req.file) {
+      console.log("3a. File details:", {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      });
+    }
+
+    // 4. Get user ID
+    const userId = req.user.id;
+    console.log("4. User ID from token:", userId);
+
+    // 5. Prepare update data
+    const updateData = {};
+    
+    if (req.body.name !== undefined) {
+      updateData.name = req.body.name;
+      console.log("5a. Adding name to update:", req.body.name);
+    }
+    
+    if (req.body.phone !== undefined) {
+      updateData.phone = req.body.phone;
+      console.log("5b. Adding phone to update:", req.body.phone);
+    }
+    
+    if (req.body.address !== undefined) {
+      updateData.address = req.body.address;
+      console.log("5c. Adding address to update:", req.body.address);
+    }
+    
+    // Add avatar if uploaded
+    if (req.file) {
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      updateData.avatar = avatarUrl;
+      console.log("5d. Adding avatar to update:", avatarUrl);
+    }
+
+    console.log("6. Final updateData:", updateData);
+
+    // 6. Check if there's anything to update
+    if (Object.keys(updateData).length === 0) {
+      console.log("❌ No data to update");
+      return res.status(400).json({ message: "No data provided to update" });
+    }
+
+    // 7. Find and update user
+    console.log("7. Attempting to find user with ID:", userId);
+    const existingUser = await User.findById(userId);
+    
+    if (!existingUser) {
+      console.log("❌ User not found in database");
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    console.log("7a. Found user:", {
+      id: existingUser._id,
+      name: existingUser.name,
+      email: existingUser.email
+    });
+
+    // 8. Perform update
+    console.log("8. Updating user with:", updateData);
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    console.log("8a. Update result:", updatedUser ? "✅ Success" : "❌ Failed");
+    
+    if (!updatedUser) {
+      console.log("❌ Update returned null");
+      return res.status(500).json({ message: "Update failed" });
+    }
+
+    console.log("9. Updated user data:", {
+      id: updatedUser._id,
+      name: updatedUser.name,
+      phone: updatedUser.phone,
+      address: updatedUser.address,
+      avatar: updatedUser.avatar
+    });
+
+    console.log("========== ✅ PROFILE UPDATE SUCCESS ==========\n");
+    
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error("\n========== ❌ PROFILE UPDATE ERROR ==========");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    if (error.code) console.error("Error code:", error.code);
+    console.error("========================================\n");
+    
+    res.status(500).json({ 
+      message: error.message || "Failed to update profile"
+    });
+  }
+};
+
+// ============================================
+// EXPORT ALL FUNCTIONS
+// ============================================
 module.exports = {
   register,
   login,
@@ -495,4 +698,7 @@ module.exports = {
   getUserById,
   forgotPassword,
   resetPassword,
+  googleLogin,
+  getProfile,
+  updateProfile
 };

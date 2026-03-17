@@ -1,0 +1,408 @@
+/* PC View specific styles */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* User Profile Button */
+.user-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 40px;
+}
+
+.user-name {
+  font-size: 1rem;
+  font-weight: 500;  
+  color: #333;
+  white-space: nowrap;
+}
+
+/* Avatar with Arrow */
+.avatar-with-indicator {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-initials {
+  color: #666;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+/* Arrow inside avatar */
+.avatar-arrow {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  background: white;
+  border: 2px solid white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6px;
+  color: #333;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Auth Buttons */
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.login-link {
+  text-decoration: none;
+  color: #666;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.register-link {
+  text-decoration: none;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 4px 16px;
+  background: #3b82f6;
+  border-radius: 30px;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.register-link:hover {
+  background: #2563eb;
+}
+
+.dashboard-link {
+  text-decoration: none;
+  color: #333;
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 30px;
+  white-space: nowrap;
+}
+
+/* Dropdown Container */
+.dropdown-container {
+  position: relative;
+}
+
+/* PC Dropdowns */
+.pc-dropdown {
+  position: absolute;
+  top: 45px;
+  right: 0;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  animation: fadeIn 0.2s ease;
+  overflow: hidden;
+}
+
+.main-dropdown {
+  width: 220px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 0.9rem;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-decoration: none;
+}
+
+.dropdown-item:hover {
+  background: #f8f8f8;
+}
+
+.dropdown-item.logout {
+  color: #dc2626;
+}
+
+.dropdown-icon {
+  width: 20px;
+  font-size: 1rem;
+  color: #999;
+}
+
+/* PC View Dropdown */
+.view-dropdown {
+  width: 300px;
+  padding: 16px;
+}
+
+.view-dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.view-dropdown-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.view-dropdown-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.view-dropdown-avatar span {
+  font-size: 24px;
+  color: #666;
+}
+
+.view-dropdown-info {
+  flex: 1;
+}
+
+.view-dropdown-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.view-dropdown-email {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.view-dropdown-detail {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-icon {
+  width: 24px;
+  font-size: 1.1rem;
+}
+
+.detail-text {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.view-dropdown-google {
+  margin: 16px 0;
+  padding: 8px;
+  background: #f0f0f0;
+  border-radius: 20px;
+  color: #666;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.view-dropdown-actions {
+  margin-top: 16px;
+}
+
+.view-dropdown-edit-btn {
+  width: 100%;
+  padding: 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.view-dropdown-edit-btn:hover {
+  background: #f5f5f5;
+}
+
+/* PC Edit Dropdown */
+.edit-dropdown {
+  width: 320px;
+}
+
+.edit-dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.edit-dropdown-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.edit-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #999;
+  padding: 4px;
+}
+
+.edit-dropdown-content {
+  padding: 16px;
+}
+
+.edit-avatar-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.edit-avatar {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.edit-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.edit-avatar span {
+  font-size: 28px;
+  color: #666;
+}
+
+.edit-avatar-btn {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 30px;
+  padding: 4px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.edit-field {
+  margin-bottom: 16px;
+}
+
+.edit-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #999;
+  margin-bottom: 4px;
+}
+
+.edit-field input,
+.edit-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.edit-field input:disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.edit-cancel,
+.edit-save {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.edit-cancel {
+  background: white;
+  border: 1px solid #ddd;
+  color: #666;
+}
+
+.edit-save {
+  background: #3b82f6;
+  border: none;
+  color: white;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 768px) {
+  .pc-dropdown {
+    display: none;
+  }
+}

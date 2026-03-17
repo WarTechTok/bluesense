@@ -1,11 +1,8 @@
 // backend/scripts/createAdmin.js
 // ============================================
-// SEED SCRIPT - gumagawa ng unang admin account
-// ============================================
-// Run: node scripts/createAdmin.js
+// DEBUG VERSION - shows exactly what's in database
 // ============================================
 
-// Para siguradong tama ang path ng .env kahit saan ka mag-run
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -13,73 +10,100 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const User = require("../models/User");
 
-// Debug: tingnan kung na-load ang .env
 console.log("🔍 Current directory:", __dirname);
-console.log("🔍 Looking for .env at:", path.join(__dirname, '..', '.env'));
 console.log("🔍 MONGO_URI:", process.env.MONGO_URI ? "✅ FOUND" : "❌ NOT FOUND");
 
-// Admin details - PWEDE MO BAGUHIN ITO
-const adminData = {
-  name: "Admin User",
-  email: "admin@bluesense.com",
-  password: "admin123",
-  role: "admin"
-};
-
-const createAdmin = async () => {
+const debugDatabase = async () => {
   try {
-    if (!process.env.MONGO_URI) {
-      throw new Error("❌ MONGO_URI is not defined in .env file");
-    }
-
     console.log("🔄 Connecting to MongoDB...");
-    
-    // Connect to database
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ Connected to MongoDB");
 
-    // Check kung may admin na
-    const existingAdmin = await User.findOne({ role: "admin" });
-    if (existingAdmin) {
-      console.log("⚠️ Admin already exists!");
-      console.log("──────────────────────────");
-      console.log(`   Name: ${existingAdmin.name}`);
-      console.log(`   Email: ${existingAdmin.email}`);
-      console.log(`   Role: ${existingAdmin.role}`);
-      console.log("──────────────────────────");
-      console.log("No new admin created.");
-      process.exit(0);
+    // 🔍 DEBUG: Show database name
+    const dbName = mongoose.connection.name;
+    console.log(`📊 Database name: ${dbName}`);
+
+    // 🔍 DEBUG: List all collections
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log("📚 Collections in database:", collections.map(c => c.name));
+
+    // 🔍 DEBUG: Check if 'users' collection exists
+    if (collections.some(c => c.name === 'users')) {
+      console.log("✅ 'users' collection exists");
+      
+      // 🔍 DEBUG: Count all users
+      const userCount = await User.countDocuments({});
+      console.log(`📊 Total users in collection: ${userCount}`);
+
+      if (userCount > 0) {
+        // 🔍 DEBUG: Show all users
+        const allUsers = await User.find({}).select('-password');
+        console.log("📋 All users in database:");
+        allUsers.forEach((user, index) => {
+          console.log(`   ${index + 1}. ${user.name} (${user.email}) [${user.role}]`);
+        });
+
+        // 🔍 DEBUG: Check for admin specifically
+        const admin = await User.findOne({ role: "admin" });
+        if (admin) {
+          console.log("⚠️ ADMIN FOUND:");
+          console.log(`   Name: ${admin.name}`);
+          console.log(`   Email: ${admin.email}`);
+        } else {
+          console.log("✅ No admin user found - ready to create!");
+          
+          // Create admin since none exists
+          console.log("🔄 Creating admin user...");
+          const hashedPassword = await bcrypt.hash("admin123", 10);
+          const newAdmin = await User.create({
+            name: "Admin User",
+            email: "admin@bluesense.com",
+            password: hashedPassword,
+            role: "admin"
+          });
+          console.log("✅ Admin created successfully!");
+          console.log(`   Name: ${newAdmin.name}`);
+          console.log(`   Email: ${newAdmin.email}`);
+        }
+      } else {
+        console.log("📭 Users collection is EMPTY - creating admin...");
+        
+        // Create admin since collection is empty
+        const hashedPassword = await bcrypt.hash("admin123", 10);
+        const newAdmin = await User.create({
+          name: "Admin User",
+          email: "admin@bluesense.com",
+          password: hashedPassword,
+          role: "admin"
+        });
+        console.log("✅ Admin created successfully!");
+        console.log(`   Name: ${newAdmin.name}`);
+        console.log(`   Email: ${newAdmin.email}`);
+      }
+    } else {
+      console.log("❌ 'users' collection does NOT exist yet");
+      console.log("🔄 Creating users collection and admin...");
+      
+      // Create admin (will auto-create collection)
+      const hashedPassword = await bcrypt.hash("admin123", 10);
+      const newAdmin = await User.create({
+        name: "Admin User",
+        email: "admin@bluesense.com",
+        password: hashedPassword,
+        role: "admin"
+      });
+      console.log("✅ Admin created successfully!");
+      console.log(`   Name: ${newAdmin.name}`);
+      console.log(`   Email: ${newAdmin.email}`);
     }
-
-    // I-hash ang password
-    const hashedPassword = await bcrypt.hash(adminData.password, 10);
-
-    // Gumawa ng admin user
-    const admin = await User.create({
-      name: adminData.name,
-      email: adminData.email,
-      password: hashedPassword,
-      role: adminData.role
-    });
-
-    console.log("✅ Admin created successfully!");
-    console.log("──────────────────────────");
-    console.log(`   Name: ${admin.name}`);
-    console.log(`   Email: ${admin.email}`);
-    console.log(`   Password: ${adminData.password}`);
-    console.log(`   Role: ${admin.role}`);
-    console.log("──────────────────────────");
-    console.log("You can now login with these credentials.");
 
   } catch (error) {
     console.error("❌ Error:", error.message);
   } finally {
-    // I-disconnect sa database
     await mongoose.disconnect();
     console.log("🔌 Disconnected from MongoDB");
     process.exit();
   }
 };
 
-// I-run ang function
-createAdmin();
+debugDatabase();
