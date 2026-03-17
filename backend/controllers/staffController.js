@@ -1,5 +1,5 @@
 const Staff = require('../models/Staff');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 
 /**
  * Staff Controller

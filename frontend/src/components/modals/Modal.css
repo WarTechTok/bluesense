@@ -264,7 +264,7 @@ textarea.edit-input {
 
 /* Confirmation Modal */
 .confirm-modal {
-  max-width: 400px;
+  max-width: 320px;  /* Reduced from 400px */
 }
 
 .confirm-avatar-preview {
@@ -548,11 +548,11 @@ textarea.edit-input {
 }
 
 .modal-action-btn {
-  flex: 1;  /* Both buttons take equal space */
-  padding: 16px 0;
+  flex: 1;
+  padding: 14px 0;  /* Slightly reduced from 16px */
   background: white;
   border: none;
-  font-size: 15px;
+  font-size: 14px;  /* Slightly smaller */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -887,14 +887,19 @@ body.modal-open {
 
 /* Confirmation Modal */
 .confirm-modal .modal-body {
-  padding: 24px;
+  padding: 16px 20px;  /* Reduced padding */
+}
+
+
+.confirm-modal .modal-header {
+  padding: 16px 20px;  /* Reduced padding */
 }
 
 .confirm-text {
   text-align: center;
   color: #4b5563;
-  font-size: 16px;
-  margin: 20px 0;
+  font-size: 15px;  /* Slightly smaller */
+  margin: 8px 0;    /* Reduced margin */
 }
 
 .confirm-avatar-preview {
@@ -911,6 +916,7 @@ body.modal-open {
   border: 3px solid #e5e7eb;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
+
 
 /* Animations */
 @keyframes fadeIn {

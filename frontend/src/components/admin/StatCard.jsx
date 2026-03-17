@@ -1,9 +1,9 @@
 // ============================================
-// STAT CARD COMPONENT
+// STAT CARD COMPONENT - Professional Version
 // ============================================
 // Reusable statistics card for dashboard display
-// Shows: title, large value, icon, and optional trend indicator
-// Props: title, value, icon, color (default #667eea), trend
+// Shows: title, large value, and optional trend indicator
+// Props: title, value, trend
 // Used in: Dashboard overview and analytics pages
 
 import React from 'react';
@@ -15,18 +15,19 @@ import './StatCard.css';
 // Props:
 //   - title: Card heading (e.g., "Total Reservations")
 //   - value: Main statistic number/text to display
-//   - icon: Emoji or text icon for visual identification
-//   - color: Border & icon background color (hex color code)
 //   - trend: Optional object {type: 'up'|'down', text: string}
-// Returns: Styled card with icon, title, and value
-const StatCard = ({ title, value, icon, color = '#667eea', trend = null }) => {
+// Returns: Clean, minimal card with title and value
+const StatCard = ({ title, value, trend = null }) => {
   return (
-    <div className="stat-card" style={{ borderLeftColor: color }}>
-      <div className="stat-icon" style={{ backgroundColor: color }}>{icon}</div>
+    <div className="stat-card">
       <div className="stat-content">
-        <h3 className="stat-title">{title}</h3>
-        <p className="stat-value">{value}</p>
-        {trend && <span className={`stat-trend ${trend.type}`}>{trend.text}</span>}
+        <span className="stat-title">{title}</span>
+        <span className="stat-value">{value}</span>
+        {trend && (
+          <span className={`stat-trend ${trend.type}`}>
+            {trend.type === 'up' ? '↑' : '↓'} {trend.text}
+          </span>
+        )}
       </div>
     </div>
   );
