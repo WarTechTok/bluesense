@@ -52,7 +52,10 @@ function Login() {
 
         const userRole = data.user.role;
 
-        if (userRole === "admin" || userRole === "staff") {
+        // Role-based redirect
+        if (userRole === "admin") {
+          navigate("/admin/dashboard");
+        } else if (userRole === "staff") {
           navigate("/dashboard");
         } else {
           navigate("/");
@@ -78,7 +81,7 @@ function Login() {
 
   return (
     <div className="login-container">
-      {/* Logo at top left - bigger, no text */}
+      {/* Logo at top left */}
       <Link to="/" className="login-logo-link">
         <img
           src="/images/logo/Logo-NoBackground.png"
