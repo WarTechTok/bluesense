@@ -1,8 +1,17 @@
 // src/components/modals/LogoutConfirmModal.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import './Modal.css';
 
 function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => document.body.classList.remove('modal-open');
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -17,18 +26,11 @@ function LogoutConfirmModal({ isOpen, onClose, onConfirm }) {
           <p className="confirm-text">Are you sure you want to sign out?</p>
         </div>
         
-        {/* 🔴 FIXED: Full width buttons at bottom */}
         <div className="modal-actions">
-          <button 
-            className="modal-action-btn cancel" 
-            onClick={onClose}
-          >
+          <button className="modal-action-btn cancel" onClick={onClose}>
             Cancel
           </button>
-          <button 
-            className="modal-action-btn confirm" 
-            onClick={onConfirm}
-          >
+          <button className="modal-action-btn confirm" onClick={onConfirm}>
             Confirm
           </button>
         </div>

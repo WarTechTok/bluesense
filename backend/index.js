@@ -13,9 +13,19 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const fs = require('fs');
 
+require("dotenv").config({ path: path.join(__dirname, ".env") });
 const readingRoutes = require("./routes/readings.js");
 const authRoutes = require("./routes/auth.js");
 const bookingRoutes = require("./routes/bookings.js");
+
+// Admin Dashboard Routes
+const dashboardRoutes = require("./routes/dashboard.js");
+const roomRoutes = require("./routes/rooms.js");
+const reservationRoutes = require("./routes/reservations.js");
+const inventoryRoutes = require("./routes/inventory.js");
+const staffRoutes = require("./routes/staff.js");
+const salesRoutes = require("./routes/sales.js");
+const reportRoutes = require("./routes/reports.js");
 
 const app = express();
 
@@ -68,12 +78,30 @@ app.use(passport.initialize());
 // ============================================
 // ROUTES
 // ============================================
+// ============================================
+// LOGGING MIDDLEWARE - track all requests
+// ============================================
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.path}`);
+  next();
+});
+
+// Routes
 app.use("/api", readingRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 
+// Admin Dashboard API Routes (KEEP PAUIG'S ROUTES)
+app.use("/api/admin/dashboard", dashboardRoutes);
+app.use("/api/admin/rooms", roomRoutes);
+app.use("/api/admin/reservations", reservationRoutes);
+app.use("/api/admin/inventory", inventoryRoutes);
+app.use("/api/admin/staff", staffRoutes);
+app.use("/api/admin/sales", salesRoutes);
+app.use("/api/admin/reports", reportRoutes);
+
 // ============================================
-// DATABASE CONNECTION - FIXED!
+// DATABASE CONNECTION - KEEP YOUR VERSION!
 // ============================================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
