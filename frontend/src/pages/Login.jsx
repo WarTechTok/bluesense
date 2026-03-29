@@ -56,7 +56,7 @@ function Login() {
         if (userRole === "admin") {
           navigate("/admin/dashboard");
         } else if (userRole === "staff") {
-          navigate("/dashboard");
+          navigate("/staff/dashboard");
         } else {
           navigate("/");
         }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import * as adminApi from '../../services/admin/adminApi';
+import { validateRoom } from '../../utils/adminValidation';
 import './ManagementPages.css';
 
 const RoomManagement = () => {
@@ -64,26 +65,11 @@ const RoomManagement = () => {
   const handleSubmit = async () => {
     try {
       // ============================================
-      // FORM VALIDATION
+      // FORM VALIDATION USING UTILITY
       // ============================================
-      if (!formData.name || formData.name.trim() === '') {
-        alert('❌ Room Name is required');
-        return;
-      }
-      if (!formData.capacity || formData.capacity === '') {
-        alert('❌ Capacity is required');
-        return;
-      }
-      if (parseInt(formData.capacity) <= 0) {
-        alert('❌ Capacity must be greater than 0');
-        return;
-      }
-      if (!formData.price || formData.price === '') {
-        alert('❌ Price per Night is required');
-        return;
-      }
-      if (parseInt(formData.price) < 0) {
-        alert('❌ Price cannot be negative');
+      const validation = validateRoom(formData);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
 
@@ -226,7 +212,7 @@ const RoomManagement = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
       >
-        <form className="form">
+        <form className="form landscape">
           <div className="form-group">
             <label>Room Name *</label>
             <input

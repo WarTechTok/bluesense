@@ -7,6 +7,7 @@ export const OASIS1_PACKAGES = [
   {
     id: "package-1",
     name: "Package 1",
+    image: "/images/hero/oasis1-package-1.jpg",
     subtitle: "No Room — Cottage Only",
     capacity: "Up to 20 pax",
     inclusions: [
@@ -30,6 +31,7 @@ export const OASIS1_PACKAGES = [
   {
     id: "package-2",
     name: "Package 2",
+    image: "/images/hero/oasis1-package-2.jpg",
     subtitle: "1 AC Superior Room",
     capacity: "2–4 sleeping capacity",
     inclusions: [
@@ -55,6 +57,7 @@ export const OASIS1_PACKAGES = [
   },
   {
     id: "package-3",
+    image: "/images/hero/oasis1-package-3.jpg",
     name: "Package 3",
     subtitle: "1 AC Family Room",
     capacity: "8–12 sleeping capacity",
@@ -81,6 +84,7 @@ export const OASIS1_PACKAGES = [
   },
   {
     id: "package-4",
+    image: "/images/hero/oasis1-package-4.jpg",
     name: "Package 4",
     subtitle: "2 AC Rooms",
     capacity: "12–15 sleeping capacity",
@@ -106,6 +110,7 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
+    image: "/images/hero/oasis2-package-a.jpg",
     id: "package-5",
     name: "Package 5",
     subtitle: "4 AC Rooms",
@@ -132,6 +137,7 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
+    image: "/images/hero/oasis1-package-5plus.jpg",
     id: "package-5plus",
     name: "Package 5+",
     subtitle: "4 AC Rooms — Large Group",
@@ -160,7 +166,8 @@ export const OASIS1_PACKAGES = [
 ];
 
 export const OASIS2_PACKAGES = [
-  {
+  {image: "/images/hero/Oasis2 Package A.jpg",
+    
     id: "package-a",
     name: "Package A",
     subtitle: "No Room",
@@ -183,6 +190,7 @@ export const OASIS2_PACKAGES = [
   {
     id: "package-b",
     name: "Package B",
+    image: "/images/hero/oasis2-package-b.jpg",
     subtitle: "1 AC Family Room",
     capacity: "Up to 30 pax",
     inclusions: [
@@ -205,6 +213,7 @@ export const OASIS2_PACKAGES = [
   {
     id: "package-c",
     name: "Package C",
+    image: "/images/hero/oasis2-package-c.jpg",
     subtitle: "Events — Large Group",
     capacity: "50–100 pax",
     inclusions: [

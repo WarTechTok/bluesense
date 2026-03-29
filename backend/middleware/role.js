@@ -19,21 +19,46 @@ const jwt = require('jsonwebtoken');
 exports.authenticate = (req, res, next) => {
   try {
     // Extract token from Authorization header (format: "Bearer TOKEN")
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'No token provided' });
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+      return res.status(401).json({ error: 'No authorization header provided' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token found in authorization header' });
+    }
 
     // Verify token with secret key
-    const secretKey = process.env.JWT_SECRET || 'your_jwt_secret_key_bluesense_2026';
-    console.log(`🔐 JWT Verification: SECRET_KEY=${secretKey}, TOKEN_LENGTH=${token.length}`);
+    const secretKey = process.env.JWT_SECRET || 'your_jwt_secret_key';
+    console.log(`🔐 JWT Verification: TOKEN_LENGTH=${token.length}, SECRET_SET=${!!process.env.JWT_SECRET}`);
     
-    const decoded = jwt.verify(token, secretKey);
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secretKey);
+    } catch (jwtError) {
+      console.error(`❌ JWT Verification Failed: ${jwtError.message}`);
+      console.error(`   Token: ${token.substring(0, 50)}...`);
+      console.error(`   Secret Key Used: ${secretKey === 'your_jwt_secret_key' ? 'DEFAULT (PROBLEM!)' : 'FROM .env'}`);
+      
+      if (jwtError.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token has expired' });
+      } else if (jwtError.name === 'JsonWebTokenError') {
+        return res.status(401).json({ error: 'Invalid token signature' });
+      } else {
+        return res.status(401).json({ error: `JWT Error: ${jwtError.message}` });
+      }
+    }
     
     // Attach decoded user info to request object for use in controllers
-    req.user = decoded; // Contains: _id, email, role, etc.
+    req.user = decoded; // Contains: id, email, role, etc.
+    console.log(`✅ Token verified for user: ${decoded.email} [role: ${decoded.role}]`);
     next();
   } catch (error) {
-    console.error(`❌ JWT Error: ${error.message}`);
-    res.status(401).json({ error: 'Invalid token' });
+    console.error(`❌ Unexpected Error in authenticate: ${error.message}`);
+    res.status(401).json({ error: `Authentication error: ${error.message}` });
   }
 };
 

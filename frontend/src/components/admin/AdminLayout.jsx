@@ -30,7 +30,7 @@ const AdminLayout = ({ children }) => {
     { id: 'rooms', label: 'Rooms', icon: '🏠', path: '/admin/rooms' },
     { id: 'reservations', label: 'Reservations', icon: '📅', path: '/admin/reservations' },
     { id: 'inventory', label: 'Inventory', icon: '📦', path: '/admin/inventory' },
-    { id: 'staff', label: 'Staff', icon: '👥', path: '/admin/staff' },
+    { id: 'staff', label: 'User', icon: '👥', path: '/admin/staff' },
     { id: 'sales', label: 'Sales', icon: '💰', path: '/admin/sales' },
     { id: 'reports', label: 'Reports', icon: '📄', path: '/admin/reports' },
   ];

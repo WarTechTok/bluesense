@@ -13,7 +13,7 @@
 .page-header h1 {
   margin: 0;
   font-size: 28px;
-  color: #212529;
+  color: #1F2937;
   font-weight: 700;
 }
 
@@ -29,23 +29,24 @@
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #2563EB;
   color: white;
 }
 
 .btn-primary:hover {
+  background: #1E40AF;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-secondary {
-  background-color: #e9ecef;
-  color: #212529;
+  background-color: #F3F4F6;
+  color: #1F2937;
   margin-left: 10px;
 }
 
 .btn-secondary:hover {
-  background-color: #dee2e6;
+  background-color: #E5E7EB;
 }
 
 .alert {
@@ -81,26 +82,28 @@
   display: flex;
   gap: 15px;
   align-items: center;
+  border: 1px solid #E5E7EB;
 }
 
 .filter-section label {
   font-weight: 600;
-  color: #212529;
+  color: #1F2937;
 }
 
 .filter-section select,
 .filter-section input {
   padding: 8px 12px;
-  border: 1px solid #dee2e6;
+  border: 1px solid #D1D5DB;
   border-radius: 6px;
   font-size: 14px;
+  color: #1F2937;
 }
 
 .filter-section select:focus,
 .filter-section input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* Sales Tracking */
@@ -115,14 +118,15 @@
   background: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   text-align: center;
+  border: 1px solid #E5E7EB;
 }
 
 .summary-card h3 {
   margin: 0 0 10px 0;
   font-size: 14px;
-  color: #6c757d;
+  color: #6B7280;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -131,20 +135,21 @@
   margin: 0;
   font-size: 28px;
   font-weight: 700;
-  color: #667eea;
+  color: #2563EB;
 }
 
 .sales-table-container {
   background: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid #E5E7EB;
 }
 
 .sales-table-container h3 {
   margin: 0 0 20px 0;
   font-size: 18px;
-  color: #212529;
+  color: #1F2937;
 }
 
 .sales-table {

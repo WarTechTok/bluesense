@@ -30,4 +30,19 @@ router.get('/daily-chart', authenticate, dashboardController.getDailyChartData);
  */
 router.get('/monthly-chart', authenticate, dashboardController.getMonthlyChartData);
 
+/**
+ * GET /api/admin/dashboard/staff-inspections
+ * Fetches all staff inspection records
+ * Query params: staffId, roomId, status, startDate, endDate
+ * Auth: Admin Required
+ */
+router.get('/staff-inspections', authenticate, authorize('admin'), dashboardController.getStaffInspections);
+
+/**
+ * GET /api/admin/dashboard/staff-inspections/:inspectionId
+ * Fetches a specific staff inspection record detail
+ * Auth: Admin Required
+ */
+router.get('/staff-inspections/:inspectionId', authenticate, authorize('admin'), dashboardController.getStaffInspectionDetails);
+
 module.exports = router;

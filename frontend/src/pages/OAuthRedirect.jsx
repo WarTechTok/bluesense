@@ -31,8 +31,10 @@ function OAuthRedirect() {
         console.log('💾 Saved in localStorage:', savedUser);
 
         // Redirect based on role
-        if (user.role === 'admin' || user.role === 'staff') {
-          navigate('/dashboard');
+        if (user.role === 'admin') {
+          navigate('/admin/dashboard');
+        } else if (user.role === 'staff') {
+          navigate('/staff/dashboard');
         } else {
           navigate('/');
         }

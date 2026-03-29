@@ -27,6 +27,9 @@ const staffRoutes = require("./routes/staff.js");
 const salesRoutes = require("./routes/sales.js");
 const reportRoutes = require("./routes/reports.js");
 
+// Staff Dashboard Routes
+const staffDashboardRoutes = require("./routes/staffDashboard.js");
+
 const app = express();
 
 // Middleware
@@ -99,6 +102,9 @@ app.use("/api/admin/inventory", inventoryRoutes);
 app.use("/api/admin/staff", staffRoutes);
 app.use("/api/admin/sales", salesRoutes);
 app.use("/api/admin/reports", reportRoutes);
+
+// Staff Dashboard API Routes
+app.use("/api/staff/dashboard", staffDashboardRoutes);
 
 // ============================================
 // DATABASE CONNECTION - KEEP YOUR VERSION!

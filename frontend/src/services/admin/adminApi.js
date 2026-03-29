@@ -22,7 +22,7 @@ const API_BASE_URL = 'http://localhost:8080/api/admin';
 // ============================================
 // Retrieves JWT token stored during login
 // Used by Axios interceptor to authorize requests
-const getAuthToken = () => localStorage.getItem('authToken');
+const getAuthToken = () => localStorage.getItem('token');
 
 // ============================================
 // AXIOS INSTANCE CONFIGURATION
@@ -263,6 +263,38 @@ export const getAllReservations = async () => {
     return res.data;
   } catch (error) {
     console.error('Error fetching reservations:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// CREATE RESERVATION
+// ============================================
+// Params: reservationData - {room, guestName, guestEmail, checkIn, checkOut, bookingDetails}
+// Returns: Newly created reservation object with Pending status
+// Requires: Admin role
+export const createReservation = async (reservationData) => {
+  try {
+    const res = await apiClient.post('/reservations', reservationData);
+    return res.data;
+  } catch (error) {
+    console.error('Error creating reservation:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// UPDATE RESERVATION
+// ============================================
+// Params: id - Reservation MongoDB _id, reservationData - fields to update
+// Returns: Updated reservation object
+// Requires: Admin role
+export const updateReservation = async (id, reservationData) => {
+  try {
+    const res = await apiClient.put(`/reservations/${id}`, reservationData);
+    return res.data;
+  } catch (error) {
+    console.error('Error updating reservation:', error);
     throw error;
   }
 };
@@ -704,6 +736,19 @@ export const exportReportAsJSON = async (reportType, startDate, endDate) => {
     return res.data;
   } catch (error) {
     console.error('Error exporting report:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// DEBUG - VERIFY ADMIN TOKEN
+// ============================================
+export const debugVerifyAdminToken = async () => {
+  try {
+    const res = await apiClient.get('/staff/debug/verify-token');
+    return res.data;
+  } catch (error) {
+    console.error('Token verification failed:', error);
     throw error;
   }
 };

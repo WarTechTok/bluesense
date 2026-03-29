@@ -11,6 +11,28 @@ const staffController = require('../controllers/staffController');
 const { authenticate, authorize } = require('../middleware/role');
 
 // ============================================
+// DEBUG - TOKEN VERIFICATION (remove after testing)
+// ============================================
+router.get('/debug/verify-token', authenticate, (req, res) => {
+  res.json({
+    message: '✅ Token is valid!',
+    decoded: {
+      id: req.user.id,
+      email: req.user.email,
+      role: req.user.role,
+      all_fields: req.user
+    },
+    isAdmin: req.user.role === 'admin',
+    roleComparison: {
+      token_role: req.user.role,
+      expected_roles: ['admin', 'staff', 'customer'],
+      is_admin_check: req.user.role === 'admin',
+      will_pass_authorize_admin: req.user.role === 'admin'
+    }
+  });
+});
+
+// ============================================
 // GET ALL STAFF - retrieve all staff accounts (Admin only)
 // ============================================
 router.get('/', authenticate, authorize('admin'), staffController.getAllStaff);

@@ -143,6 +143,17 @@ function Home() {
         </div>
       </section>
 
+      {/* CTA Section */}
+      <section className="cta-section">
+        <div className="container">
+          <h2 className="cta-title">Ready to Book Your Stay?</h2>
+          <p className="cta-text">
+            Choose your preferred oasis and package, then complete your reservation
+          </p>
+          <a href="#oasis1" className="cta-btn">View Packages</a>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

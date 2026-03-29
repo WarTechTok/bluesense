@@ -22,6 +22,19 @@ function PackageCard({ pkg, oasis }) {
   return (
     <div className="package-card">
 
+      {/* ── Package Image ── */}
+      {pkg.image && (
+        <div className="package-card-image">
+          <img 
+            src={pkg.image} 
+            alt={pkg.name}
+            onError={(e) => {
+              e.target.src = `https://via.placeholder.com/400x300?text=${encodeURIComponent(pkg.name)}`;
+            }}
+          />
+        </div>
+      )}
+
       {/* ── Header ── */}
       <div className="package-card-header">
         <div>

@@ -7,6 +7,12 @@ const mongoose = require('mongoose');
  * Items include: Chlorine, pH solution, cleaning brushes, pool filters, testing kits
  */
 const InventorySchema = new mongoose.Schema({
+  itemId: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    index: true
+  }, // Auto-generated sequential ID (ITM-0001, ITM-0002, etc.)
   item: { type: String, required: true }, // Name of inventory item (e.g., "Chlorine")
   quantity: { type: Number, required: true }, // Current stock quantity
   unit: { type: String }, // Unit of measurement (e.g., "Liters", "Units", "Boxes")
@@ -15,7 +21,8 @@ const InventorySchema = new mongoose.Schema({
     date: { type: Date }, // When the item was used
     usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' }, // Staff member who used it
     quantityUsed: { type: Number } // Amount consumed
-  }]
+  }],
+  createdAt: { type: Date, default: Date.now } // Timestamp for sequential ID generation
 });
 
 module.exports = mongoose.model('Inventory', InventorySchema);

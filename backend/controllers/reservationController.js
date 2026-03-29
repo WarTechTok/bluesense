@@ -38,14 +38,48 @@ exports.getReservationById = async (req, res) => {
 /**
  * POST /api/admin/reservations
  * Create a new reservation (initially in Pending status)
+ * Validation: guestName and guestEmail required, checkOut must be after checkIn
  */
 exports.createReservation = async (req, res) => {
   try {
     const { room, guestName, guestEmail, checkIn, checkOut, bookingDetails } = req.body;
+
+    // ============================================
+    // BACKEND VALIDATION
+    // ============================================
+    if (!guestName || guestName.trim() === '') {
+      return res.status(400).json({ error: 'Guest Name is required' });
+    }
+    if (guestName.trim().length < 2) {
+      return res.status(400).json({ error: 'Guest Name must be at least 2 characters' });
+    }
+
+    if (!guestEmail || guestEmail.trim() === '') {
+      return res.status(400).json({ error: 'Guest Email is required' });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(guestEmail)) {
+      return res.status(400).json({ error: 'Guest Email must be valid' });
+    }
+
+    if (!checkIn) {
+      return res.status(400).json({ error: 'Check-In date is required' });
+    }
+
+    if (!checkOut) {
+      return res.status(400).json({ error: 'Check-Out date is required' });
+    }
+
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    if (checkOutDate <= checkInDate) {
+      return res.status(400).json({ error: 'Check-Out date must be after Check-In date' });
+    }
+
     const reservation = new Reservation({
       room,
-      guestName,
-      guestEmail,
+      guestName: guestName.trim(),
+      guestEmail: guestEmail.trim(),
       checkIn,
       checkOut,
       bookingDetails,
@@ -61,10 +95,52 @@ exports.createReservation = async (req, res) => {
 /**
  * PUT /api/admin/reservations/:id
  * Update reservation details (Admin only)
+ * Validation: guestEmail must be valid, checkOut must be after checkIn
  */
 exports.updateReservation = async (req, res) => {
   try {
-    const reservation = await Reservation.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const { guestName, guestEmail, checkIn, checkOut } = req.body;
+
+    // ============================================
+    // BACKEND VALIDATION
+    // ============================================
+    if (guestName !== undefined && guestName !== null) {
+      if (guestName.trim() === '') {
+        return res.status(400).json({ error: 'Guest Name is required' });
+      }
+      if (guestName.trim().length < 2) {
+        return res.status(400).json({ error: 'Guest Name must be at least 2 characters' });
+      }
+    }
+
+    if (guestEmail !== undefined && guestEmail !== null) {
+      if (guestEmail.trim() === '') {
+        return res.status(400).json({ error: 'Guest Email is required' });
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(guestEmail)) {
+        return res.status(400).json({ error: 'Guest Email must be valid' });
+      }
+    }
+
+    if ((checkIn !== undefined && checkIn !== null) || (checkOut !== undefined && checkOut !== null)) {
+      const reservation = await Reservation.findById(req.params.id);
+      if (!reservation) return res.status(404).json({ error: 'Reservation not found' });
+
+      const inDate = checkIn || reservation.checkIn;
+      const outDate = checkOut || reservation.checkOut;
+      const checkInDate = new Date(inDate);
+      const checkOutDate = new Date(outDate);
+      if (checkOutDate <= checkInDate) {
+        return res.status(400).json({ error: 'Check-Out date must be after Check-In date' });
+      }
+    }
+
+    const updateData = { guestName, guestEmail, checkIn, checkOut, bookingDetails: req.body.bookingDetails };
+    // Remove undefined values
+    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+
+    const reservation = await Reservation.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!reservation) return res.status(404).json({ error: 'Reservation not found' });
     res.json(reservation);
   } catch (error) {

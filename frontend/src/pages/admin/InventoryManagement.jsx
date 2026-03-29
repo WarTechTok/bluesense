@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import * as adminApi from '../../services/admin/adminApi';
+import { validateInventoryItem, validateInventoryUsage } from '../../utils/adminValidation';
 import './ManagementPages.css';
 
 const InventoryManagement = () => {
@@ -63,26 +64,11 @@ const InventoryManagement = () => {
   const handleSubmit = async () => {
     try {
       // ============================================
-      // FORM VALIDATION
+      // FORM VALIDATION USING UTILITY
       // ============================================
-      if (!formData.item || formData.item.trim() === '') {
-        alert('❌ Item Name is required');
-        return;
-      }
-      if (!formData.quantity || formData.quantity === '') {
-        alert('❌ Quantity is required');
-        return;
-      }
-      if (parseInt(formData.quantity) < 0) {
-        alert('❌ Quantity cannot be negative');
-        return;
-      }
-      if (!formData.unit || formData.unit.trim() === '') {
-        alert('❌ Unit is required');
-        return;
-      }
-      if (parseInt(formData.lowStockAlert) < 0) {
-        alert('❌ Low Stock Alert cannot be negative');
+      const validation = validateInventoryItem(formData);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
 
@@ -109,18 +95,11 @@ const InventoryManagement = () => {
   const handleSubmitUsage = async () => {
     try {
       // ============================================
-      // FORM VALIDATION
+      // FORM VALIDATION USING UTILITY
       // ============================================
-      if (!usageData.quantityUsed || usageData.quantityUsed === '') {
-        alert('❌ Quantity Used is required');
-        return;
-      }
-      if (parseInt(usageData.quantityUsed) <= 0) {
-        alert('❌ Quantity Used must be greater than 0');
-        return;
-      }
-      if (!usageData.usedBy || usageData.usedBy.trim() === '') {
-        alert('❌ Used By field is required');
+      const validation = validateInventoryUsage(usageData);
+      if (!validation.isValid) {
+        alert(validation.error);
         return;
       }
 
@@ -148,6 +127,7 @@ const InventoryManagement = () => {
   };
 
   const columns = [
+    { key: 'itemId', label: 'Item ID' },
     { key: 'item', label: 'Item Name' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'unit', label: 'Unit' },
@@ -197,7 +177,30 @@ const InventoryManagement = () => {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
       >
-        <form className="form">
+        <form className="form landscape">
+          {!editingItem && (
+            <div className="form-group">
+              <label>Item ID</label>
+              <input
+                type="text"
+                value="ITM-Auto"
+                disabled
+                style={{ backgroundColor: '#f0f0f0' }}
+              />
+              <small>Auto-generated upon save</small>
+            </div>
+          )}
+          {editingItem && (
+            <div className="form-group">
+              <label>Item ID</label>
+              <input
+                type="text"
+                value={editingItem.itemId || 'N/A'}
+                disabled
+                style={{ backgroundColor: '#f0f0f0' }}
+              />
+            </div>
+          )}
           <div className="form-group">
             <label>Item Name *</label>
             <input

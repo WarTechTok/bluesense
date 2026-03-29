@@ -1,8 +1,14 @@
+// backend/controllers/dashboardController.js
+// ============================================
+// DASHBOARD CONTROLLER - stats, chart data, and staff inspections
+// ============================================
+
 const Room = require('../models/Room');
 const Reservation = require('../models/Reservation');
 const Staff = require('../models/Staff');
 const Sale = require('../models/Sale');
 const Inventory = require('../models/Inventory');
+const InspectionRecord = require('../models/InspectionRecord');
 
 /**
  * Dashboard Controller
@@ -21,7 +27,7 @@ exports.getDashboardStats = async (req, res) => {
     const availableRooms = await Room.countDocuments({ status: 'Available' });
     const maintainanceRooms = await Room.countDocuments({ status: 'Maintenance' });
     const activeStaff = await Staff.countDocuments({ status: 'Active' });
-    
+
     // Calculate monthly revenue (from current month start to now)
     const currentMonth = new Date();
     currentMonth.setDate(1);
@@ -124,6 +130,66 @@ exports.getMonthlyChartData = async (req, res) => {
     ]);
 
     res.json(monthlySales);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/dashboard/staff-inspections
+ * Fetches all staff inspection records
+ * Query params: staffId, roomId, status, startDate, endDate
+ * Auth: Admin Required
+ */
+exports.getStaffInspections = async (req, res) => {
+  try {
+    const { staffId, roomId, status, startDate, endDate } = req.query;
+
+    const filter = {};
+
+    // Filter by staff member
+    if (staffId) filter.inspectedBy = staffId;
+
+    // Filter by room
+    if (roomId) filter.room = roomId;
+
+    // Filter by inspection status (Draft | Submitted | Reviewed | Action-Required)
+    if (status) filter.status = status;
+
+    // Filter by date range
+    if (startDate || endDate) {
+      filter.inspectionDate = {};
+      if (startDate) filter.inspectionDate.$gte = new Date(startDate);
+      if (endDate)   filter.inspectionDate.$lte = new Date(endDate);
+    }
+
+    const inspections = await InspectionRecord.find(filter)
+      .populate('inspectedBy', 'name email staffId')
+      .populate('room', 'roomNumber type status')
+      .sort({ inspectionDate: -1 }); // Most recent first
+
+    res.json(inspections);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/dashboard/staff-inspections/:inspectionId
+ * Fetches a specific staff inspection record detail
+ * Auth: Admin Required
+ */
+exports.getStaffInspectionDetails = async (req, res) => {
+  try {
+    const inspection = await InspectionRecord.findById(req.params.inspectionId)
+      .populate('inspectedBy', 'name email staffId')
+      .populate('room', 'roomNumber type status');
+
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection record not found' });
+    }
+
+    res.json(inspection);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
