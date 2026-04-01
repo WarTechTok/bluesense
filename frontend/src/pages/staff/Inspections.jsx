@@ -139,7 +139,7 @@ const Inspections = () => {
           <div className="form-section">
             <h3>Room Information</h3>
             <div className="form-group">
-              <label>Select Room *</label>
+              <label>Select Available Room *</label>
               <select
                 name="roomId"
                 value={formData.roomId}
@@ -147,13 +147,20 @@ const Inspections = () => {
                 required
                 className="form-input"
               >
-                <option value="">-- Choose a room --</option>
-                {rooms.map((room) => (
-                  <option key={room._id} value={room._id}>
-                    {room.name} - {room.type}
-                  </option>
-                ))}
+                <option value="">-- Choose an available room --</option>
+                {rooms
+                  .filter((room) => room.status === 'Available')
+                  .map((room) => (
+                    <option key={room._id} value={room._id}>
+                      {room.name} (Capacity: {room.capacity}, Status: Available)
+                    </option>
+                  ))}
               </select>
+              {rooms.filter((room) => room.status === 'Available').length === 0 && (
+                <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px' }}>
+                  ⚠️ No available rooms for inspection. All assigned rooms are either in maintenance or booked.
+                </p>
+              )}
             </div>
           </div>
 

@@ -1,0 +1,294 @@
+/* Oasis1.css */
+
+.oasis-page {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Hero Section */
+.oasis-hero {
+  background: linear-gradient(135deg, #87CEEB 0%, #B0E0E6 100%);
+  color: white;
+  padding: 120px 20px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(135, 206, 235, 0.3);
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oasis-hero .hero-content {
+  width: 100%;
+  max-width: 800px;
+}
+
+.oasis-hero .hero-content h1 {
+  font-size: 2.8rem;
+  margin: 0 0 15px;
+  animation: fadeInDown 0.8s ease;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.oasis-hero .hero-content .hero-subtitle {
+  font-size: 1.2rem;
+  opacity: 1;
+  font-weight: 500;
+  animation: fadeInUp 0.8s ease 0.2s both;
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Main Content */
+.oasis-content {
+  padding: 80px 0;
+  background: white;
+}
+
+/* Overview Section */
+.oasis-overview {
+  text-align: center;
+  margin-bottom: 60px;
+  padding: 40px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #87CEEB;
+}
+
+.oasis-overview h2 {
+  font-size: 2rem;
+  color: #1a3a52;
+  margin: 0 0 20px;
+  font-weight: 700;
+}
+
+.oasis-overview p {
+  font-size: 1rem;
+  color: #4b5563;
+  line-height: 1.8;
+  margin: 0 0 15px;
+}
+
+.oasis-overview p:last-child {
+  margin-bottom: 0;
+}
+
+/* Features Section */
+.oasis-features {
+  margin-bottom: 60px;
+}
+
+.oasis-features h2 {
+  font-size: 2rem;
+  color: #1a3a52;
+  text-align: center;
+  margin-bottom: 40px;
+  font-weight: 700;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+.feature-card {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-top: 3px solid #87CEEB;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(135, 206, 235, 0.2);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+}
+
+.feature-card h3 {
+  font-size: 1.2rem;
+  color: #1a3a52;
+  margin: 10px 0;
+  font-weight: 600;
+}
+
+.feature-card p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* Packages Section */
+.oasis-packages {
+  margin-bottom: 60px;
+}
+
+.oasis-packages h2 {
+  font-size: 2rem;
+  color: #1a3a52;
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: 700;
+}
+
+.packages-intro {
+  text-align: center;
+  font-size: 1.05rem;
+  color: #6b7280;
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.packages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+/* Why Choose Section */
+.why-choose {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  padding: 50px 40px;
+  border-radius: 8px;
+  margin-top: 60px;
+}
+
+.why-choose h2 {
+  font-size: 2rem;
+  color: #1a3a52;
+  text-align: center;
+  margin-bottom: 40px;
+  font-weight: 700;
+}
+
+.why-choose-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 30px;
+}
+
+.why-item {
+  background: white;
+  padding: 25px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.why-item h3 {
+  color: #1a3a52;
+  font-size: 1.1rem;
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+.why-item p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .oasis-hero {
+    padding: 60px 20px;
+  }
+
+  .oasis-hero .hero-content h1 {
+    font-size: 2rem;
+  }
+
+  .oasis-hero .hero-content .hero-subtitle {
+    font-size: 1rem;
+  }
+
+  .oasis-overview {
+    padding: 25px;
+  }
+
+  .oasis-features h2,
+  .oasis-packages h2,
+  .why-choose h2 {
+    font-size: 1.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .packages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .why-choose-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .oasis-hero {
+    padding: 40px 15px;
+  }
+
+  .oasis-hero .hero-content h1 {
+    font-size: 1.5rem;
+  }
+
+  .oasis-hero .hero-content .hero-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .oasis-overview {
+    padding: 20px;
+    margin-bottom: 40px;
+  }
+
+  .feature-card {
+    padding: 20px;
+  }
+
+  .why-choose {
+    padding: 30px 20px;
+  }
+}

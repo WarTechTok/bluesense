@@ -19,6 +19,12 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Home from "./pages/Home";
+import Oasis1 from "./pages/Oasis1";
+import Oasis2 from "./pages/Oasis2";
+import AboutUs from "./pages/AboutUs";
+import ContactUs from "./pages/ContactUs";
+import Gallery from "./pages/Gallery";
+import Booking from "./pages/Booking";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
 
@@ -40,6 +46,12 @@ function App() {
       <Routes>
         {/* Public Routes - Anyone can access */}
         <Route path="/" element={<Home />} />
+        <Route path="/oasis-1" element={<Oasis1 />} />
+        <Route path="/oasis-2" element={<Oasis2 />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/gallery" element={<Gallery />} />
+        <Route path="/booking" element={<Booking />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

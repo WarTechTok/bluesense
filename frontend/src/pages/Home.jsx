@@ -15,36 +15,36 @@ import 'swiper/css/effect-fade';
 import './Home.css';
 
 function Home() {
-  // Hero carousel images - just oasis1.jpg and oasis2.jpg
+  // Hero carousel images
   const heroImages = [
-  {
-    url: '/images/hero/welcome.jpg',  // Welcome/resort image
-    title: 'Welcome to Catherine\'s Oasis',
-    subtitle: 'Your premier destination for relaxation and unforgettable memories',
-    buttonText: 'Explore Packages',
-    buttonLink: '#oasis1'
-  },
-  {
-    url: '/images/hero/oasis1.jpg',  // Oasis 1 image
-    title: 'Oasis 1',
-    subtitle: 'Perfect for intimate gatherings and family outings',
-    buttonText: 'View Oasis 1 Packages',
-    buttonLink: '#oasis1'
-  },
-  {
-    url: '/images/hero/oasis2.jpg',  // Oasis 2 image
-    title: 'Oasis 2',
-    subtitle: 'Spacious grounds ideal for larger events and celebrations',
-    buttonText: 'View Oasis 2 Packages',
-    buttonLink: '#oasis2'
-  }
-];
+    {
+      url: '/images/hero/welcome.jpg',
+      title: 'Welcome to Catherine\'s Oasis',
+      subtitle: 'Your premier destination for relaxation and unforgettable memories',
+      buttonText: 'Explore Packages',
+      buttonLink: '#oasis1'
+    },
+    {
+      url: '/images/hero/oasis1.jpg',
+      title: 'Oasis 1',
+      subtitle: 'Perfect for intimate gatherings and family outings',
+      buttonText: 'View Oasis 1 Packages',
+      buttonLink: '#oasis1'
+    },
+    {
+      url: '/images/hero/oasis2.jpg',
+      title: 'Oasis 2',
+      subtitle: 'Spacious grounds ideal for larger events and celebrations',
+      buttonText: 'View Oasis 2 Packages',
+      buttonLink: '#oasis2'
+    }
+  ];
 
   return (
     <div className="home">
       <Navbar />
       
-      {/* ===== HERO CAROUSEL - ONLY IMAGES HERE ===== */}
+      {/* ===== HERO CAROUSEL ===== */}
       <section className="hero-carousel">
         <Swiper
           modules={[Navigation, Pagination, Autoplay, EffectFade]}
@@ -83,13 +83,19 @@ function Home() {
         </Swiper>
       </section>
 
-      {/* Oasis 1 Section - NO IMAGE, JUST PACKAGES */}
+      {/* Oasis 1 Section */}
       <section id="oasis1" className="oasis-section">
         <div className="container">
+          <div className="oasis-section-header">
+            <h2 className="oasis-section-title">Oasis 1</h2>
+            <p className="oasis-section-subtitle">Perfect for intimate gatherings and family outings</p>
+          </div>
+          
           <div className="oasis-header">
-            <h2 className="oasis-title">Oasis 1</h2>
-            <p className="oasis-description">
-              Perfect for intimate gatherings and family outings
+            <p className="oasis-details">
+              Oasis 1 is our cozy retreat designed for smaller groups seeking a peaceful escape. 
+              With comfortable amenities and personalized service, we ensure every moment is memorable. 
+              Ideal for family reunions, intimate celebrations, and romantic getaways.
             </p>
           </div>
           
@@ -97,7 +103,7 @@ function Home() {
             {OASIS1_PACKAGES.map((pkg) => (
               <PackageCard 
                 key={pkg.id} 
-                pkg={pkg} 
+                pkg={pkg}
                 oasis="Oasis 1"
               />
             ))}
@@ -105,13 +111,19 @@ function Home() {
         </div>
       </section>
 
-      {/* Oasis 2 Section - NO IMAGE, JUST PACKAGES */}
+      {/* Oasis 2 Section */}
       <section id="oasis2" className="oasis-section oasis-2-bg">
         <div className="container">
+          <div className="oasis-section-header">
+            <h2 className="oasis-section-title">Oasis 2</h2>
+            <p className="oasis-section-subtitle">Spacious grounds ideal for larger events and celebrations</p>
+          </div>
+          
           <div className="oasis-header">
-            <h2 className="oasis-title">Oasis 2</h2>
-            <p className="oasis-description">
-              Spacious grounds ideal for larger events and celebrations
+            <p className="oasis-details">
+              Oasis 2 boasts expansive gardens and spacious facilities perfect for large gatherings. 
+              Whether you're planning a grand celebration, corporate event, or wedding, our dedicated 
+              team will make it unforgettable. Experience luxury and comfort on a larger scale.
             </p>
           </div>
           
@@ -119,7 +131,7 @@ function Home() {
             {OASIS2_PACKAGES.map((pkg) => (
               <PackageCard 
                 key={pkg.id} 
-                pkg={pkg} 
+                pkg={pkg}
                 oasis="Oasis 2"
               />
             ))}

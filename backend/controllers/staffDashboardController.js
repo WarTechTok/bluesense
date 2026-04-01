@@ -8,6 +8,7 @@ const Notification = require('../models/Notification');
 const TaskAssignment = require('../models/TaskAssignment');
 const Staff = require('../models/Staff');
 const Room = require('../models/Room');
+const InspectionRecord = require('../models/InspectionRecord');
 const User = require('../models/User');
 
 /**
@@ -344,6 +345,164 @@ exports.getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/staff/dashboard/assigned-rooms
+ * Get all rooms assigned to the staff member (with status field for filtering)
+ */
+exports.getAssignedRooms = async (req, res) => {
+  try {
+    // Get staff record by email
+    const staff = await Staff.findOne({ email: req.user.email });
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    // Get all rooms assigned to this staff
+    const rooms = await Room.find({
+      'assignedStaff.staffId': staff._id
+    }).select('_id name capacity price status description');
+
+    res.json({
+      rooms: rooms || [],
+      count: rooms.length
+    });
+  } catch (error) {
+    console.error('Error fetching assigned rooms:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/staff/dashboard/inspections
+ * Get all inspection records created by this staff member
+ * Query: ?limit=50&skip=0
+ */
+exports.getMyInspections = async (req, res) => {
+  try {
+    const { limit = 50, skip = 0 } = req.query;
+
+    // Get staff record by email
+    const staff = await Staff.findOne({ email: req.user.email });
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    // Get all inspections created by this staff
+    const inspections = await InspectionRecord.find({
+      inspectedBy: staff._id
+    })
+      .populate('room', 'name capacity status')
+      .sort({ inspectionDate: -1 })
+      .limit(parseInt(limit))
+      .skip(parseInt(skip));
+
+    const totalCount = await InspectionRecord.countDocuments({
+      inspectedBy: staff._id
+    });
+
+    res.json({
+      inspections: inspections || [],
+      totalCount,
+      limit: parseInt(limit),
+      skip: parseInt(skip)
+    });
+  } catch (error) {
+    console.error('Error fetching inspections:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/staff/dashboard/inspections
+ * Create a new inspection record
+ * Body: { roomId, condition, cleaningNeeded, damageFound, damageDescription, itemsNeeded, notes, rating }
+ */
+exports.createInspectionRecord = async (req, res) => {
+  try {
+    const {
+      roomId,
+      condition,
+      cleaningNeeded,
+      damageFound,
+      damageDescription,
+      itemsNeeded,
+      notes,
+      rating
+    } = req.body;
+
+    // Validation
+    if (!roomId) {
+      return res.status(400).json({ error: 'Room ID is required' });
+    }
+
+    // Get staff record by email
+    const staff = await Staff.findOne({ email: req.user.email });
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    // Verify room exists and staff is assigned
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+
+    // Check if staff is assigned to this room
+    const isAssigned = room.assignedStaff.some(
+      (assignment) => assignment.staffId.toString() === staff._id.toString()
+    );
+    if (!isAssigned) {
+      return res.status(403).json({ error: 'You are not assigned to this room' });
+    }
+
+    // Create inspection record
+    const inspection = new InspectionRecord({
+      room: roomId,
+      inspectedBy: staff._id,
+      cleanliness: condition,
+      furnitureCondition: condition,
+      damageFound: damageFound === 'Yes',
+      damageDescription: damageDescription || '',
+      itemsNeeded: itemsNeeded || '',
+      notes: notes || '',
+      rating: parseInt(rating) || 5
+    });
+
+    await inspection.save();
+
+    // If damages found, create notification for admin
+    if (damageFound === 'Yes') {
+      // Create notification for all admins
+      const admins = await Staff.find({ role: 'admin' });
+      for (const admin of admins) {
+        await Notification.create({
+          staffId: admin._id,
+          type: 'inspection_damage',
+          title: '🚨 Damage Found in Room',
+          message: `Staff member ${staff.name} found damages in ${room.name}. ${damageDescription}`,
+          priority: 'High',
+          isRead: false,
+          data: {
+            inspectionId: inspection._id,
+            roomId: roomId,
+            staffName: staff.name,
+            damageDescription
+          }
+        });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: '✅ Inspection report submitted successfully!',
+      inspection
+    });
+  } catch (error) {
+    console.error('Error creating inspection record:', error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -211,10 +211,10 @@ function Navbar() {
           <div className="nav-center desktop-only">
             <ul className="nav-links">
               <li><Link to="/">Home</Link></li>
-              <li><Link to="/oasis1">Oasis 1</Link></li>
-              <li><Link to="/oasis2">Oasis 2</Link></li>
-              <li><Link to="/about">About Us</Link></li>
-              <li><Link to="/contact">Contact Us</Link></li>
+              <li><Link to="/oasis-1">Oasis 1</Link></li>
+              <li><Link to="/oasis-2">Oasis 2</Link></li>
+              <li><Link to="/about-us">About Us</Link></li>
+              <li><Link to="/contact-us">Contact Us</Link></li>
               <li><Link to="/gallery">Gallery</Link></li>
             </ul>
           </div>

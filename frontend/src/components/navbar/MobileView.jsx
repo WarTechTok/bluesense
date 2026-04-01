@@ -334,10 +334,10 @@ function MobileView({
 
               <ul className="mobile-nav-links">
                 <li><Link to="/" onClick={closeAll}>Home</Link></li>
-                <li><Link to="/oasis1" onClick={closeAll}>Oasis 1</Link></li>
-                <li><Link to="/oasis2" onClick={closeAll}>Oasis 2</Link></li>
-                <li><Link to="/about" onClick={closeAll}>About Us</Link></li>
-                <li><Link to="/contact" onClick={closeAll}>Contact Us</Link></li>
+                <li><Link to="/oasis-1" onClick={closeAll}>Oasis 1</Link></li>
+                <li><Link to="/oasis-2" onClick={closeAll}>Oasis 2</Link></li>
+                <li><Link to="/about-us" onClick={closeAll}>About Us</Link></li>
+                <li><Link to="/contact-us" onClick={closeAll}>Contact Us</Link></li>
                 <li><Link to="/gallery" onClick={closeAll}>Gallery</Link></li>
               </ul>
             </>

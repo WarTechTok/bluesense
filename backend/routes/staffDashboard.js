@@ -69,6 +69,34 @@ router.get('/tasks/:taskId', authenticate, authorize('staff'), staffDashboardCon
 router.put('/tasks/:taskId/status', authenticate, authorize('staff'), staffDashboardController.updateTaskStatus);
 
 // ============================================
+// ROOMS ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/staff/dashboard/assigned-rooms
+ * Get all rooms assigned to staff for inspection
+ */
+router.get('/assigned-rooms', authenticate, authorize('staff'), staffDashboardController.getAssignedRooms);
+
+// ============================================
+// INSPECTION ENDPOINTS
+// ============================================
+
+/**
+ * GET /api/staff/dashboard/inspections
+ * Get all inspection records created by staff
+ * Query: ?limit=50&skip=0
+ */
+router.get('/inspections', authenticate, authorize('staff'), staffDashboardController.getMyInspections);
+
+/**
+ * POST /api/staff/dashboard/inspections
+ * Create a new inspection record
+ * Body: { roomId, condition, cleaningNeeded, damageFound, damageDescription, itemsNeeded, notes, rating }
+ */
+router.post('/inspections', authenticate, authorize('staff'), staffDashboardController.createInspectionRecord);
+
+// ============================================
 // DASHBOARD STATS
 // ============================================
 

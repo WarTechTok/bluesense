@@ -16,7 +16,12 @@ function PackageCard({ pkg, oasis }) {
   const isPackageC = pkg.id === "package-c";
 
   const handleBook = () => {
-    navigate(`/booking?oasis=${oasis}&package=${pkg.id}`);
+    navigate('/booking', { 
+      state: { 
+        package: pkg,
+        oasis: oasis 
+      } 
+    });
   };
 
   return (
