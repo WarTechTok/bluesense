@@ -4,7 +4,10 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-//const API_BASE_URL = "http://192.168.100.224:8080";
+const API_BASE_URL = "http://192.168.100.224:8080";
+
+// Pauig
+//const API_BASE_URL= "";
 
 // OPTION 2: Redmi Hotspot (current)
 //const API_BASE_URL = "http://10.122.57.40:8080";
@@ -13,7 +16,7 @@
 // const API_BASE_URL = "http://[SCHOOL-IP-HERE]:8080";
 
 // OPTION 4: Laptop (LOCAL - for testing)
-const API_BASE_URL = "http://localhost:8080";
+//const API_BASE_URL = "http://localhost:8080";
 
 // ============================================
 // AUTHENTICATION API CALLS
@@ -111,7 +114,74 @@ export async function getHistory() {
 }
 
 // ============================================
-// BOOKING API CALLS (Will add later)
+// BOOKING API CALLS
 // ============================================
-// export async function createBooking(bookingData) { ... }
-// export async function getBookings() { ... }
+
+// Create a new booking (customer submits reservation)
+export async function createBooking(bookingData) {
+  const res = await fetch(`${API_BASE_URL}/api/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(bookingData),
+  });
+  return res.json();
+}
+
+// Get all bookings (staff/admin only)
+export async function getAllBookings() {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// Get single booking by ID
+export async function getBookingById(id) {
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}`);
+  return res.json();
+}
+
+// Update booking status (staff/admin only)
+export async function updateBookingStatus(id, status, confirmedBy) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ status, confirmedBy }),
+  });
+  return res.json();
+}
+
+// Update payment status (staff/admin only)
+export async function updatePaymentStatus(id, paymentStatus) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/payment`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ paymentStatus }),
+  });
+  return res.json();
+}
+
+// Delete booking (staff/admin only)
+export async function deleteBooking(id) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}

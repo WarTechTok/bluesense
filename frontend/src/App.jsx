@@ -24,10 +24,11 @@ import Oasis2 from "./pages/Oasis2";
 import AboutUs from "./pages/AboutUs";
 import ContactUs from "./pages/ContactUs";
 import Gallery from "./pages/Gallery";
-import Booking from "./pages/Booking";
+import Booking from "./pages/booking/Booking";  // ← FIXED PATH
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
 
+// ... rest of your code stays the same
 // Component to redirect users based on role
 function DashboardRedirect() {
   const user = JSON.parse(localStorage.getItem('user'));

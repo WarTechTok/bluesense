@@ -4,7 +4,7 @@
   background: white;
 }
 
-/* Logo at top left - with transparency */
+/* Logo at top left */
 .login-logo-link {
   position: absolute;
   top: 32px;
@@ -131,21 +131,16 @@
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .form-group {
   width: 100%;
 }
 
-.input-wrapper {
-  position: relative;
+.form-group input {
   width: 100%;
-}
-
-.input-wrapper input {
-  width: 100%;
-  padding: 14px 12px 8px 12px;
+  padding: 12px 14px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   font-size: 14px;
@@ -156,46 +151,45 @@
   background: white;
 }
 
-.input-wrapper input:focus {
+.form-group input:focus {
   border-color: #3b82f6;
 }
 
-.input-wrapper input.disabled {
+.form-group input.disabled {
   background: #f9fafb;
   color: #9ca3af;
   border-color: #e5e7eb;
   cursor: not-allowed;
 }
 
-/* Floating Label */
-.floating-label {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #9ca3af;
-  font-size: 14px;
-  transition: all 0.2s ease;
-  pointer-events: none;
-  background: white;
-  padding: 0 2px;
-}
-
-.floating-label.active {
-  top: 0;
-  transform: translateY(-50%);
-  font-size: 11px;
-  color: #3b82f6;
-  background: white;
-}
-
-/* Password Wrapper */
+/* Password Wrapper with Eye Icon */
 .password-wrapper {
   position: relative;
+  width: 100%;
 }
 
 .password-wrapper input {
-  padding-right: 45px;
+  width: 100%;
+  padding: 12px 45px 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: white;
+}
+
+.password-wrapper input:focus {
+  border-color: #3b82f6;
+}
+
+.password-wrapper input.disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
 }
 
 /* Eye Button */
@@ -214,8 +208,8 @@
 }
 
 .eye-icon {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   color: #9ca3af;
 }
 

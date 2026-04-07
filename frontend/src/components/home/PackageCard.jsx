@@ -16,12 +16,20 @@ function PackageCard({ pkg, oasis }) {
   const isPackageC = pkg.id === "package-c";
 
   const handleBook = () => {
-    navigate('/booking', { 
-      state: { 
-        package: pkg,
-        oasis: oasis 
-      } 
-    });
+    const token = localStorage.getItem('token');
+    const bookingData = { package: pkg, oasis: oasis };
+    
+    // Check if user is logged in
+    if (!token) {
+      // Save booking data temporarily
+      sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
+      // Go to login page, tell it where to return
+      navigate('/login?redirect=/booking');
+      return;
+    }
+    
+    // User is logged in, go directly to booking
+    navigate('/booking', { state: bookingData });
   };
 
   return (

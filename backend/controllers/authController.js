@@ -102,6 +102,77 @@ const register = async (req, res) => {
 
     await newUser.save();
 
+    console.log(`✅ User created: ${email}`);
+
+    // ============================================
+    // SEND WELCOME EMAIL
+    // ============================================
+    
+    console.log(`📧 Attempting to send welcome email to: ${email}`);
+    
+    const welcomeHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+        
+        <!-- Header with logo -->
+        <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+          <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+            ${logoBase64 ? `<img src="${logoBase64}" alt="Catherine's Oasis" style="width: 100%; height: auto; display: block; border-radius: 16px;">` : `<div style="width:80px;height:80px;background:#0284c7;border-radius:16px;"></div>`}
+          </div>
+          <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600; letter-spacing: -0.5px;">Catherine's Oasis</h1>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 32px; background: #ffffff;">
+          <h2 style="margin: 0 0 12px; color: #0c4a6e; font-size: 20px; font-weight: 500;">Welcome, ${name}!</h2>
+          
+          <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+            Thank you for creating an account with us. You're now part of the Catherine's Oasis family!
+          </p>
+          
+          <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+            You can now:
+          </p>
+          
+          <ul style="margin: 0 0 32px; color: #475569; font-size: 16px; line-height: 1.8;">
+            <li>✓ Book your stay at Oasis 1 or Oasis 2</li>
+            <li>✓ View your booking history</li>
+            <li>✓ Manage your profile</li>
+            <li>✓ Receive exclusive offers</li>
+          </ul>
+          
+          <!-- Button -->
+          <div style="text-align: center; margin: 0 0 32px;">
+            <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}/login" 
+               style="background: #3b82f6; color: white; padding: 14px 32px; 
+                      text-decoration: none; border-radius: 40px; font-weight: 600; 
+                      font-size: 16px; display: inline-block;">
+              Start Exploring
+            </a>
+          </div>
+          
+          <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+          
+          <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center; line-height: 1.5;">
+            Catherine's Oasis<br>
+            1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+          </p>
+        </div>
+      </div>
+    `;
+
+    // Send email
+    const emailResult = await sendEmail({
+      email: newUser.email,
+      subject: "✨ Welcome to Catherine's Oasis! ✨",
+      html: welcomeHtml
+    });
+
+    if (emailResult.success) {
+      console.log(`✅ Welcome email sent to ${newUser.email}`);
+    } else {
+      console.error(`❌ Welcome email failed: ${emailResult.error}`);
+    }
+
     res.status(201).json({
       message: "User created successfully",
       user: {
@@ -113,6 +184,7 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Registration error:", error);
     res.status(500).json({ message: error.message });
   }
 };

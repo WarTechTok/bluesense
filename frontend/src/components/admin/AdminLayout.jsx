@@ -42,8 +42,8 @@ const AdminLayout = ({ children }) => {
   // Redirects user to /login page
   // Triggers on logout button click
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/login');
   };
 

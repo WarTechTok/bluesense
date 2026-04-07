@@ -1,11 +1,12 @@
 // frontend/src/pages/Register.jsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';  // ← Removed useNavigate
 import axios from 'axios';
+import SignupSuccessModal from '../components/modals/SignupSuccessModal';
 import './Register.css';
 
 function Register() {
-  const navigate = useNavigate();
+  // Removed: const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -19,6 +20,8 @@ function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,8 +74,11 @@ function Register() {
     try {
       const { confirmPassword, ...submitData } = form;
       await axios.post('http://localhost:8080/api/auth/register', submitData);
-      alert('✅ Registration successful! Please login.');
-      navigate('/login');
+      
+      // Show success modal instead of alert
+      setRegisteredEmail(form.email);
+      setShowSuccessModal(true);
+      
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed');
     } finally {
@@ -197,7 +203,7 @@ function Register() {
             </div>
           </div>
 
-          {/* Password Requirements Note - Moved under confirm password with small text */}
+          {/* Password Requirements Note */}
           <p className="password-note">
             Password must be 8-16 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.
           </p>
@@ -224,7 +230,7 @@ function Register() {
             />
           </div>
 
-          {/* Submit Button - Changed to "Sign Up" */}
+          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading}
@@ -241,6 +247,13 @@ function Register() {
           </p>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <SignupSuccessModal 
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        email={registeredEmail}
+      />
     </div>
   );
 }
