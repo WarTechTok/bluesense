@@ -7,7 +7,7 @@
 const API_BASE_URL = "http://192.168.100.224:8080";
 
 // Pauig
-//const API_BASE_URL= "";
+//const API_BASE_URL= "http://192.168.81.219:8080";
 
 // OPTION 2: Redmi Hotspot (current)
 //const API_BASE_URL = "http://10.122.57.40:8080";

@@ -58,12 +58,7 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
             <strong>{bookingDetails?.guests || '—'} persons</strong>
           </div>
         </div>
-        
-        <div className="success-note">
-          <span>📧</span>
-          <p>A confirmation email has been sent to your email address. We'll contact you within 24 hours.</p>
-        </div>
-        
+      
         <div className="success-actions">
           <button className="btn-secondary" onClick={handleBackToHome}>
             Back to Home
