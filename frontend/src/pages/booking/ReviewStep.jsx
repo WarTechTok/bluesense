@@ -1,6 +1,26 @@
+// frontend/src/pages/booking/ReviewStep.jsx
 import React from 'react';
 
-const ReviewStep = ({ formData, nights, pricePerNight, totalPrice, priceType, getPaymentMethodName, errors, handleChange }) => {
+function ReviewStep({ 
+  formData, 
+  selectedOasis,
+  selectedPackage,
+  selectedSession,
+  nights,
+  pricePerNight,
+  totalPrice,
+  addonsTotal,
+  downpayment,
+  selectedAddons,
+  errors, 
+  handleChange 
+}) {
+  
+  const getPaymentMethodName = (method) => {
+    const methods = { cash: 'Cash Payment', gcash: 'GCash', gotyme: 'GoTyme Bank' };
+    return methods[method] || 'Unknown';
+  };
+
   return (
     <div className="step-card">
       <div className="step-header">
@@ -8,7 +28,18 @@ const ReviewStep = ({ formData, nights, pricePerNight, totalPrice, priceType, ge
         <h2>Review Your Booking</h2>
         <p>Double-check your details before confirming</p>
       </div>
+      
       <div className="review-grid">
+        <div className="review-section">
+          <h3><i className="fas fa-info-circle"></i> Package Details</h3>
+          <div className="review-details">
+            <div className="review-item"><span>Location</span><strong>{selectedOasis}</strong></div>
+            <div className="review-item"><span>Package</span><strong>{selectedPackage}</strong></div>
+            <div className="review-item"><span>Session</span><strong>{selectedSession}</strong></div>
+            <div className="review-item"><span>Date</span><strong>{formData.reservationDate ? new Date(formData.reservationDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</strong></div>
+          </div>
+        </div>
+        
         <div className="review-section">
           <h3><i className="fas fa-user"></i> Guest Information</h3>
           <div className="review-details">
@@ -18,30 +49,44 @@ const ReviewStep = ({ formData, nights, pricePerNight, totalPrice, priceType, ge
             <div className="review-item"><span>Guests</span><strong>{formData.guestCount} people</strong></div>
           </div>
         </div>
-        <div className="review-section">
-          <h3><i className="fas fa-calendar"></i> Stay Details</h3>
-          <div className="review-details">
-            <div className="review-item"><span>Check-in</span><strong>{formData.reservationDate ? new Date(formData.reservationDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</strong></div>
-            <div className="review-item"><span>Check-out</span><strong>{formData.checkoutDate ? new Date(formData.checkoutDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '-'}</strong></div>
-            <div className="review-item"><span>Duration</span><strong>{nights} {nights === 1 ? 'Night' : 'Nights'}</strong></div>
-            <div className="review-item"><span>Rate Type</span><strong className={`rate-badge-small ${priceType.toLowerCase().includes('weekend') ? 'weekend' : 'weekday'}`}>{priceType}</strong></div>
-          </div>
-        </div>
+        
         <div className="review-section">
           <h3><i className="fas fa-receipt"></i> Payment Summary</h3>
           <div className="review-details">
-            <div className="review-item"><span>Rate per night</span><strong>₱{pricePerNight.toLocaleString()}</strong></div>
-            <div className="review-item"><span>Total ({nights} nights)</span><strong>₱{totalPrice.toLocaleString()}</strong></div>
+            <div className="review-item"><span>Package Rate</span><strong>₱{pricePerNight.toLocaleString()}</strong></div>
+            {addonsTotal > 0 && (
+              <div className="review-item"><span>Add-ons</span><strong>₱{addonsTotal.toLocaleString()}</strong></div>
+            )}
+            <div className="review-item"><span>Total Amount</span><strong>₱{totalPrice.toLocaleString()}</strong></div>
+            <div className="review-item"><span>Downpayment</span><strong>₱{downpayment.toLocaleString()}</strong></div>
             <div className="review-item"><span>Payment Method</span><strong>{getPaymentMethodName(formData.paymentMethod)}</strong></div>
           </div>
         </div>
+        
+        {Object.keys(selectedAddons).length > 0 && (
+          <div className="review-section">
+            <h3><i className="fas fa-gift"></i> Selected Add-ons</h3>
+            <div className="review-details">
+              {Object.entries(selectedAddons).map(([name, price]) => (
+                <div className="review-item" key={name}>
+                  <span>{name}</span>
+                  <strong>₱{price.toLocaleString()}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
         {formData.specialRequests && (
           <div className="review-section">
             <h3><i className="fas fa-comment"></i> Special Requests</h3>
-            <div className="review-details"><p className="special-requests">{formData.specialRequests}</p></div>
+            <div className="review-details">
+              <p className="special-requests">{formData.specialRequests}</p>
+            </div>
           </div>
         )}
       </div>
+      
       <div className="terms-card">
         <h3><i className="fas fa-file-contract"></i> Terms & Conditions</h3>
         <div className="terms-content">
@@ -61,6 +106,6 @@ const ReviewStep = ({ formData, nights, pricePerNight, totalPrice, priceType, ge
       </div>
     </div>
   );
-};
+}
 
 export default ReviewStep;

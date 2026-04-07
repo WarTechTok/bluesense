@@ -1,47 +1,81 @@
+// frontend/src/pages/booking/DateStep.jsx
 import React from 'react';
+import AvailabilityCalendar from '../../components/booking/AvailabilityCalendar';
+import SessionSelector from '../../components/booking/SessionSelector';
 
-const DateStep = ({ formData, errors, handleChange, today, nights, priceType }) => {
+function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage }) {
+  const handleDateChange = (date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    handleChange({ target: { name: 'reservationDate', value: formattedDate } });
+  };
+
   return (
-    <div className="step-card">
+    <div className="step-container">
       <div className="step-header">
-        <i className="fas fa-calendar-week"></i>
-        <h2>When are you staying?</h2>
-        <p>Select your check-in and check-out dates</p>
+        <div className="step-icon">
+          <i className="fas fa-calendar-week"></i>
+        </div>
+        <div className="step-title">
+          <h2>Select Your Date</h2>
+          <p>Choose when you want to stay at Catherine's Oasis</p>
+        </div>
       </div>
-      <div className="form-grid">
-        <div className="form-group">
-          <label>Check-in Date <span className="required">*</span></label>
-          <div className="input-wrapper">
-            <i className="fas fa-calendar-check input-icon"></i>
-            <input type="date" name="reservationDate" value={formData.reservationDate} onChange={handleChange} min={today} className={errors.reservationDate ? 'error' : ''} />
-          </div>
-          {errors.reservationDate && <span className="error-message">{errors.reservationDate}</span>}
-        </div>
-        <div className="form-group">
-          <label>Check-out Date <span className="required">*</span></label>
-          <div className="input-wrapper">
-            <i className="fas fa-calendar-times input-icon"></i>
-            <input type="date" name="checkoutDate" value={formData.checkoutDate} onChange={handleChange} min={formData.reservationDate || today} className={errors.checkoutDate ? 'error' : ''} />
-          </div>
-          {errors.checkoutDate && <span className="error-message">{errors.checkoutDate}</span>}
-        </div>
-        <div className="form-group full-width">
-          <label>Special Requests</label>
-          <div className="input-wrapper">
-            <i className="fas fa-pen input-icon"></i>
-            <textarea name="specialRequests" placeholder="Any special requirements or preferences?" rows="4" value={formData.specialRequests} onChange={handleChange}></textarea>
+      
+      <div className="date-step-layout">
+        {/* Calendar Column */}
+        <div className="calendar-wrapper">
+          <div className="section-card">
+            <h3 className="section-title">
+              <i className="fas fa-calendar-alt"></i>
+              Available Dates
+            </h3>
+            <AvailabilityCalendar
+              selectedDate={formData.reservationDate ? new Date(formData.reservationDate) : null}
+              onDateChange={handleDateChange}
+              oasis={selectedOasis}
+              packageName={selectedPackage}
+            />
+            {errors.reservationDate && (
+              <span className="error-message">{errors.reservationDate}</span>
+            )}
           </div>
         </div>
-        {nights > 0 && (
-          <div className="date-info-card">
-            <i className="fas fa-moon"></i>
-            <div><strong>{nights} {nights === 1 ? 'Night' : 'Nights'}</strong><span>Stay duration</span></div>
-            <div className="rate-info"><span className={`rate-tag ${priceType.toLowerCase().includes('weekend') ? 'weekend' : 'weekday'}`}>{priceType}</span></div>
+        
+        {/* Session Column */}
+        <div className="session-wrapper">
+          <div className="section-card">
+            <h3 className="section-title">
+              <i className="fas fa-clock"></i>
+              Select Session
+            </h3>
+            <SessionSelector
+              selectedSession={formData.session}
+              onSessionChange={(session) => handleChange({ target: { name: 'session', value: session } })}
+              oasis={selectedOasis}
+              packageName={selectedPackage}
+            />
           </div>
-        )}
+        </div>
+      </div>
+      
+      {/* Special Requests Section */}
+      <div className="special-requests-card">
+        <h3 className="section-title">
+          <i className="fas fa-pen-alt"></i>
+          Special Requests
+        </h3>
+        <p className="section-subtitle">Anything we should know? (Optional)</p>
+        <textarea 
+          name="specialRequests" 
+          placeholder="e.g., Birthday celebration, dietary restrictions, early check-in, etc."
+          rows="3"
+          value={formData.specialRequests}
+          onChange={handleChange}
+          className="special-requests-textarea"
+        ></textarea>
       </div>
     </div>
   );
-};
+}
 
 export default DateStep;

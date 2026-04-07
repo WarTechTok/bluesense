@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AdminLayout from "./components/admin/AdminLayout";
 import StaffLayout from "./components/staff/StaffLayout";
@@ -24,11 +24,52 @@ import Oasis2 from "./pages/Oasis2";
 import AboutUs from "./pages/AboutUs";
 import ContactUs from "./pages/ContactUs";
 import Gallery from "./pages/Gallery";
-import Booking from "./pages/booking/Booking";  // ← FIXED PATH
+import Booking from "./pages/booking/Booking";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
 
-// ... rest of your code stays the same
+// ============================================
+// AUTO REDIRECT COMPONENT - Checks for existing login
+// ============================================
+function AutoRedirect() {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // Check if user is already logged in
+    const userStr = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (userStr && token) {
+      try {
+        const user = JSON.parse(userStr);
+        const currentPath = window.location.pathname;
+        
+        // Don't redirect if already on dashboard or auth page
+        const isOnDashboard = currentPath.includes('/admin/') || 
+                             currentPath.includes('/staff/') ||
+                             currentPath === '/dashboard';
+        const isOnAuthPage = currentPath === '/login' || 
+                            currentPath === '/register' ||
+                            currentPath.includes('/reset-password') ||
+                            currentPath === '/forgot-password';
+        
+        // Only redirect if not already on a dashboard or auth page
+        if (!isOnDashboard && !isOnAuthPage) {
+          if (user.role === 'admin') {
+            navigate('/admin/dashboard', { replace: true });
+          } else if (user.role === 'staff') {
+            navigate('/staff/dashboard', { replace: true });
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, [navigate]);
+  
+  return null;
+}
+
 // Component to redirect users based on role
 function DashboardRedirect() {
   const user = JSON.parse(localStorage.getItem('user'));
@@ -44,6 +85,7 @@ function DashboardRedirect() {
 function App() {
   return (
     <BrowserRouter>
+      <AutoRedirect /> {/* This checks for existing login on app start */}
       <Routes>
         {/* Public Routes - Anyone can access */}
         <Route path="/" element={<Home />} />

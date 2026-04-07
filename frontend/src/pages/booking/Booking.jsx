@@ -1,3 +1,4 @@
+// frontend/src/pages/booking/Booking.jsx
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/navbar/Navbar';
@@ -10,18 +11,26 @@ import GuestInfoStep from './GuestInfoStep';
 import DateStep from './DateStep';
 import PaymentStep from './PaymentStep';
 import ReviewStep from './ReviewStep';
+import PackageSelector from '../../components/booking/PackageSelector';
+import AddonsSelector from '../../components/booking/AddonsSelector';
+import { getPackagePrice, getDownpayment, oasisPackages } from '../../config/packageData';
 import './Booking.css';
 
 function Booking() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [packageData, setPackageData] = useState(location.state?.package || {});
-  const [oasis, setOasis] = useState(location.state?.oasis || '');
-
+  
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
+  const [selectedAddons, setSelectedAddons] = useState({});
+  
+  // Package selection state
+  const [selectedOasis, setSelectedOasis] = useState(location.state?.oasis || 'Oasis 1');
+  const [selectedPackage, setSelectedPackage] = useState(location.state?.package?.name || null);
+  const [selectedSession, setSelectedSession] = useState(null);
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -32,23 +41,44 @@ function Booking() {
     specialRequests: '',
     paymentMethod: 'cash',
     agreeTerms: false,
+    session: '',
+    paymentProof: null
   });
+  
   const [errors, setErrors] = useState({});
 
-  // 🔴 Check for pending booking from sessionStorage (user just logged in)
-  useEffect(() => {
-    const pendingBooking = sessionStorage.getItem('pendingBooking');
-    
-    if (pendingBooking && !location.state) {
-      const savedData = JSON.parse(pendingBooking);
-      setPackageData(savedData.package || {});
-      setOasis(savedData.oasis || '');
-      // Clear it so it doesn't persist
-      sessionStorage.removeItem('pendingBooking');
-    }
-  }, [location.state]);
+  // Get current package data
+  const currentPackage = selectedOasis && selectedPackage 
+    ? oasisPackages[selectedOasis]?.packages[selectedPackage] 
+    : null;
 
-  // 🔴 Also check if user is not logged in at all
+  // Calculate price based on selections
+  const calculatePrice = () => {
+    if (!selectedOasis || !selectedPackage || !selectedSession || !formData.reservationDate) {
+      return 0;
+    }
+    return getPackagePrice(selectedOasis, selectedPackage, selectedSession, formData.reservationDate, formData.guestCount);
+  };
+
+  const calculateAddonsTotal = () => {
+    return Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
+  };
+
+  const calculateNights = () => {
+    if (!formData.reservationDate) return 1;
+    if (selectedSession === '22hrs') return 1;
+    return 1; // Day and Night are single-day bookings
+  };
+
+  const getTotalPrice = () => {
+    return calculatePrice() + calculateAddonsTotal();
+  };
+
+  const getDownpaymentAmount = () => {
+    return getDownpayment(selectedSession);
+  };
+
+  // Check authentication
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -56,60 +86,42 @@ function Booking() {
     }
   }, [navigate]);
 
+  // Handle package selection
+  const handlePackageSelect = (pkg) => {
+    setSelectedPackage(pkg);
+    setSelectedSession(null);
+    setFormData(prev => ({ ...prev, session: '' }));
+  };
+
+  const handleSessionSelect = (session) => {
+    setSelectedSession(session);
+    setFormData(prev => ({ ...prev, session: session }));
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const getPrice = () => {
-    if (!formData.reservationDate) return packageData.price || 0;
-    const checkInDate = new Date(formData.reservationDate);
-    const isWeekend = checkInDate.getDay() === 0 || checkInDate.getDay() === 6;
-    if (packageData.pricing) {
-      if (isWeekend && packageData.pricing.weekend) {
-        return Object.values(packageData.pricing.weekend)[0] || packageData.price || 0;
-      } else if (packageData.pricing.weekday) {
-        return Object.values(packageData.pricing.weekday)[0] || packageData.price || 0;
-      }
-    }
-    return packageData.price || 0;
-  };
-
-  const getPriceType = () => {
-    if (!formData.reservationDate) return '';
-    const isWeekend = new Date(formData.reservationDate).getDay() === 0 || new Date(formData.reservationDate).getDay() === 6;
-    return isWeekend ? 'Weekend Rate' : 'Weekday Rate';
-  };
-
-  const calculateNights = (checkIn, checkOut) => {
-    if (!checkIn || !checkOut) return 0;
-    const nights = Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24));
-    return nights > 0 ? nights : 0;
-  };
-
-  const getTotalPrice = () => getPrice() * calculateNights(formData.reservationDate, formData.checkoutDate);
-  const getPaymentMethodName = (method) => {
-    const methods = { cash: 'Cash Payment', gcash: 'GCash', gotyme: 'GoTyme Bank' };
-    return methods[method] || 'Unknown';
-  };
-
   const validateStep = () => {
     const newErrors = {};
     if (step === 1) {
+      if (!selectedPackage) newErrors.package = 'Please select a package';
+      if (!selectedSession) newErrors.session = 'Please select a session';
       if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
       if (!formData.email.trim()) newErrors.email = 'Email is required';
       else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
       if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    }
-    if (step === 2) {
-      if (!formData.reservationDate) newErrors.reservationDate = 'Check-in date is required';
-      if (!formData.checkoutDate) newErrors.checkoutDate = 'Check-out date is required';
-      if (formData.reservationDate && formData.checkoutDate && calculateNights(formData.reservationDate, formData.checkoutDate) <= 0) {
-        newErrors.checkoutDate = 'Check-out must be after check-in';
+      if (formData.guestCount > (currentPackage?.maxPax || 100)) {
+        newErrors.guestCount = `Maximum ${currentPackage?.maxPax} guests for this package`;
       }
     }
+    if (step === 2) {
+      if (!formData.reservationDate) newErrors.reservationDate = 'Reservation date is required';
+    }
     if (step === 4 && !formData.agreeTerms) newErrors.agreeTerms = 'You must agree to the terms';
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -130,26 +142,37 @@ function Booking() {
     e.preventDefault();
     if (!validateStep()) return;
     setIsSubmitting(true);
+    
     try {
       const bookingPayload = {
         customerName: formData.fullName,
         customerContact: formData.phone,
         customerEmail: formData.email,
-        oasis: oasis || packageData.oasis || '',
-        package: packageData.name || '',
+        oasis: selectedOasis,
+        package: selectedPackage,
+        session: selectedSession,
         bookingDate: formData.reservationDate,
         pax: Number(formData.guestCount),
-        downpayment: formData.reservationDate && (packageData.sessions?.includes('22hrs') ? 5000 : 3000),
+        totalPrice: getTotalPrice(),
+        downpayment: getDownpaymentAmount(),
+        addons: selectedAddons,
+        specialRequests: formData.specialRequests,
         paymentMethod: formData.paymentMethod === 'cash' ? 'Cash' : formData.paymentMethod === 'gcash' ? 'GCash' : 'GoTyme',
+        paymentProof: formData.paymentProof
       };
+      
       const result = await createBooking(bookingPayload);
+      
       if (result.booking) {
         setBookingDetails({
           bookingId: result.booking._id?.slice(-6).toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase(),
-          oasis: oasis || packageData.oasis || 'Catherine\'s Oasis',
+          oasis: selectedOasis,
+          package: selectedPackage,
+          session: selectedSession,
           checkIn: new Date(formData.reservationDate).toLocaleDateString(),
-          checkOut: new Date(formData.checkoutDate).toLocaleDateString(),
           guests: formData.guestCount,
+          totalAmount: getTotalPrice(),
+          downpayment: getDownpaymentAmount()
         });
         setShowSuccessModal(true);
       } else {
@@ -163,11 +186,10 @@ function Booking() {
     }
   };
 
-  const nights = calculateNights(formData.reservationDate, formData.checkoutDate);
-  const pricePerNight = getPrice();
+  const pricePerNight = calculatePrice();
   const totalPrice = getTotalPrice();
-  const priceType = getPriceType();
-  const today = new Date().toISOString().split('T')[0];
+  const nights = calculateNights();
+  const downpayment = getDownpaymentAmount();
 
   return (
     <div className="booking-page">
@@ -184,28 +206,128 @@ function Booking() {
       <div className="booking-main">
         <div className="booking-container">
           <BookingSummary
-            packageData={packageData}
-            oasis={oasis}
+            selectedOasis={selectedOasis}
+            selectedPackage={selectedPackage}
+            selectedSession={selectedSession}
+            packageData={currentPackage}
             formData={formData}
             nights={nights}
             pricePerNight={pricePerNight}
             totalPrice={totalPrice}
-            priceType={priceType}
+            addonsTotal={calculateAddonsTotal()}
+            downpayment={downpayment}
           />
+          
           <div className="booking-form-wrapper">
             <StepIndicator currentStep={step} />
             <form className="booking-form" onSubmit={handleSubmit}>
-              {step === 1 && <GuestInfoStep formData={formData} errors={errors} handleChange={handleChange} />}
-              {step === 2 && <DateStep formData={formData} errors={errors} handleChange={handleChange} today={today} nights={nights} priceType={priceType} />}
-              {step === 3 && <PaymentStep formData={formData} handleChange={handleChange} nights={nights} pricePerNight={pricePerNight} totalPrice={totalPrice} />}
-              {step === 4 && <ReviewStep formData={formData} nights={nights} pricePerNight={pricePerNight} totalPrice={totalPrice} priceType={priceType} getPaymentMethodName={getPaymentMethodName} errors={errors} handleChange={handleChange} />}
+              {step === 1 && (
+                <>
+                  <div className="oasis-selector">
+                    <h3>Select Location</h3>
+                    <div className="oasis-buttons">
+                      <button 
+                        type="button"
+                        className={`oasis-btn ${selectedOasis === 'Oasis 1' ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedOasis('Oasis 1');
+                          setSelectedPackage(null);
+                          setSelectedSession(null);
+                        }}
+                      >
+                        Oasis 1
+                      </button>
+                      <button 
+                        type="button"
+                        className={`oasis-btn ${selectedOasis === 'Oasis 2' ? 'active' : ''}`}
+                        onClick={() => {
+                          setSelectedOasis('Oasis 2');
+                          setSelectedPackage(null);
+                          setSelectedSession(null);
+                        }}
+                      >
+                        Oasis 2
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <PackageSelector
+                    selectedOasis={selectedOasis}
+                    selectedPackage={selectedPackage}
+                    onSelectPackage={handlePackageSelect}
+                    onSelectSession={handleSessionSelect}
+                    selectedDate={formData.reservationDate}
+                  />
+                  
+                  {errors.package && <span className="error-message">{errors.package}</span>}
+                  {errors.session && <span className="error-message">{errors.session}</span>}
+                  
+                  <GuestInfoStep formData={formData} errors={errors} handleChange={handleChange} />
+                </>
+              )}
+              
+              {step === 2 && (
+                <DateStep 
+                  formData={formData} 
+                  errors={errors} 
+                  handleChange={handleChange}
+                  selectedOasis={selectedOasis}
+                  selectedPackage={selectedPackage}
+                />
+              )}
+              
+              {step === 3 && (
+                <>
+                  <AddonsSelector 
+                    packageData={currentPackage}
+                    onAddonsChange={setSelectedAddons}
+                  />
+                  <PaymentStep 
+                    formData={formData} 
+                    handleChange={handleChange}
+                    nights={nights}
+                    pricePerNight={pricePerNight}
+                    totalPrice={totalPrice}
+                    downpayment={downpayment}
+                    selectedSession={selectedSession}
+                  />
+                </>
+              )}
+              
+              {step === 4 && (
+                <ReviewStep 
+                  formData={formData}
+                  selectedOasis={selectedOasis}
+                  selectedPackage={selectedPackage}
+                  selectedSession={selectedSession}
+                  nights={nights}
+                  pricePerNight={pricePerNight}
+                  totalPrice={totalPrice}
+                  addonsTotal={calculateAddonsTotal()}
+                  downpayment={downpayment}
+                  selectedAddons={selectedAddons}
+                  errors={errors}
+                  handleChange={handleChange}
+                />
+              )}
+              
               <div className="form-navigation">
-                {step > 1 && <button type="button" className="btn-prev" onClick={handlePrev}><i className="fas fa-arrow-left"></i> Back</button>}
+                {step > 1 && (
+                  <button type="button" className="btn-prev" onClick={handlePrev}>
+                    <i className="fas fa-arrow-left"></i> Back
+                  </button>
+                )}
                 {step < 4 ? (
-                  <button type="button" className="btn-next" onClick={handleNext}>Continue <i className="fas fa-arrow-right"></i></button>
+                  <button type="button" className="btn-next" onClick={handleNext}>
+                    Continue <i className="fas fa-arrow-right"></i>
+                  </button>
                 ) : (
                   <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                    {isSubmitting ? <><i className="fas fa-spinner fa-spin"></i> Processing...</> : <><i className="fas fa-check-circle"></i> Confirm Booking</>}
+                    {isSubmitting ? (
+                      <><i className="fas fa-spinner fa-spin"></i> Processing...</>
+                    ) : (
+                      <><i className="fas fa-check-circle"></i> Confirm Booking</>
+                    )}
                   </button>
                 )}
               </div>
@@ -214,7 +336,11 @@ function Booking() {
         </div>
       </div>
       <Footer />
-      <BookingSuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} bookingDetails={bookingDetails} />
+      <BookingSuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => setShowSuccessModal(false)} 
+        bookingDetails={bookingDetails} 
+      />
     </div>
   );
 }
