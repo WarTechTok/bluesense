@@ -9,32 +9,32 @@ const SalesTracking = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchSales = async () => {
+      try {
+        setLoading(true);
+        let data;
+
+        if (selectedPeriod === 'daily') {
+          const today = new Date().toISOString().split('T')[0];
+          data = await adminApi.getDailySales(today);
+        } else if (selectedPeriod === 'weekly') {
+          data = await adminApi.getWeeklySales();
+        } else {
+          const now = new Date();
+          data = await adminApi.getMonthlySales(now.getMonth(), now.getFullYear());
+        }
+
+        setSales(data.sales || []);
+        setTotalSales(data.total || 0);
+      } catch (error) {
+        console.error('Error fetching sales:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSales();
   }, [selectedPeriod]);
-
-  const fetchSales = async () => {
-    try {
-      setLoading(true);
-      let data;
-
-      if (selectedPeriod === 'daily') {
-        const today = new Date().toISOString().split('T')[0];
-        data = await adminApi.getDailySales(today);
-      } else if (selectedPeriod === 'weekly') {
-        data = await adminApi.getWeeklySales();
-      } else {
-        const now = new Date();
-        data = await adminApi.getMonthlySales(now.getMonth(), now.getFullYear());
-      }
-
-      setSales(data.sales || []);
-      setTotalSales(data.total || 0);
-    } catch (error) {
-      console.error('Error fetching sales:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="management-page">

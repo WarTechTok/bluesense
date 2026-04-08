@@ -339,6 +339,7 @@ function MobileView({
                 <li><Link to="/about-us" onClick={closeAll}>About Us</Link></li>
                 <li><Link to="/contact-us" onClick={closeAll}>Contact Us</Link></li>
                 <li><Link to="/gallery" onClick={closeAll}>Gallery</Link></li>
+                <li><Link to="/my-bookings" onClick={closeAll}>My Bookings</Link></li>
               </ul>
             </>
           ) : (

@@ -246,6 +246,109 @@ export const getRoomStaff = async (id) => {
 };
 
 // ============================================
+// BOOKING MANAGEMENT API ENDPOINTS
+// ============================================
+// GET /bookings - Get all bookings (staff/admin only)
+// GET /bookings/:id - Get booking by ID
+// POST /bookings - Create new booking
+// PATCH /bookings/:id/status - Update booking status
+// PATCH /bookings/:id/payment - Update payment status
+// DELETE /bookings/:id - Delete booking (admin only)
+
+// ============================================
+// GET ALL BOOKINGS
+// ============================================
+// Returns: Array of all booking objects with confirmation details
+// Requires: Staff role
+export const getAllBookings = async () => {
+  try {
+    const res = await apiClient.get('/bookings');
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// GET BOOKING BY ID
+// ============================================
+// Params: id - Booking MongoDB _id
+// Returns: Single booking object with details
+export const getBookingById = async (id) => {
+  try {
+    const res = await apiClient.get(`/bookings/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching booking:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// CREATE BOOKING
+// ============================================
+// Params: bookingData - booking information
+// Returns: Newly created booking object
+export const createBooking = async (bookingData) => {
+  try {
+    const res = await apiClient.post('/bookings', bookingData);
+    return res.data;
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// UPDATE BOOKING STATUS
+// ============================================
+// Params: id - Booking MongoDB _id, status - new status
+// Returns: Updated booking object
+// Requires: Staff role
+export const updateBookingStatus = async (id, status) => {
+  try {
+    const res = await apiClient.patch(`/bookings/${id}/status`, { status });
+    return res.data;
+  } catch (error) {
+    console.error('Error updating booking status:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// UPDATE PAYMENT STATUS
+// ============================================
+// Params: id - Booking MongoDB _id, paymentStatus - new payment status
+// Returns: Updated booking object
+// Requires: Staff role
+export const updatePaymentStatus = async (id, paymentStatus) => {
+  try {
+    const res = await apiClient.patch(`/bookings/${id}/payment`, { paymentStatus });
+    return res.data;
+  } catch (error) {
+    console.error('Error updating payment status:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// DELETE BOOKING
+// ============================================
+// Params: id - Booking MongoDB _id
+// Returns: Deleted booking object
+// Requires: Staff role
+export const deleteBooking = async (id) => {
+  try {
+    const res = await apiClient.delete(`/bookings/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error deleting booking:', error);
+    throw error;
+  }
+};
+
+// ============================================
 // RESERVATION MANAGEMENT API ENDPOINTS
 // ============================================
 // GET /reservations - Get all reservations

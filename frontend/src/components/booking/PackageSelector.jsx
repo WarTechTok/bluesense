@@ -51,16 +51,20 @@ function PackageSelector({ selectedOasis, selectedPackage, onSelectPackage, onSe
               <div className="package-inclusions">
                 <h4>✨ Inclusions:</h4>
                 <ul>
-                  {pkg.inclusions.map((item, idx) => (
+                  {pkg.inclusions && pkg.inclusions.map((item, idx) => (
                     <li key={idx}><i className="fas fa-check"></i> {item}</li>
                   ))}
                 </ul>
-                <h4>🎁 Add-ons Available:</h4>
-                <ul>
-                  {pkg.addons.map((addon, idx) => (
-                    <li key={idx}><i className="fas fa-plus-circle"></i> {addon.name} (₱{addon.price.toLocaleString()})</li>
-                  ))}
-                </ul>
+                {pkg.addons && pkg.addons.length > 0 && (
+                  <>
+                    <h4>🎁 Add-ons Available:</h4>
+                    <ul>
+                      {pkg.addons.map((addon, idx) => (
+                        <li key={idx}><i className="fas fa-plus-circle"></i> {addon?.name} (₱{addon?.price?.toLocaleString ? addon.price.toLocaleString() : 'Contact'})</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -107,6 +107,27 @@ const updatePaymentStatus = async (req, res) => {
 };
 
 // ============================================
+// GET BOOKINGS BY CUSTOMER EMAIL - public (no auth)
+// ============================================
+const getBookingsByCustomerEmail = async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    
+    const bookings = await Booking.find({ customerEmail: email })
+      .sort({ createdAt: -1 })
+      .populate("confirmedBy", "name email");
+    
+    res.json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================================
 // DELETE BOOKING - admin only (optional)
 // ============================================
 const deleteBooking = async (req, res) => {
@@ -123,6 +144,7 @@ module.exports = {
   createBooking,
   getAllBookings,
   getBookingById,
+  getBookingsByCustomerEmail,
   updateBookingStatus,
   updatePaymentStatus,
   deleteBooking

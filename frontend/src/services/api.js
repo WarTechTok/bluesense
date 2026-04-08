@@ -4,7 +4,10 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-const API_BASE_URL = "http://192.168.100.224:8080";
+//const API_BASE_URL = "http://192.168.100.224:8080";
+
+
+const API_BASE_URL = "http://192.168.100.236:8080";
 
 // Pauig
 //const API_BASE_URL= "http://192.168.81.219:8080";

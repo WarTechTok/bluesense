@@ -9,6 +9,7 @@ const {
   createBooking,
   getAllBookings,
   getBookingById,
+  getBookingsByCustomerEmail,
   updateBookingStatus,
   updatePaymentStatus,
   deleteBooking
@@ -21,6 +22,9 @@ const { verifyToken, isStaff } = require("../middleware/auth");
 
 // POST /api/bookings - magsubmit ng booking (customer)
 router.post("/", createBooking);
+
+// GET /api/bookings/customer/:email - tingnan ang bookings ng customer (no login)
+router.get("/customer/:email", getBookingsByCustomerEmail);
 
 // GET /api/bookings/:id - tingnan ang booking details (may ID lang)
 router.get("/:id", getBookingById);
