@@ -5,6 +5,7 @@ export const oasisPackages = {
     packages: {
       'Package 1': {
         name: 'Package 1',
+        image: '/images/packages/oasis1/package-1.jpg',
         description: 'Cottage Only',
         capacity: 20,
         inclusions: [
@@ -23,6 +24,7 @@ export const oasisPackages = {
       },
       'Package 2': {
         name: 'Package 2',
+        image: '/images/packages/oasis1/package-2.jpg',
         description: '1 AC Room (Superior - 2-4 pax)',
         capacity: 4,
         inclusions: [
@@ -44,6 +46,7 @@ export const oasisPackages = {
       },
       'Package 3': {
         name: 'Package 3',
+        image: '/images/packages/oasis1/package-3.jpg',
         description: '1 AC Room (Family - 8-12 pax)',
         capacity: 12,
         inclusions: [
@@ -66,6 +69,7 @@ export const oasisPackages = {
       },
       'Package 4': {
         name: 'Package 4',
+        image: '/images/packages/oasis1/package-4.jpg',
         description: '2 AC Rooms (Family + Superior - 12-15 pax)',
         capacity: 15,
         inclusions: [
@@ -88,6 +92,7 @@ export const oasisPackages = {
       },
       'Package 5': {
         name: 'Package 5',
+        image: '/images/packages/oasis1/package-5.jpg',
         description: '4 AC Rooms (2 Family + 2 Superior - 22-25 pax)',
         capacity: 25,
         inclusions: [
@@ -110,6 +115,7 @@ export const oasisPackages = {
       },
       'Package 5+': {
         name: 'Package 5+',
+        image: '/images/packages/oasis1/package-5plus.jpg',
         description: '4 AC Rooms + Extra Space (30-50 pax)',
         capacity: 50,
         inclusions: [
@@ -137,6 +143,7 @@ export const oasisPackages = {
     packages: {
       'Package A': {
         name: 'Package A',
+        image: '/images/packages/oasis2/package-a.jpg',
         description: 'Pool & Open Spaces Only',
         capacity: 30,
         inclusions: [
@@ -153,6 +160,7 @@ export const oasisPackages = {
       },
       'Package B': {
         name: 'Package B',
+        image: '/images/packages/oasis2/package-b.jpg',
         description: '1 AC Family Room',
         capacity: 30,
         inclusions: [
@@ -171,6 +179,7 @@ export const oasisPackages = {
       },
       'Package C': {
         name: 'Package C',
+        image: '/images/packages/oasis2/package-c.jpg',
         description: 'Ideal for Events (50-100 pax)',
         capacity: 100,
         inclusions: [

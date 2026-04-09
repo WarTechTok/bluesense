@@ -1,8 +1,11 @@
 /* src/components/footer/Footer.css */
+/* ============================================ */
+/* FOOTER - SIMPLE CLEAN DESIGN */
+/* ============================================ */
+
 .footer {
-  background: #1f2937;
-  color: white;
-  padding: 60px 0 20px;
+  background: #1e293b;
+  padding: 50px 0 20px;
 }
 
 .footer-container {
@@ -14,32 +17,31 @@
   gap: 40px;
 }
 
+/* Section Headers */
 .footer-section h3 {
   color: white;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
-  margin: 0 0 20px 0;
-  letter-spacing: 0.5px;
+  margin: 0 0 18px 0;
+  letter-spacing: 0.3px;
 }
 
+/* Text and Links */
 .footer-section p {
-  color: #9ca3af;
-  line-height: 1.6;
-  margin: 0 0 20px 0;
-  font-size: 0.9rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0 0 8px 0;
+  font-size: 0.8rem;
 }
 
-.social-links {
-  display: flex;
-  gap: 16px;
+.footer-address {
+  color: #94a3b8;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 8px;
 }
 
-.social-link {
-  color: #9ca3af;
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
+/* Links List */
 .footer-links {
   list-style: none;
   padding: 0;
@@ -47,65 +49,85 @@
 }
 
 .footer-links li {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .footer-links a {
-  color: #9ca3af;
+  color: #94a3b8;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  transition: color 0.2s ease;
 }
 
+.footer-links a:hover {
+  color: #0284c7;
+}
+
+/* Contact Info - Fix background */
 .contact-info {
   list-style: none;
   padding: 0;
   margin: 0;
+  background: transparent;
 }
 
 .contact-info li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #9ca3af;
-  margin-bottom: 12px;
-  font-size: 0.9rem;
+  color: #94a3b8;
+  margin-bottom: 10px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: transparent;
 }
 
-.contact-icon {
-  font-size: 1rem;
-  color: #6b7280;
+/* Force all sections to have same background */
+.footer-section,
+.footer-section * {
+  background: transparent;
 }
 
+/* Bottom Bar */
 .footer-bottom {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px 20px 0;
+  padding: 25px 20px 0;
   text-align: center;
-  border-top: 1px solid #374151;
-  margin-top: 40px;
+  border-top: 1px solid #334155;
+  margin-top: 35px;
 }
 
 .footer-bottom p {
-  color: #6b7280;
-  font-size: 0.85rem;
+  color: #64748b;
+  font-size: 0.7rem;
   margin: 0;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* ============================================ */
+/* RESPONSIVE */
+/* ============================================ */
+
+@media (max-width: 900px) {
   .footer-container {
     grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
+    gap: 35px;
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .footer {
+    padding: 40px 0 20px;
+  }
+  
   .footer-container {
     grid-template-columns: 1fr;
     gap: 30px;
+    text-align: center;
   }
   
-  .footer {
-    padding: 40px 0 20px;
+  .footer-section h3 {
+    margin-bottom: 12px;
+  }
+  
+  .contact-info li {
+    text-align: center;
   }
 }

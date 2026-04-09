@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
-import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AdminLayout from "./components/admin/AdminLayout";
 import StaffLayout from "./components/staff/StaffLayout";
@@ -28,6 +28,17 @@ import Booking from "./pages/booking/Booking";
 import MyBookings from "./pages/booking/MyBookings";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
+
+// ScrollToTop component - resets scroll position on page change
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 // Component to redirect users based on role - checks if already logged in
 function HomeRedirect() {
@@ -63,6 +74,7 @@ function DashboardRedirect() {
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Home - Auto-redirect if logged in */}
         <Route path="/" element={<HomeRedirect />} />

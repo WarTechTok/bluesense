@@ -1,4 +1,10 @@
+// src/pages/Oasis1.jsx
+// ============================================
+// OASIS 1 PAGE - Consistent with Home page design
+// ============================================
+
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import PackageCard from '../components/home/PackageCard';
@@ -7,24 +13,24 @@ import './Oasis1.css';
 
 function Oasis1() {
   return (
-    <div className="oasis-page">
+    <div className="oasis1-page">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="oasis-hero">
-        <div className="hero-content">
+      {/* ===== HERO SECTION ===== */}
+      <section className="oasis1-hero">
+        <div className="container">
           <h1>Oasis 1</h1>
           <p className="hero-subtitle">Perfect for intimate gatherings and family outings</p>
         </div>
       </section>
 
-      {/* Main Content */}
-      <section className="oasis-content">
+      {/* ===== OVERVIEW SECTION ===== */}
+      <section className="oasis1-overview-section">
         <div className="container">
-          
-          {/* Overview */}
-          <div className="oasis-overview">
-            <h2>Welcome to Oasis 1</h2>
+          <div className="section-header">
+            <h2 className="section-title">Welcome to Oasis 1</h2>
+          </div>
+          <div className="overview-content">
             <p>
               Oasis 1 is our cozy and intimate retreat designed for smaller groups seeking a peaceful escape from the busy world. 
               With carefully curated amenities, lush green surroundings, and personalized service, we ensure every moment of your 
@@ -36,84 +42,95 @@ function Oasis1() {
               or celebration.
             </p>
           </div>
+        </div>
+      </section>
 
-          {/* Features */}
-          <div className="oasis-features">
-            <h2>What Makes Oasis 1 Special</h2>
-            <div className="features-grid">
-              <div className="feature-card">
-                <div className="feature-icon">🌳</div>
-                <h3>Natural Surroundings</h3>
-                <p>Surrounded by lush gardens and peaceful landscapes</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">👥</div>
-                <h3>Intimate Setting</h3>
-                <p>Perfect size for close-knit gatherings and family time</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">🎉</div>
-                <h3>Customizable Events</h3>
-                <p>Flexible spaces for celebrations and special occasions</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">⭐</div>
-                <h3>Premium Service</h3>
-                <p>Dedicated staff ensuring personalized attention</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">🍽️</div>
-                <h3>Fine Dining</h3>
-                <p>Exquisite culinary experiences tailored to your preferences</p>
-              </div>
-              <div className="feature-card">
-                <div className="feature-icon">🏊</div>
-                <h3>Recreation Facilities</h3>
-                <p>Swimming pools, gardens, and relaxation areas</p>
-              </div>
+      {/* ===== FEATURES SECTION ===== */}
+      <section className="oasis1-features-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">What Makes Oasis 1 Special</h2>
+          </div>
+          <div className="features-grid">
+            <div className="feature-card">
+              <h3>Natural Surroundings</h3>
+              <p>Surrounded by lush gardens and peaceful landscapes</p>
+            </div>
+            <div className="feature-card">
+              <h3>Intimate Setting</h3>
+              <p>Perfect size for close-knit gatherings and family time</p>
+            </div>
+            <div className="feature-card">
+              <h3>Customizable Events</h3>
+              <p>Flexible spaces for celebrations and special occasions</p>
+            </div>
+            <div className="feature-card">
+              <h3>Premium Service</h3>
+              <p>Dedicated staff ensuring personalized attention</p>
+            </div>
+            <div className="feature-card">
+              <h3>Fine Dining</h3>
+              <p>Exquisite culinary experiences tailored to your preferences</p>
+            </div>
+            <div className="feature-card">
+              <h3>Recreation Facilities</h3>
+              <p>Swimming pools, gardens, and relaxation areas</p>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Available Packages */}
-          <div className="oasis-packages">
-            <h2>Our Packages</h2>
-            <p className="packages-intro">
-              Choose the perfect package for your needs and create unforgettable memories at Oasis 1
-            </p>
-            <div className="packages-grid">
-              {OASIS1_PACKAGES.map((pkg) => (
-                <PackageCard 
-                  key={pkg.id} 
-                  pkg={pkg}
-                  oasis="Oasis 1"
-                />
-              ))}
+      {/* ===== PACKAGES SECTION ===== */}
+      <section className="oasis1-packages-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Our Packages</h2>
+          </div>
+          <div className="packages-grid">
+            {OASIS1_PACKAGES.map((pkg) => (
+              <PackageCard 
+                key={pkg.id} 
+                pkg={pkg}
+                oasis="Oasis 1"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===== WHY CHOOSE SECTION ===== */}
+      <section className="oasis1-why-section">
+        <div className="container">
+          <div className="section-header">
+            <h2 className="section-title">Why Choose Oasis 1?</h2>
+          </div>
+          <div className="why-grid">
+            <div className="why-card">
+              <h3>Personalized Attention</h3>
+              <p>Our smaller venue allows us to provide exceptional, personalized service to each guest</p>
+            </div>
+            <div className="why-card">
+              <h3>Flexible Packages</h3>
+              <p>Customizable options to suit your budget and requirements perfectly</p>
+            </div>
+            <div className="why-card">
+              <h3>Scenic Beauty</h3>
+              <p>Breathtaking natural surroundings ideal for photos and memorable moments</p>
+            </div>
+            <div className="why-card">
+              <h3>All-Inclusive Options</h3>
+              <p>Comprehensive packages that include meals, decorations, and entertainment</p>
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Why Choose Section */}
-          <div className="why-choose">
-            <h2>Why Choose Oasis 1?</h2>
-            <div className="why-choose-content">
-              <div className="why-item">
-                <h3>✓ Personalized Attention</h3>
-                <p>Our smaller venue allows us to provide exceptional, personalized service to each guest</p>
-              </div>
-              <div className="why-item">
-                <h3>✓ Flexible Packages</h3>
-                <p>Customizable options to suit your budget and requirements perfectly</p>
-              </div>
-              <div className="why-item">
-                <h3>✓ Scenic Beauty</h3>
-                <p>Breathtaking natural surroundings ideal for photos and memorable moments</p>
-              </div>
-              <div className="why-item">
-                <h3>✓ All-Inclusive Options</h3>
-                <p>Comprehensive packages that include meals, decorations, and entertainment</p>
-              </div>
-            </div>
-          </div>
-
+      {/* ===== CTA SECTION ===== */}
+      <section className="oasis1-cta-section">
+        <div className="container">
+          <h2 className="cta-title">Ready to Book Your Stay at Oasis 1?</h2>
+          <p className="cta-text">Choose your package and complete your reservation</p>
+          <Link to="/booking" className="cta-btn" state={{ oasis: 'Oasis 1' }}>Book Now</Link>
         </div>
       </section>
 

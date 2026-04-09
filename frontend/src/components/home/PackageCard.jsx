@@ -1,141 +1,173 @@
 // src/components/home/PackageCard.jsx
 // ============================================
-// PACKAGE CARD - Displays a single package card
-// on the Home page for Oasis 1 and Oasis 2
+// PACKAGE CARD - Displays package with image
 // ============================================
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { formatPrice } from "../../utils/helpers";
 import "./PackageCard.css";
 
 function PackageCard({ pkg, oasis }) {
-  const [expanded, setExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
-  const isPackageC = pkg.id === "package-c";
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (showModal) {
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+      }
+    }
+  }, [showModal]);
 
   const handleBook = () => {
     const token = localStorage.getItem('token');
     const bookingData = { package: pkg, oasis: oasis };
     
-    // Check if user is logged in
     if (!token) {
-      // Save booking data temporarily
       sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
-      // Go to login page, tell it where to return
       navigate('/login?redirect=/booking');
       return;
     }
     
-    // User is logged in, go directly to booking
     navigate('/booking', { state: bookingData });
   };
 
-  return (
-    <div className="package-card">
+  // Close modal when pressing Escape
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setShowModal(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
-      {/* ── Package Image ── */}
-      {pkg.image && (
+  // Get starting price for display
+  const getStartingPrice = () => {
+    // Handle Package C special pricing
+    if (pkg.name === 'Package C') {
+      // Get the 50pax weekday Day rate
+      return pkg.pricing?.['50pax']?.Day?.weekday || 19000;
+    }
+    
+    // Regular packages - get the weekday Day rate
+    if (pkg.pricing?.weekday?.Day) {
+      return pkg.pricing.weekday.Day;
+    }
+    
+    // Fallback to first available price
+    const firstPrice = Object.values(pkg.pricing || {})[0];
+    if (typeof firstPrice === 'object') {
+      return firstPrice.weekday || firstPrice.Day || 0;
+    }
+    
+    return 0;
+  };
+
+  const startingPrice = getStartingPrice();
+
+  return (
+    <>
+      <div className="package-card">
+        {/* Package Image Banner */}
         <div className="package-card-image">
-          <img 
-            src={pkg.image} 
-            alt={pkg.name}
-            onError={(e) => {
-              e.target.src = `https://via.placeholder.com/400x300?text=${encodeURIComponent(pkg.name)}`;
-            }}
-          />
+          {pkg.image ? (
+            <img 
+              src={pkg.image} 
+              alt={pkg.name}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `https://placehold.co/400x200/e2e8f0/64748b?text=${encodeURIComponent(pkg.name)}`;
+              }}
+            />
+          ) : (
+            <div className="package-card-image-placeholder">
+              <span>{pkg.name}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="package-card-content">
+          <div className="package-card-header">
+            <div>
+              <h3 className="package-card-name">{pkg.name}</h3>
+              <p className="package-card-subtitle">{pkg.subtitle || pkg.description}</p>
+            </div>
+            <span className="package-card-capacity">{pkg.capacity || 'Up to 20 pax'}</span>
+          </div>
+
+          {/* Pricing */}
+          <div className="package-card-price">
+            <div className="price-starting">
+              <span className="price-label">Starting from</span>
+              <span className="price-value">₱{startingPrice.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="package-card-actions">
+            <button 
+              className="view-details-btn" 
+              onClick={() => setShowModal(true)}
+            >
+              View Details
+            </button>
+            <button className="package-card-btn" onClick={handleBook}>
+              Book Now →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Popup */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{pkg.name} - Inclusions</h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="modal-section">
+                <h4>What's Included:</h4>
+                <ul className="modal-inclusions-list">
+                  {pkg.inclusions?.map((item, i) => (
+                    <li key={i}>✓ {item}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {pkg.addons?.length > 0 && pkg.addons.some(a => a.price) && (
+                <div className="modal-section">
+                  <h4>Add-ons Available:</h4>
+                  <ul className="modal-addons-list">
+                    {pkg.addons.map((addon, i) => (
+                      addon.price && (
+                        <li key={i}>
+                          <span>{addon.name}</span>
+                          <span className="addon-price">+ ₱{addon.price.toLocaleString()}</span>
+                        </li>
+                      )
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-
-      {/* ── Header ── */}
-      <div className="package-card-header">
-        <div>
-          <h3 className="package-card-name">{pkg.name}</h3>
-          <p className="package-card-subtitle">{pkg.subtitle}</p>
-        </div>
-        <span className="package-card-capacity">{pkg.capacity}</span>
-      </div>
-
-      {/* ── Pricing ── */}
-      <div className="package-card-price">
-        {isPackageC ? (
-          <div className="price-special">
-            <div className="price-row">
-              <span className="price-label">50 PAX</span>
-              <span className="price-value">
-                {formatPrice(19000)} – {formatPrice(26000)}
-              </span>
-            </div>
-            <div className="price-row">
-              <span className="price-label">100 PAX</span>
-              <span className="price-value">
-                {formatPrice(20000)} – {formatPrice(30000)}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div className="price-grid">
-            <div className="price-tier">
-              <span className="price-tier-label">Mon–Thu</span>
-              <div className="price-amounts">
-                {Object.entries(pkg.pricing.weekday).map(([session, price]) => (
-                  <span key={session} className="price-item">
-                    <span className="session">{session}</span>
-                    <span className="amount">{formatPrice(price)}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="price-tier">
-              <span className="price-tier-label">Fri–Sun</span>
-              <div className="price-amounts">
-                {Object.entries(pkg.pricing.weekend).map(([session, price]) => (
-                  <span key={session} className="price-item">
-                    <span className="session">{session}</span>
-                    <span className="amount">{formatPrice(price)}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Inclusions Toggle ── */}
-      <div className="package-card-inclusions">
-        <button
-          className="inclusions-toggle"
-          onClick={() => setExpanded(!expanded)}
-        >
-          {expanded ? "Hide inclusions ▲" : "View inclusions ▼"}
-        </button>
-        {expanded && (
-          <ul className="inclusions-list">
-            {pkg.inclusions.map((item, i) => (
-              <li key={i}>✓ {item}</li>
-            ))}
-            {pkg.addons?.length > 0 && (
-              <>
-                <li className="addon-label">Add-ons available:</li>
-                {pkg.addons.map((addon, i) => (
-                  <li key={i} className="addon-item">
-                    + {addon.name}
-                    {addon.price ? ` — ${formatPrice(addon.price)}` : ""}
-                  </li>
-                ))}
-              </>
-            )}
-          </ul>
-        )}
-      </div>
-
-      {/* ── Book Button ── */}
-      <button className="package-card-btn" onClick={handleBook}>
-        Book This Package
-      </button>
-
-    </div>
+    </>
   );
 }
 

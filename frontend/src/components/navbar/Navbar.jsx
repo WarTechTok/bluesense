@@ -1,4 +1,8 @@
 // src/components/navbar/Navbar.jsx
+// ============================================
+// NAVBAR - Fixed navigation with GLASS EFFECT on scroll
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
@@ -18,16 +22,44 @@ function Navbar() {
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [pendingSaveData, setPendingSaveData] = useState(null);
   
+  // Scroll state for glass effect
+  const [scrolled, setScrolled] = useState(false);
+  
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load user data from localStorage on mount and when location changes
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  // AUTO-SCROLL TO TOP ON PAGE NAVIGATION
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
+  }, [location.pathname]);
+
+  // Detect scroll for glass effect
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Load user data from localStorage
   useEffect(() => {
     loadUserFromStorage();
     
-    // Listen for storage changes (for OAuth redirect)
     const handleStorageChange = () => {
-      console.log('Storage changed, reloading user...');
       loadUserFromStorage();
     };
     
@@ -38,20 +70,15 @@ function Navbar() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleStorageChange);
     };
-  }, [location.pathname]); // Re-run when URL changes
+  }, [location.pathname]);
 
   const loadUserFromStorage = () => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     
-    console.log('Navbar loading user:', { token, userStr }); // Debug log
-    
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr);
-        console.log('✅ User loaded in Navbar:', user);
-        console.log('🖼️ Avatar field:', user.avatar);
-        console.log('🖼️ GoogleAvatar field:', user.googleAvatar);
         setUserRole(user.role);
         setUserData(user);
       } catch (e) {
@@ -60,13 +87,11 @@ function Navbar() {
         setUserData(null);
       }
     } else {
-      console.log('No user found in localStorage');
       setUserRole(null);
       setUserData(null);
     }
   };
 
-  // Refresh user data from backend
   const refreshUserData = async () => {
     const token = localStorage.getItem('token');
     if (!token || !userData?._id) return;
@@ -111,39 +136,23 @@ function Navbar() {
     navigate('/');
   };
 
-  // FIXED: Better avatar URL handling
   const getAvatarSrc = () => {
-    if (!userData) {
-      console.log('No userData, returning null');
-      return null;
-    }
+    if (!userData) return null;
     
-    console.log('getAvatarSrc called with userData:', userData);
-    
-    // Check for avatar field (this is what Google login saves)
     if (userData.avatar) {
-      console.log('Found avatar field:', userData.avatar);
-      // If it's a full URL (from Google), use it directly
       if (userData.avatar.startsWith('http')) {
-        console.log('Using Google avatar URL directly');
         return userData.avatar;
       }
-      // If it's a local path, add backend URL
-      console.log('Using local avatar path');
       return `http://localhost:8080${userData.avatar}`;
     }
     
-    // Fallback to googleAvatar
     if (userData.googleAvatar) {
-      console.log('Using googleAvatar fallback');
       return userData.googleAvatar;
     }
     
-    console.log('No avatar found, returning null');
     return null;
   };
 
-  // Save profile to database
   const saveProfileToDatabase = async (updatedData) => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -172,7 +181,6 @@ function Navbar() {
         setUserRole(updatedUser.role);
         setShowSaveConfirm(false);
         setShowEditModal(false);
-        console.log('Profile updated successfully!');
         await refreshUserData();
       }
     } catch (error) {
@@ -181,7 +189,6 @@ function Navbar() {
     }
   };
 
-  // eslint-disable-next-line no-unused-vars
   const handleSaveClick = (updatedData) => {
     setPendingSaveData(updatedData);
     setShowSaveConfirm(true);
@@ -195,7 +202,7 @@ function Navbar() {
 
   return (
     <>
-      <nav className="navbar">
+      <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
         <div className="navbar-container">
           {/* LEFT - Logo */}
           <Link to="/" className="navbar-logo">
@@ -207,16 +214,16 @@ function Navbar() {
             <span className="navbar-logo-text">Catherine's Oasis</span>
           </Link>
 
-          {/* CENTER - Desktop Navigation */}
+          {/* CENTER - Desktop Navigation with Simple Underline */}
           <div className="nav-center desktop-only">
             <ul className="nav-links">
-              <li><Link to="/">Home</Link></li>
-              <li><Link to="/oasis-1">Oasis 1</Link></li>
-              <li><Link to="/oasis-2">Oasis 2</Link></li>
-              <li><Link to="/about-us">About Us</Link></li>
-              <li><Link to="/contact-us">Contact Us</Link></li>
-              <li><Link to="/gallery">Gallery</Link></li>
-              <li><Link to="/my-bookings">My Bookings</Link></li>
+              <li><Link to="/" className={isActive('/') ? 'active' : ''}>Home</Link></li>
+              <li><Link to="/oasis-1" className={isActive('/oasis-1') ? 'active' : ''}>Oasis 1</Link></li>
+              <li><Link to="/oasis-2" className={isActive('/oasis-2') ? 'active' : ''}>Oasis 2</Link></li>
+              <li><Link to="/about-us" className={isActive('/about-us') ? 'active' : ''}>About Us</Link></li>
+              <li><Link to="/contact-us" className={isActive('/contact-us') ? 'active' : ''}>Contact Us</Link></li>
+              <li><Link to="/gallery" className={isActive('/gallery') ? 'active' : ''}>Gallery</Link></li>
+              <li><Link to="/my-bookings" className={isActive('/my-bookings') ? 'active' : ''}>My Bookings</Link></li>
             </ul>
           </div>
 

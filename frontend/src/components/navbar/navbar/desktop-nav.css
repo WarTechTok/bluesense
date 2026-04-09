@@ -1,0 +1,57 @@
+/* src/components/navbar/navbar/desktop-nav.css */
+/* ============================================ */
+/* DESKTOP NAVIGATION - SIMPLE UNDERLINE */
+/* ============================================ */
+
+.desktop-only {
+  display: flex;
+}
+
+.nav-center {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.nav-links {
+  display: flex;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li {
+  display: flex;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: #666;
+  font-size: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 8px 0 12px 0;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+.nav-links a:hover {
+  color: #3b82f6;
+}
+
+.nav-links a.active {
+  color: #0284c7;
+}
+
+/* Simple underline that appears under active tab */
+.nav-links a.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #0284c7;
+  border-radius: 3px;
+}

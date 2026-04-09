@@ -1,4 +1,8 @@
 // frontend/src/pages/booking/Booking.jsx
+// ============================================
+// BOOKING PAGE - Pre-fills selections from previous page
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Navbar from '../../components/navbar/Navbar';
@@ -11,7 +15,6 @@ import GuestInfoStep from './GuestInfoStep';
 import DateStep from './DateStep';
 import PaymentStep from './PaymentStep';
 import ReviewStep from './ReviewStep';
-import PackageSelector from '../../components/booking/PackageSelector';
 import AddonsSelector from '../../components/booking/AddonsSelector';
 import { getPackagePrice, getDownpayment, oasisPackages } from '../../config/packageData';
 import './Booking.css';
@@ -26,9 +29,13 @@ function Booking() {
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   
-  // Package selection state
-  const [selectedOasis, setSelectedOasis] = useState(location.state?.oasis || 'Oasis 1');
-  const [selectedPackage, setSelectedPackage] = useState(location.state?.package?.name || null);
+  // Get preselected data from navigation state
+  const preselectedOasis = location.state?.oasis || null;
+  const preselectedPackage = location.state?.package || null;
+  
+  // Package selection state (pre-filled from previous page)
+  const [selectedOasis] = useState(preselectedOasis || '');
+  const [selectedPackage] = useState(preselectedPackage?.name || null);
   const [selectedSession, setSelectedSession] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -47,10 +54,45 @@ function Booking() {
   
   const [errors, setErrors] = useState({});
 
+  // Helper functions for capacity
+  const getMaxCapacityForPackage = () => {
+    if (selectedOasis === 'Oasis 1') {
+      if (selectedPackage === 'Package 5+') return 100;
+      return 20;
+    }
+    if (selectedOasis === 'Oasis 2') {
+      if (selectedPackage === 'Package C') return 100;
+      return 30;
+    }
+    return 100;
+  };
+
+  const getMinCapacityForPackage = () => {
+    if (selectedOasis === 'Oasis 1' && selectedPackage === 'Package 5+') return 30;
+    if (selectedOasis === 'Oasis 2' && selectedPackage === 'Package C') return 50;
+    return 0;
+  };
+
+  // Check if selections are missing
+  useEffect(() => {
+    if (!preselectedOasis || !preselectedPackage) {
+      const confirm = window.confirm('Please select a package first. Go to homepage?');
+      if (confirm) {
+        navigate('/');
+      }
+    }
+  }, [preselectedOasis, preselectedPackage, navigate]);
+
   // Get current package data
   const currentPackage = selectedOasis && selectedPackage 
     ? oasisPackages[selectedOasis]?.packages[selectedPackage] 
     : null;
+
+  // Get available sessions for this package
+  const getAvailableSessions = () => {
+    if (!currentPackage) return [];
+    return currentPackage.sessions || [];
+  };
 
   // Calculate price based on selections
   const calculatePrice = () => {
@@ -67,7 +109,7 @@ function Booking() {
   const calculateNights = () => {
     if (!formData.reservationDate) return 1;
     if (selectedSession === '22hrs') return 1;
-    return 1; // Day and Night are single-day bookings
+    return 1;
   };
 
   const getTotalPrice = () => {
@@ -86,16 +128,12 @@ function Booking() {
     }
   }, [navigate]);
 
-  // Handle package selection
-  const handlePackageSelect = (pkg) => {
-    setSelectedPackage(pkg);
-    setSelectedSession(null);
-    setFormData(prev => ({ ...prev, session: '' }));
-  };
-
   const handleSessionSelect = (session) => {
     setSelectedSession(session);
     setFormData(prev => ({ ...prev, session: session }));
+    if (errors.session) {
+      setErrors(prev => ({ ...prev, session: '' }));
+    }
   };
 
   const handleChange = (e) => {
@@ -106,21 +144,46 @@ function Booking() {
 
   const validateStep = () => {
     const newErrors = {};
+    
     if (step === 1) {
-      if (!selectedPackage) newErrors.package = 'Please select a package';
-      if (!selectedSession) newErrors.session = 'Please select a session';
-      if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
-      if (!formData.email.trim()) newErrors.email = 'Email is required';
-      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Email is invalid';
-      if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-      if (formData.guestCount > (currentPackage?.maxPax || 100)) {
-        newErrors.guestCount = `Maximum ${currentPackage?.maxPax} guests for this package`;
+      // Guest info validation
+      if (!formData.fullName.trim()) {
+        newErrors.fullName = 'Full name is required';
+      }
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email is required';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email is invalid';
+      }
+      if (!formData.phone.trim()) {
+        newErrors.phone = 'Phone number is required';
+      }
+      
+      // Capacity validation
+      const maxCapacity = getMaxCapacityForPackage();
+      const minCapacity = getMinCapacityForPackage();
+      
+      if (minCapacity > 0 && formData.guestCount < minCapacity) {
+        newErrors.guestCount = `Minimum ${minCapacity} guests required for this package`;
+      }
+      if (formData.guestCount > maxCapacity) {
+        const extraCost = (formData.guestCount - maxCapacity) * 150;
+        newErrors.guestCount = `Maximum ${maxCapacity} guests (${formData.guestCount - maxCapacity} extra @ ₱150/head = ₱${extraCost.toLocaleString()})`;
       }
     }
+    
     if (step === 2) {
-      if (!formData.reservationDate) newErrors.reservationDate = 'Reservation date is required';
+      if (!formData.reservationDate) {
+        newErrors.reservationDate = 'Reservation date is required';
+      }
+      if (!selectedSession) {
+        newErrors.session = 'Please select a session';
+      }
     }
-    if (step === 4 && !formData.agreeTerms) newErrors.agreeTerms = 'You must agree to the terms';
+    
+    if (step === 4 && !formData.agreeTerms) {
+      newErrors.agreeTerms = 'You must agree to the terms';
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -191,6 +254,23 @@ function Booking() {
   const nights = calculateNights();
   const downpayment = getDownpaymentAmount();
 
+  // Show message if no package selected
+  if (!preselectedOasis || !preselectedPackage) {
+    return (
+      <div className="booking-page">
+        <Navbar />
+        <div className="booking-hero">
+          <div className="booking-hero-content">
+            <h1>No Package Selected</h1>
+            <p>Please select a package from our Oasis pages first.</p>
+            <a href="/" className="hero-btn">Go to Homepage</a>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="booking-page">
       <Navbar />
@@ -199,7 +279,7 @@ function Booking() {
         <div className="booking-hero-content">
           <span className="hero-badge">Secure Your Stay</span>
           <h1>Complete Your Reservation</h1>
-          <p>Experience tranquility at Catherine's Oasis</p>
+          <p>{selectedOasis} - {selectedPackage}</p>
         </div>
       </div>
 
@@ -223,46 +303,23 @@ function Booking() {
             <form className="booking-form" onSubmit={handleSubmit}>
               {step === 1 && (
                 <>
-                  <div className="oasis-selector">
-                    <h3>Select Location</h3>
-                    <div className="oasis-buttons">
-                      <button 
-                        type="button"
-                        className={`oasis-btn ${selectedOasis === 'Oasis 1' ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedOasis('Oasis 1');
-                          setSelectedPackage(null);
-                          setSelectedSession(null);
-                        }}
-                      >
-                        Oasis 1
-                      </button>
-                      <button 
-                        type="button"
-                        className={`oasis-btn ${selectedOasis === 'Oasis 2' ? 'active' : ''}`}
-                        onClick={() => {
-                          setSelectedOasis('Oasis 2');
-                          setSelectedPackage(null);
-                          setSelectedSession(null);
-                        }}
-                      >
-                        Oasis 2
-                      </button>
+                  {/* Show selected oasis and package (read-only) */}
+                  <div className="selected-info">
+                    <div className="info-card">
+                      <span className="info-label">Selected Oasis:</span>
+                      <span className="info-value">{selectedOasis}</span>
+                    </div>
+                    <div className="info-card">
+                      <span className="info-label">Selected Package:</span>
+                      <span className="info-value">{selectedPackage}</span>
                     </div>
                   </div>
                   
-                  <PackageSelector
-                    selectedOasis={selectedOasis}
-                    selectedPackage={selectedPackage}
-                    onSelectPackage={handlePackageSelect}
-                    onSelectSession={handleSessionSelect}
-                    selectedDate={formData.reservationDate}
+                  <GuestInfoStep 
+                    formData={formData} 
+                    errors={errors} 
+                    handleChange={handleChange}
                   />
-                  
-                  {errors.package && <span className="error-message">{errors.package}</span>}
-                  {errors.session && <span className="error-message">{errors.session}</span>}
-                  
-                  <GuestInfoStep formData={formData} errors={errors} handleChange={handleChange} />
                 </>
               )}
               
@@ -273,6 +330,9 @@ function Booking() {
                   handleChange={handleChange}
                   selectedOasis={selectedOasis}
                   selectedPackage={selectedPackage}
+                  onSessionSelect={handleSessionSelect}
+                  selectedSession={selectedSession}
+                  availableSessions={getAvailableSessions()}
                 />
               )}
               

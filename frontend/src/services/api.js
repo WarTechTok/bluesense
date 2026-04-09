@@ -4,10 +4,9 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-//const API_BASE_URL = "http://192.168.100.224:8080";
+const API_BASE_URL = "http://192.168.100.224:8080";
 
-
-const API_BASE_URL = "http://192.168.100.236:8080";
+//const API_BASE_URL = "http://192.168.100.236:8080";
 
 // Pauig
 //const API_BASE_URL= "http://192.168.81.219:8080";
@@ -122,14 +121,29 @@ export async function getHistory() {
 
 // Create a new booking (customer submits reservation)
 export async function createBooking(bookingData) {
+  const token = localStorage.getItem('token');
+  
+  // Check if user is logged in
+  if (!token) {
+    throw new Error('Please login to make a booking');
+  }
+  
   const res = await fetch(`${API_BASE_URL}/api/bookings`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify(bookingData),
   });
-  return res.json();
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.message || 'Booking failed');
+  }
+  
+  return data;
 }
 
 // Get all bookings (staff/admin only)

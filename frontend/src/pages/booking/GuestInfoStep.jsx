@@ -6,7 +6,6 @@ const GuestInfoStep = ({ formData, errors, handleChange }) => {
       <div className="step-header">
         <i className="fas fa-user-circle"></i>
         <h2>Who's coming?</h2>
-        <p>Tell us about the primary guest</p>
       </div>
       <div className="form-grid">
         <div className="form-group full-width">

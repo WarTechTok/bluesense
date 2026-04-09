@@ -1,0 +1,46 @@
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1024px) {
+  .nav-links {
+    gap: 16px;
+  }
+  
+  .nav-links a {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+  
+  .navbar-toggle {
+    display: flex;
+  }
+  
+  .pc-dropdown {
+    display: none;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .edit-modal-avatar-img {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .edit-modal-avatar-img span {
+    font-size: 32px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-sidebar,
+  .mobile-sidebar-overlay,
+  .mobile-view-sidebar {
+    display: none !important;
+  }
+}

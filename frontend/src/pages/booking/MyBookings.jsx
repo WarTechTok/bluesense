@@ -1,37 +1,49 @@
+// src/pages/booking/MyBookings.jsx
+// ============================================
+// MY BOOKINGS - Shows logged-in user's bookings
+// ============================================
+
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/navbar/Navbar';
 import './MyBookings.css';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [searchEmail, setSearchEmail] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Try to load email from localStorage
-    const storedEmail = localStorage.getItem('customerEmail');
-    if (storedEmail) {
-      setEmail(storedEmail);
-      setSearchEmail(storedEmail);
-      fetchBookings(storedEmail);
-    }
-  }, []);
-
-  const fetchBookings = async (customerEmail) => {
-    if (!customerEmail || customerEmail.trim() === '') {
-      setError('Please enter a valid email address');
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token) {
+      navigate('/login?redirect=/my-bookings');
       return;
     }
+    
+    if (user.email) {
+      fetchBookings(user.email);
+    } else {
+      setError('User email not found. Please login again.');
+      setLoading(false);
+    }
+  }, [navigate]);
 
+  const fetchBookings = async (customerEmail) => {
     setLoading(true);
     setError('');
     
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/customer/${customerEmail}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8080/api/bookings/customer/${customerEmail}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch bookings');
@@ -39,10 +51,9 @@ const MyBookings = () => {
 
       const data = await response.json();
       setBookings(data);
-      setEmail(customerEmail);
       
       if (data.length === 0) {
-        setError('No bookings found for this email address');
+        setError('No bookings found for your account');
       }
     } catch (err) {
       setError(err.message || 'Error fetching bookings');
@@ -50,11 +61,6 @@ const MyBookings = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchBookings(searchEmail);
   };
 
   const handleViewDetails = (booking) => {
@@ -84,92 +90,59 @@ const MyBookings = () => {
       case 'Cancelled':
         return '#ef4444';
       case 'Completed':
-        return '#3b82f6';
+        return '#0284c7';
       default:
-        return '#6b7280';
+        return '#64748b';
     }
   };
 
   return (
     <>
       <Navbar />
-      <div className="my-bookings-container">
-        <div className="hero-section">
-          <h1>My Bookings</h1>
-          <p>View and manage all your reservations</p>
+      <div className="my-bookings-page">
+        <div className="my-bookings-hero">
+          <div className="container">
+            <h1>My Bookings</h1>
+            <p>View and manage all your reservations</p>
+          </div>
         </div>
 
-        <div className="bookings-content">
-          {email === '' ? (
-            <div className="search-section">
-              <h2>Search Your Bookings</h2>
-              <form onSubmit={handleSearch} className="search-form">
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  required
-                />
-                <button type="submit" disabled={loading}>
-                  {loading ? 'Searching...' : 'Search'}
-                </button>
-              </form>
-            </div>
-          ) : (
-            <div className="bookings-header">
-              <div>
-                <h2>Bookings for {email}</h2>
-                <p className="booking-count">{bookings.length} booking(s) found</p>
+        <div className="my-bookings-content">
+          <div className="container">
+            {error && <div className="alert alert-error">{error}</div>}
+
+            {loading && (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Loading your bookings...</p>
               </div>
-              <button 
-                className="btn-search-new"
-                onClick={() => {
-                  setEmail('');
-                  setSearchEmail('');
-                  setBookings([]);
-                  setError('');
-                }}
-              >
-                Search Different Email
-              </button>
-            </div>
-          )}
+            )}
 
-          {error && <div className="alert alert-error">{error}</div>}
-
-          {loading && (
-            <div className="loading">
-              <p>Loading your bookings...</p>
-            </div>
-          )}
-
-          {!loading && bookings.length > 0 && (
-            <div className="bookings-grid">
-              {bookings.map((booking) => (
-                <div key={booking._id} className="booking-card">
-                  <div className="card-header">
-                    <div>
-                      <h3>{booking.oasis}</h3>
-                      <p className="package-name">{booking.package}</p>
+            {!loading && bookings.length > 0 && (
+              <div className="bookings-grid">
+                {bookings.map((booking) => (
+                  <div key={booking._id} className="booking-card">
+                    <div className="booking-card-header">
+                      <div>
+                        <h3>{booking.oasis}</h3>
+                        <p className="package-name">{booking.package}</p>
+                      </div>
+                      <span 
+                        className="status-badge"
+                        style={{ backgroundColor: getStatusColor(booking.status) }}
+                      >
+                        {booking.status}
+                      </span>
                     </div>
-                    <span 
-                      className="status-badge"
-                      style={{ backgroundColor: getStatusColor(booking.status) }}
-                    >
-                      {booking.status}
-                    </span>
-                  </div>
 
-                  <div className="card-body">
-                    <div className="booking-info">
+                    <div className="booking-card-body">
                       <div className="info-row">
                         <span className="label">Date:</span>
                         <span className="value">{formatDate(booking.bookingDate)}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Guests:</span>
-                        <span className="value">{booking.pax} pax</span>
+                        <span className="value">{booking.pax} persons</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Down Payment:</span>
@@ -177,118 +150,121 @@ const MyBookings = () => {
                       </div>
                       <div className="info-row">
                         <span className="label">Payment Status:</span>
-                        <span className="value">{booking.paymentStatus}</span>
+                        <span className="value">{booking.paymentStatus || 'Pending'}</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="card-footer">
-                    <button 
-                      className="btn-view"
-                      onClick={() => handleViewDetails(booking)}
-                    >
-                      View Details
-                    </button>
+                    <div className="booking-card-footer">
+                      <button 
+                        className="btn-view"
+                        onClick={() => handleViewDetails(booking)}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
 
-          {!loading && email !== '' && bookings.length === 0 && !error && (
-            <div className="empty-state">
-              <p>No bookings found. Start planning your next visit!</p>
-            </div>
-          )}
+            {!loading && bookings.length === 0 && !error && (
+              <div className="empty-state">
+                <i className="fas fa-calendar-alt"></i>
+                <p>No bookings found.</p>
+                <button 
+                  className="btn-book-now"
+                  onClick={() => navigate('/')}
+                >
+                  Book Your First Stay
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Details Modal */}
+      {/* Booking Details Modal */}
       {showModal && selectedBooking && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Booking Details</h2>
-              <button className="btn-close" onClick={handleCloseModal}>✕</button>
+              <h3>Booking Details</h3>
+              <button className="modal-close" onClick={handleCloseModal}>✕</button>
             </div>
 
             <div className="modal-body">
+              {/* Customer Information */}
               <div className="detail-section">
-                <h3>Customer Information</h3>
+                <h4>Customer Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">Name:</span>
+                    <span className="label">Full Name</span>
                     <span className="value">{selectedBooking.customerName}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Email:</span>
+                    <span className="label">Email Address</span>
                     <span className="value">{selectedBooking.customerEmail}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Contact:</span>
+                    <span className="label">Contact Number</span>
                     <span className="value">{selectedBooking.customerContact}</span>
                   </div>
                 </div>
               </div>
 
+              {/* Booking Information */}
               <div className="detail-section">
-                <h3>Booking Details</h3>
+                <h4>Booking Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">Venue:</span>
+                    <span className="label">Venue</span>
                     <span className="value">{selectedBooking.oasis}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Package:</span>
+                    <span className="label">Package</span>
                     <span className="value">{selectedBooking.package}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Date:</span>
+                    <span className="label">Booking Date</span>
                     <span className="value">{formatDate(selectedBooking.bookingDate)}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Number of Guests:</span>
-                    <span className="value">{selectedBooking.pax}</span>
+                    <span className="label">Number of Guests</span>
+                    <span className="value">{selectedBooking.pax} persons</span>
                   </div>
                 </div>
               </div>
 
+              {/* Payment Information */}
               <div className="detail-section">
-                <h3>Payment Information</h3>
+                <h4>Payment Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">Down Payment:</span>
+                    <span className="label">Down Payment</span>
                     <span className="value">₱{selectedBooking.downpayment?.toLocaleString()}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Payment Method:</span>
-                    <span className="value">{selectedBooking.paymentMethod}</span>
+                    <span className="label">Payment Method</span>
+                    <span className="value">{selectedBooking.paymentMethod || 'Cash'}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Payment Status:</span>
-                    <span className="value">{selectedBooking.paymentStatus}</span>
+                    <span className="label">Payment Status</span>
+                    <span className="value">{selectedBooking.paymentStatus || 'Pending'}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Booking Status:</span>
-                    <span 
-                      className="value"
-                      style={{ color: getStatusColor(selectedBooking.status) }}
-                    >
+                    <span className="label">Booking Status</span>
+                    <span className="value" style={{ color: getStatusColor(selectedBooking.status) }}>
                       {selectedBooking.status}
                     </span>
                   </div>
                 </div>
               </div>
 
-              {selectedBooking.confirmedBy && (
+              {/* Special Requests */}
+              {selectedBooking.specialRequests && (
                 <div className="detail-section">
-                  <h3>Confirmation</h3>
-                  <div className="detail-grid">
-                    <div className="detail-item">
-                      <span className="label">Confirmed By:</span>
-                      <span className="value">{selectedBooking.confirmedBy?.name}</span>
-                    </div>
-                  </div>
+                  <h4>Special Requests</h4>
+                  <p className="special-request">{selectedBooking.specialRequests}</p>
                 </div>
               )}
             </div>

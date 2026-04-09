@@ -5,9 +5,9 @@
 
 export const OASIS1_PACKAGES = [
   {
-    id: "package-1",
+    id: "oasis1-package-1",
     name: "Package 1",
-    image: "/images/hero/oasis1-package-1.jpg",
+    image: "/images/packages/oasis1/package-1.jpg",
     subtitle: "No Room — Cottage Only",
     capacity: "Up to 20 pax",
     inclusions: [
@@ -29,9 +29,9 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
-    id: "package-2",
+    id: "oasis1-package-2",
     name: "Package 2",
-    image: "/images/hero/oasis1-package-2.jpg",
+    image: "/images/packages/oasis1/package-2.jpg",
     subtitle: "1 AC Superior Room",
     capacity: "2–4 sleeping capacity",
     inclusions: [
@@ -56,9 +56,9 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
-    id: "package-3",
-    image: "/images/hero/oasis1-package-3.jpg",
+    id: "oasis1-package-3",
     name: "Package 3",
+    image: "/images/packages/oasis1/package-3.jpg",
     subtitle: "1 AC Family Room",
     capacity: "8–12 sleeping capacity",
     inclusions: [
@@ -83,9 +83,9 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
-    id: "package-4",
-    image: "/images/hero/oasis1-package-4.jpg",
+    id: "oasis1-package-4",
     name: "Package 4",
+    image: "/images/packages/oasis1/package-4.jpg",
     subtitle: "2 AC Rooms",
     capacity: "12–15 sleeping capacity",
     inclusions: [
@@ -110,9 +110,9 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
-    image: "/images/hero/oasis2-package-a.jpg",
-    id: "package-5",
+    id: "oasis1-package-5",
     name: "Package 5",
+    image: "/images/packages/oasis1/package-5.jpg",
     subtitle: "4 AC Rooms",
     capacity: "22–25 sleeping capacity",
     inclusions: [
@@ -137,9 +137,9 @@ export const OASIS1_PACKAGES = [
     },
   },
   {
-    image: "/images/hero/oasis1-package-5plus.jpg",
-    id: "package-5plus",
+    id: "oasis1-package-5plus",
     name: "Package 5+",
+    image: "/images/packages/oasis1/package-5plus.jpg",
     subtitle: "4 AC Rooms — Large Group",
     capacity: "30–50 pax",
     inclusions: [
@@ -166,10 +166,10 @@ export const OASIS1_PACKAGES = [
 ];
 
 export const OASIS2_PACKAGES = [
-  {image: "/images/hero/Oasis2 Package A.jpg",
-    
-    id: "package-a",
+  {
+    id: "oasis2-package-a",
     name: "Package A",
+    image: "/images/packages/oasis2/package-a.jpg",
     subtitle: "No Room",
     capacity: "Up to 30 pax",
     inclusions: [
@@ -188,9 +188,9 @@ export const OASIS2_PACKAGES = [
     },
   },
   {
-    id: "package-b",
+    id: "oasis2-package-b",
     name: "Package B",
-    image: "/images/hero/oasis2-package-b.jpg",
+    image: "/images/packages/oasis2/package-b.jpg",
     subtitle: "1 AC Family Room",
     capacity: "Up to 30 pax",
     inclusions: [
@@ -211,9 +211,9 @@ export const OASIS2_PACKAGES = [
     },
   },
   {
-    id: "package-c",
+    id: "oasis2-package-c",
     name: "Package C",
-    image: "/images/hero/oasis2-package-c.jpg",
+    image: "/images/packages/oasis2/package-c.jpg",
     subtitle: "Events — Large Group",
     capacity: "50–100 pax",
     inclusions: [
@@ -237,11 +237,15 @@ export const OASIS2_PACKAGES = [
 
 export const PAYMENT_METHODS = ["GCash", "Maya", "GoTyme", "SeaBank", "Cash"];
 
+// ============================================
+// BOOKING RULES - CLEAN, NO ICONS
+// ============================================
+
 export const BOOKING_RULES = [
-  { icon: "💳", title: "Downpayment", desc: "₱3,000 for Day/Night · ₱5,000 for 22-hour packages (non-refundable)" },
-  { icon: "🔒", title: "Incidental Fee", desc: "₱1,000 collected before check-in, refundable upon checkout" },
-  { icon: "👥", title: "Extra Person", desc: "₱150 per person beyond the package capacity" },
-  { icon: "🕗", title: "Check-in / Check-out", desc: "Check-in: 8:00 AM · Check-out: 6:00 PM" },
-  { icon: "📅", title: "Rescheduling", desc: "Allowed at least 1 week before booking date" },
-  { icon: "🪪", title: "Valid ID Required", desc: "Present 1 valid government-issued ID upon arrival" },
+  { title: "Downpayment", desc: "₱3,000 for Day/Night · ₱5,000 for 22-hour packages (non-refundable)" },
+  { title: "Incidental Fee", desc: "₱1,000 collected before check-in, refundable upon checkout" },
+  { title: "Extra Person", desc: "₱150 per person beyond the package capacity" },
+  { title: "Check-in / Check-out", desc: "Check-in: 8:00 AM · Check-out: 6:00 PM" },
+  { title: "Rescheduling", desc: "Allowed at least 1 week before booking date" },
+  { title: "Valid ID Required", desc: "Present 1 valid government-issued ID upon arrival" },
 ];

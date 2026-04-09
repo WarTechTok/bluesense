@@ -1,4 +1,10 @@
+// src/pages/AboutUs.jsx
+// ============================================
+// ABOUT US PAGE - Consistent with Home page design
+// ============================================
+
 import React from 'react';
+import { Link } from 'react-router-dom';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import './AboutUs.css';
@@ -10,9 +16,9 @@ function AboutUs() {
       
       {/* Hero Section */}
       <section className="about-hero">
-        <div className="hero-content">
+        <div className="container">
           <h1>About Catherine's Oasis</h1>
-          <p className="hero-subtitle">Discover our story, mission, and commitment to excellence</p>
+          <p>Discover our story, mission, and commitment to excellence</p>
         </div>
       </section>
 
@@ -54,28 +60,28 @@ function AboutUs() {
           <div className="about-block">
             <h2>Our Core Values</h2>
             <div className="values-grid">
-              <div className="value-item">
-                <h3>🌟 Excellence</h3>
+              <div className="value-card">
+                <h3>Excellence</h3>
                 <p>We strive for excellence in every aspect of service and facility management</p>
               </div>
-              <div className="value-item">
-                <h3>❤️ Hospitality</h3>
+              <div className="value-card">
+                <h3>Hospitality</h3>
                 <p>Warm, genuine care and attention to detail for all our guests</p>
               </div>
-              <div className="value-item">
-                <h3>🤝 Integrity</h3>
+              <div className="value-card">
+                <h3>Integrity</h3>
                 <p>Honest and transparent in all our dealings and operations</p>
               </div>
-              <div className="value-item">
-                <h3>🌍 Sustainability</h3>
+              <div className="value-card">
+                <h3>Sustainability</h3>
                 <p>Committed to environmental responsibility and community welfare</p>
               </div>
-              <div className="value-item">
-                <h3>💡 Innovation</h3>
+              <div className="value-card">
+                <h3>Innovation</h3>
                 <p>Continuously improving our facilities, services, and guest experiences</p>
               </div>
-              <div className="value-item">
-                <h3>👥 Community</h3>
+              <div className="value-card">
+                <h3>Community</h3>
                 <p>Building strong relationships with our staff, guests, and local communities</p>
               </div>
             </div>
@@ -84,16 +90,14 @@ function AboutUs() {
           {/* What Sets Us Apart */}
           <div className="about-block">
             <h2>What Sets Us Apart</h2>
-            <ul className="features-list">
-              <li>✓ Two unique oasis venues with distinct charm and character</li>
-              <li>✓ Customizable packages for all types of occasions and group sizes</li>
-              <li>✓ Professional and attentive staff available 24/7</li>
-              <li>✓ Modern facilities combined with natural beauty and serene ambiance</li>
-              <li>✓ Flexible booking options and competitive pricing</li>
-              <li>✓ Comprehensive support from initial inquiry to post-visit follow-up</li>
-              <li>✓ Award-winning service and positive guest testimonials</li>
-              <li>✓ Eco-friendly practices and sustainable operations</li>
-            </ul>
+            <div className="features-list">
+              <p>✓ Two unique oasis venues with distinct charm and character</p>
+              <p>✓ Customizable packages for all types of occasions and group sizes</p>
+              <p>✓ Professional and attentive staff available 24/7</p>
+              <p>✓ Modern facilities combined with natural beauty and serene ambiance</p>
+              <p>✓ Flexible booking options and competitive pricing</p>
+              <p>✓ Eco-friendly practices and sustainable operations</p>
+            </div>
           </div>
 
           {/* Our Team */}
@@ -109,6 +113,13 @@ function AboutUs() {
               We believe that our people are our greatest asset. Their expertise, professionalism, and 
               genuine care create an environment where guests feel valued, welcomed, and truly at home.
             </p>
+          </div>
+
+          {/* CTA Section */}
+          <div className="about-cta">
+            <h2>Ready to Experience Catherine's Oasis?</h2>
+            <p>Book your stay today and create unforgettable memories</p>
+            <Link to="/booking" className="cta-btn">Book Now</Link>
           </div>
 
         </div>

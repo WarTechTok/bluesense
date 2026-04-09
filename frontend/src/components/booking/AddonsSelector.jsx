@@ -1,70 +1,75 @@
-// frontend/src/components/booking/AddonsSelector.jsx
+// src/components/booking/AddonsSelector.jsx
+// ============================================
+// ADD-ONS SELECTOR - Checkboxes for add-ons
+// ============================================
+
 import React, { useState } from 'react';
 
 function AddonsSelector({ packageData, onAddonsChange }) {
   const [selectedAddons, setSelectedAddons] = useState({});
-  
-  const addonPrices = {
-    'Karaoke (₱700)': 700,
-    'Stove 10hrs (₱200)': 200,
-    'Stove 22hrs (₱400)': 400,
-    'Stove (₱300)': 300
-  };
-  
-  const handleAddonToggle = (addon) => {
-    const newAddons = { ...selectedAddons };
-    if (newAddons[addon]) {
-      delete newAddons[addon];
-    } else {
-      newAddons[addon] = addonPrices[addon];
+
+  // Parse addon string to extract name and price
+  const parseAddon = (addonString) => {
+    // Examples: "Karaoke (₱700)", "Stove 10hrs (₱200)", "Stove (₱300)"
+    const match = addonString.match(/^(.+?)\s*\(₱(\d+)\)$/);
+    if (match) {
+      return {
+        name: match[1].trim(),
+        price: parseInt(match[2])
+      };
     }
-    setSelectedAddons(newAddons);
-    onAddonsChange(newAddons);
+    return { name: addonString, price: null };
   };
-  
-  const totalAddonsPrice = Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
-  
-  if (!packageData?.addons || packageData.addons.length === 0) {
-    return null;
-  }
-  
-  return (
-    <div className="addons-selector">
-      <div className="addons-header">
-        <h3><i className="fas fa-plus-circle"></i> Add-ons (Optional)</h3>
-        <p>Enhance your experience with these add-ons</p>
+
+  // Get available add-ons from package data
+  const getAvailableAddons = () => {
+    if (!packageData) return [];
+    if (!packageData.addons) return [];
+    return packageData.addons.map(addon => parseAddon(addon));
+  };
+
+  const handleAddonToggle = (addonName, addonPrice) => {
+    const newSelected = { ...selectedAddons };
+    if (newSelected[addonName]) {
+      delete newSelected[addonName];
+    } else {
+      newSelected[addonName] = addonPrice;
+    }
+    setSelectedAddons(newSelected);
+    onAddonsChange(newSelected);
+  };
+
+  const addons = getAvailableAddons();
+
+  if (addons.length === 0) {
+    return (
+      <div className="addons-section">
+        <h3 className="section-title">Add-ons</h3>
+        <p className="section-subtitle">No add-ons available for this package</p>
       </div>
+    );
+  }
+
+  return (
+    <div className="addons-section">
+      <h3 className="section-title">Add-ons</h3>
+      <p className="section-subtitle">Enhance your experience with these extras</p>
       
       <div className="addons-grid">
-        {packageData.addons.map((addon, idx) => (
-          <div 
-            key={idx}
-            className={`addon-card ${selectedAddons[addon] ? 'selected' : ''}`}
-            onClick={() => handleAddonToggle(addon)}
-          >
-            <div className="addon-checkbox">
-              {selectedAddons[addon] ? (
-                <i className="fas fa-check-square"></i>
-              ) : (
-                <i className="far fa-square"></i>
-              )}
-            </div>
+        {addons.map((addon, index) => (
+          <label key={index} className="addon-option">
+            <input
+              type="checkbox"
+              checked={!!selectedAddons[addon.name]}
+              onChange={() => handleAddonToggle(addon.name, addon.price)}
+            />
             <div className="addon-info">
-              <h4>{addon}</h4>
+              <span className="addon-name">{addon.name}</span>
+              {addon.price && <span className="addon-price">+ ₱{addon.price.toLocaleString()}</span>}
             </div>
-            <div className="addon-price">
-              ₱{addonPrices[addon]?.toLocaleString()}
-            </div>
-          </div>
+          </label>
         ))}
       </div>
-      
-      {totalAddonsPrice > 0 && (
-        <div className="addons-total">
-          <span>Add-ons Total:</span>
-          <strong>₱{totalAddonsPrice.toLocaleString()}</strong>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,19 +1,13 @@
 // src/components/modals/BookingSuccessModal.jsx
-import React, { useEffect } from 'react';
+// ============================================
+// BOOKING SUCCESS MODAL - Shows after successful booking
+// ============================================
+
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Modal.css';
 
 function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
-    }
-    return () => document.body.classList.remove('modal-open');
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -22,48 +16,87 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
     navigate('/my-bookings');
   };
 
-  const handleBackToHome = () => {
+  const handleGoHome = () => {
     onClose();
     navigate('/');
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content success-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="success-icon">
-          <span className="checkmark">✓</span>
+      <div className="success-modal" onClick={(e) => e.stopPropagation()}>
+        {/* Success Icon */}
+        <div className="success-icon-wrapper">
+          <div className="success-icon">
+            <i className="fas fa-check-circle"></i>
+          </div>
         </div>
-        
+
+        {/* Title */}
         <h2 className="success-title">Booking Confirmed!</h2>
-        
         <p className="success-message">
-          Your reservation at <strong>{bookingDetails?.oasis || 'Catherine\'s Oasis'}</strong> has been successfully submitted.
+          Your reservation has been successfully submitted.
         </p>
-        
-        <div className="booking-details">
-          <div className="detail-row">
-            <span>Booking ID:</span>
-            <strong>{bookingDetails?.bookingId || '#' + Math.random().toString(36).substr(2, 8).toUpperCase()}</strong>
+
+        {/* Booking Details */}
+        {bookingDetails && (
+          <div className="booking-details-card">
+            <div className="booking-details-header">
+              <i className="fas fa-receipt"></i>
+              <span>Booking Reference</span>
+            </div>
+            <div className="booking-id">{bookingDetails.bookingId}</div>
+            
+            <div className="booking-details-grid">
+              <div className="detail-item">
+                <span className="detail-label">Oasis:</span>
+                <span className="detail-value">{bookingDetails.oasis}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Package:</span>
+                <span className="detail-value">{bookingDetails.package}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Session:</span>
+                <span className="detail-value">{bookingDetails.session}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Check-in:</span>
+                <span className="detail-value">{bookingDetails.checkIn}</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Guests:</span>
+                <span className="detail-value">{bookingDetails.guests} persons</span>
+              </div>
+              <div className="detail-item">
+                <span className="detail-label">Downpayment:</span>
+                <span className="detail-value">₱{bookingDetails.downpayment?.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
-          <div className="detail-row">
-            <span>Check-in:</span>
-            <strong>{bookingDetails?.checkIn || '—'}</strong>
-          </div>
-          <div className="detail-row">
-            <span>Check-out:</span>
-            <strong>{bookingDetails?.checkOut || '—'}</strong>
-          </div>
-          <div className="detail-row">
-            <span>Guests:</span>
-            <strong>{bookingDetails?.guests || '—'} persons</strong>
-          </div>
+        )}
+
+        {/* Important Notes */}
+        <div className="important-notes">
+          <p className="notes-title">
+            <i className="fas fa-info-circle"></i>
+            Important Reminders:
+          </p>
+          <ul>
+            <li>Please present your booking reference upon arrival</li>
+            <li>Downpayment is non-refundable</li>
+            <li>Balance must be paid upon check-in</li>
+            <li>Please bring a valid government ID</li>
+          </ul>
         </div>
-      
-        <div className="success-actions">
-          <button className="btn-secondary" onClick={handleBackToHome}>
-            Back to Home
+
+        {/* Action Buttons */}
+        <div className="success-modal-actions">
+          <button className="btn-secondary" onClick={handleGoHome}>
+            <i className="fas fa-home"></i>
+            Go to Home
           </button>
           <button className="btn-primary" onClick={handleViewBookings}>
+            <i className="fas fa-bookmark"></i>
             View My Bookings
           </button>
         </div>
