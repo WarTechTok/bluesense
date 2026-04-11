@@ -1,30 +1,309 @@
 // backend/controllers/bookingController.js
 // ============================================
-// BOOKING CONTROLLER - create, read, update bookings
+// BOOKING CONTROLLER - with booking limits & capacity management
 // ============================================
 
 const Booking = require("../models/Booking");
 
 // ============================================
-// CREATE BOOKING - magsubmit ng reservation
+// CAPACITY CONFIGURATION
 // ============================================
+
+const OASIS_CONFIG = {
+  'Oasis 1': {
+    maxBookingsPerDay: 6,
+    maxPaxPerDay: 120,
+    sessions: {
+      'Day': {
+        maxBookings: 3,
+        maxPax: 60,
+        availablePackages: ['Package 1', 'Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
+      },
+      'Night': {
+        maxBookings: 3,
+        maxPax: 60,
+        availablePackages: ['Package 1', 'Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
+      },
+      '22hrs': {
+        maxBookings: 2,
+        maxPax: 40,
+        availablePackages: ['Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
+      }
+    }
+  },
+  'Oasis 2': {
+    maxBookingsPerDay: 8,
+    maxPaxPerDay: 200,
+    sessions: {
+      'Day': {
+        maxBookings: 4,
+        maxPax: 100,
+        availablePackages: ['Package A', 'Package B', 'Package C']
+      },
+      'Night': {
+        maxBookings: 4,
+        maxPax: 100,
+        availablePackages: ['Package A', 'Package B', 'Package C']
+      },
+      '22hrs': {
+        maxBookings: 3,
+        maxPax: 80,
+        availablePackages: ['Package B', 'Package C']
+      }
+    }
+  }
+};
+
+const PACKAGE_CAPACITY = {
+  'Oasis 1': {
+    'Package 1': 20,
+    'Package 2': 4,
+    'Package 3': 12,
+    'Package 4': 15,
+    'Package 5': 25,
+    'Package 5+': 50
+  },
+  'Oasis 2': {
+    'Package A': 30,
+    'Package B': 30,
+    'Package C': 100
+  }
+};
+
+// ============================================
+// HELPER: Get start and end of day
+// ============================================
+
+const getDayRange = (date) => {
+  const start = new Date(date);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(date);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+};
+
+// ============================================
+// CREATE BOOKING - with all validation limits
+// ============================================
+
 const createBooking = async (req, res) => {
   try {
-    const newBooking = new Booking(req.body);
-    await newBooking.save();
+    const {
+      customerName,
+      customerContact,
+      customerEmail,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      totalPrice,
+      downpayment,
+      addons,
+      specialRequests,
+      paymentMethod,
+      paymentProof
+    } = req.body;
+
+    const selectedDate = new Date(bookingDate);
+    const { start, end } = getDayRange(selectedDate);
+
+    // ============================================
+    // 1. CHECK PACKAGE CAPACITY
+    // ============================================
     
+    const maxPackagePax = PACKAGE_CAPACITY[oasis]?.[packageName];
+    if (maxPackagePax && pax > maxPackagePax) {
+      return res.status(400).json({
+        success: false,
+        message: `${packageName} can only accommodate up to ${maxPackagePax} persons. You have ${pax} persons.`
+      });
+    }
+
+    // ============================================
+    // 2. CHECK SESSION AVAILABILITY FOR THIS PACKAGE
+    // ============================================
+    
+    const sessionConfig = OASIS_CONFIG[oasis]?.sessions[session];
+    if (!sessionConfig) {
+      return res.status(400).json({
+        success: false,
+        message: `${session} session is not available for ${oasis}.`
+      });
+    }
+    
+    if (!sessionConfig.availablePackages.includes(packageName)) {
+      return res.status(400).json({
+        success: false,
+        message: `${packageName} is not available for ${session} session. Available packages: ${sessionConfig.availablePackages.join(', ')}`
+      });
+    }
+
+    // ============================================
+    // 3. CHECK EXISTING BOOKINGS ON SAME DATE
+    // ============================================
+    
+    const existingBookings = await Booking.find({
+      oasis,
+      bookingDate: { $gte: start, $lt: end },
+      status: { $in: ['Pending', 'Confirmed'] }
+    });
+
+    // 3a. Check if customer already booked this date
+    const customerExistingBooking = existingBookings.find(
+      b => b.customerEmail === customerEmail
+    );
+    
+    if (customerExistingBooking) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have a booking on this date. Please choose another date.'
+      });
+    }
+
+    // 3b. Check total bookings per day limit
+    if (existingBookings.length >= OASIS_CONFIG[oasis].maxBookingsPerDay) {
+      return res.status(400).json({
+        success: false,
+        message: `${oasis} is fully booked for this date. Please choose another date.`
+      });
+    }
+
+    // 3c. Check total pax per day limit
+    const totalPaxForDay = existingBookings.reduce((sum, b) => sum + b.pax, 0);
+    if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
+      return res.status(400).json({
+        success: false,
+        message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`
+      });
+    }
+
+    // ============================================
+    // 4. CHECK SESSION-SPECIFIC LIMITS
+    // ============================================
+    
+    const existingSessionBookings = existingBookings.filter(b => b.session === session);
+    
+    if (existingSessionBookings.length >= sessionConfig.maxBookings) {
+      return res.status(400).json({
+        success: false,
+        message: `${session} session is fully booked for this date. Maximum ${sessionConfig.maxBookings} bookings per session.`
+      });
+    }
+    
+    const totalPaxForSession = existingSessionBookings.reduce((sum, b) => sum + b.pax, 0);
+    if (totalPaxForSession + pax > sessionConfig.maxPax) {
+      return res.status(400).json({
+        success: false,
+        message: `${session} session capacity reached. Maximum ${sessionConfig.maxPax} persons per session.`
+      });
+    }
+
+    // ============================================
+    // 5. CHECK PENDING BOOKING LIMIT (per customer)
+    // ============================================
+    
+    const existingPendingBooking = await Booking.findOne({
+      customerEmail,
+      status: 'Pending',
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+    });
+
+    if (existingPendingBooking) {
+      return res.status(400).json({
+        success: false,
+        message: 'You have a pending booking. Please complete your payment first.'
+      });
+    }
+
+    // ============================================
+    // 6. CHECK FUTURE BOOKINGS LIMIT (per customer)
+    // ============================================
+    
+    const futureBookingsCount = await Booking.countDocuments({
+      customerEmail,
+      bookingDate: { $gte: new Date() },
+      status: { $in: ['Pending', 'Confirmed'] }
+    });
+
+    if (futureBookingsCount >= 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'You already have 2 upcoming bookings. Please complete or cancel one first.'
+      });
+    }
+
+    // ============================================
+    // 7. CHECK DATE ADVANCE LIMITS
+    // ============================================
+    
+    // 7a. Max 3 months advance
+    const maxAdvanceDate = new Date();
+    maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
+    
+    if (selectedDate > maxAdvanceDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'You can only book up to 3 months in advance.'
+      });
+    }
+    
+    // 7b. Min 1 day advance
+    const minAdvanceDate = new Date();
+    minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
+    minAdvanceDate.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < minAdvanceDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bookings must be made at least 1 day in advance.'
+      });
+    }
+
+    // ============================================
+    // CREATE BOOKING - ALL CHECKS PASSED
+    // ============================================
+
+    const newBooking = new Booking({
+      customerName,
+      customerContact,
+      customerEmail,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      totalPrice,
+      downpayment,
+      addons: addons || {},
+      specialRequests: specialRequests || '',
+      paymentMethod,
+      paymentProof: paymentProof || null,
+      status: 'Pending',
+      paymentStatus: 'Pending'
+    });
+
+    await newBooking.save();
+
     res.status(201).json({
-      message: "Booking submitted successfully",
+      success: true,
+      message: 'Booking submitted successfully. Please complete your downpayment.',
       booking: newBooking
     });
+
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Create booking error:', error);
+    res.status(400).json({ 
+      success: false, 
+      message: error.message 
+    });
   }
 };
 
 // ============================================
 // GET ALL BOOKINGS - para sa staff/admin
 // ============================================
+
 const getAllBookings = async (req, res) => {
   try {
     const bookings = await Booking.find()
@@ -40,6 +319,7 @@ const getAllBookings = async (req, res) => {
 // ============================================
 // GET BOOKING BY ID - para sa details
 // ============================================
+
 const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
@@ -58,6 +338,7 @@ const getBookingById = async (req, res) => {
 // ============================================
 // UPDATE BOOKING STATUS - confirm or cancel
 // ============================================
+
 const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -86,6 +367,7 @@ const updateBookingStatus = async (req, res) => {
 // ============================================
 // UPDATE PAYMENT STATUS - for partial payments
 // ============================================
+
 const updatePaymentStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -109,6 +391,7 @@ const updatePaymentStatus = async (req, res) => {
 // ============================================
 // GET BOOKINGS BY CUSTOMER EMAIL - public (no auth)
 // ============================================
+
 const getBookingsByCustomerEmail = async (req, res) => {
   try {
     const { email } = req.params;
@@ -130,6 +413,7 @@ const getBookingsByCustomerEmail = async (req, res) => {
 // ============================================
 // DELETE BOOKING - admin only (optional)
 // ============================================
+
 const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;

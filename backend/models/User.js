@@ -1,6 +1,6 @@
 // backend/models/User.js
 // ============================================
-// USER MODEL - with forgot password, Google OAuth, and avatar fields
+// USER MODEL - with email verification
 // ============================================
 
 const mongoose = require("mongoose");
@@ -47,32 +47,33 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  // ============================================
-  // 🔴 NEW FIELDS - Google OAuth and Avatar
-  // ============================================
-  
-  // Google ID for users who sign in with Google
+  // Google OAuth and Avatar
   googleId: {
     type: String,
     default: null
   },
-  
-  // Google profile picture URL
   googleAvatar: {
     type: String,
     default: null
   },
-  
-  // Custom uploaded avatar URL
   avatar: {
     type: String,
     default: null
   },
-  
-  // Email verification status
+  // ============================================
+  // EMAIL VERIFICATION FIELDS (ADD THESE)
+  // ============================================
   isEmailVerified: {
     type: Boolean,
     default: false
+  },
+  emailVerificationToken: {
+    type: String,
+    default: null
+  },
+  emailVerificationExpires: {
+    type: Date,
+    default: null
   }
   
 }, { timestamps: true });

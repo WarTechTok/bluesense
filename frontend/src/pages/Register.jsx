@@ -1,12 +1,11 @@
 // frontend/src/pages/Register.jsx
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';  // ← Removed useNavigate
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import SignupSuccessModal from '../components/modals/SignupSuccessModal';
 import './Register.css';
 
 function Register() {
-  // Removed: const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -22,11 +21,11 @@ function Register() {
   const [validationErrors, setValidationErrors] = useState([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+  const [registeredName, setRegisteredName] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate all fields
     const errors = [];
     
     if (!form.name.trim()) {
@@ -75,8 +74,9 @@ function Register() {
       const { confirmPassword, ...submitData } = form;
       await axios.post('http://localhost:8080/api/auth/register', submitData);
       
-      // Show success modal instead of alert
+      // Store email and name for the modal
       setRegisteredEmail(form.email);
+      setRegisteredName(form.name);
       setShowSuccessModal(true);
       
     } catch (err) {
@@ -89,21 +89,17 @@ function Register() {
   return (
     <div className="register-page">
       <div className="register-card">
-        {/* Logo */}
         <Link to="/" className="register-logo-link">
           <img src="/images/logo/Logo-NoBackground.png" alt="Catherine's Oasis" className="register-logo" />
         </Link>
 
-        {/* Header */}
         <div className="register-header">
           <h1 className="register-title">Create account</h1>
           <p className="register-subtitle">Join Catherine's Oasis</p>
         </div>
 
-        {/* Error Messages */}
         {error && <div className="register-error">{error}</div>}
 
-        {/* Validation Errors */}
         {validationErrors.length > 0 && (
           <div className="validation-errors">
             {validationErrors.map((err, index) => (
@@ -115,9 +111,7 @@ function Register() {
           </div>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="register-form">
-          {/* Name Field */}
           <div className="form-group">
             <input
               type="text"
@@ -129,7 +123,6 @@ function Register() {
             />
           </div>
 
-          {/* Email Field */}
           <div className="form-group">
             <input
               type="email"
@@ -141,7 +134,6 @@ function Register() {
             />
           </div>
 
-          {/* Password Field with Eye Icon */}
           <div className="form-group">
             <div className="password-wrapper">
               <input
@@ -172,7 +164,6 @@ function Register() {
             </div>
           </div>
 
-          {/* Confirm Password Field with Eye Icon */}
           <div className="form-group">
             <div className="password-wrapper">
               <input
@@ -203,12 +194,10 @@ function Register() {
             </div>
           </div>
 
-          {/* Password Requirements Note */}
           <p className="password-note">
             Password must be 8-16 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.
           </p>
 
-          {/* Phone Field */}
           <div className="form-group">
             <input
               type="tel"
@@ -219,7 +208,6 @@ function Register() {
             />
           </div>
 
-          {/* Address Field */}
           <div className="form-group">
             <textarea
               placeholder="Address (optional)"
@@ -230,7 +218,6 @@ function Register() {
             />
           </div>
 
-          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading}
@@ -240,7 +227,6 @@ function Register() {
           </button>
         </form>
 
-        {/* Login Link */}
         <div className="register-footer">
           <p>
             Already have an account? <Link to="/login">Sign in</Link>
@@ -248,11 +234,12 @@ function Register() {
         </div>
       </div>
 
-      {/* Success Modal */}
+      {/* Success Modal - Shows verification message */}
       <SignupSuccessModal 
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         email={registeredEmail}
+        name={registeredName}
       />
     </div>
   );

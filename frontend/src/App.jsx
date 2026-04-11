@@ -26,6 +26,7 @@ import ContactUs from "./pages/ContactUs";
 import Gallery from "./pages/Gallery";
 import Booking from "./pages/booking/Booking";
 import MyBookings from "./pages/booking/MyBookings";
+import VerifyEmail from "./pages/VerifyEmail";  // ADD THIS IMPORT
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
 
@@ -85,6 +86,7 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />  {/* ADD THIS ROUTE */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/oauth-redirect" element={<OAuthRedirect />} />

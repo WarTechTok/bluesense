@@ -1,9 +1,13 @@
 // src/components/modals/SignupSuccessModal.jsx
+// ============================================
+// SIGNUP SUCCESS MODAL - Shows verification message
+// ============================================
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Modal.css';
+import './SignupSuccessModal.css';
 
-function SignupSuccessModal({ isOpen, onClose, email }) {
+function SignupSuccessModal({ isOpen, onClose, email, name }) {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,23 +28,35 @@ function SignupSuccessModal({ isOpen, onClose, email }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Account Created!</h3>
-          <button className="modal-close" onClick={onClose}>×</button>
+      <div className="success-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="success-icon-wrapper">
+          <div className="success-icon">
+            <i className="fas fa-envelope"></i>
+          </div>
         </div>
+
+        <h2 className="success-title">Verify Your Email</h2>
         
-        <div className="modal-body">
-          <p className="confirm-text">
-            Welcome to Catherine's Oasis! Your account has been successfully created.
-          </p>
-          <p className="confirm-text" style={{ fontSize: '14px', marginTop: '8px' }}>
-            A welcome email has been sent to <strong>{email}</strong>.
-          </p>
+        <p className="success-message">
+          We've sent a verification link to:
+        </p>
+        
+        <p className="success-email">{email}</p>
+        
+        <p className="success-instruction">
+          Please check your inbox and click the verification link to activate your account.
+        </p>
+
+        <div className="important-note">
+          <i className="fas fa-info-circle"></i>
+          <span>Didn't receive the email? Check your spam folder.</span>
         </div>
-        
-        <div className="modal-actions">
-          <button className="modal-action-btn confirm" onClick={handleLogin}>
+
+        <div className="success-modal-actions">
+          <button className="btn-secondary" onClick={onClose}>
+            Close
+          </button>
+          <button className="btn-primary" onClick={handleLogin}>
             Go to Login
           </button>
         </div>

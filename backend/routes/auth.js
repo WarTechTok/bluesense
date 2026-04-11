@@ -20,7 +20,9 @@ const {
   resetPassword,
   googleLogin,
   updateProfile,
-  getProfile
+  getProfile,
+  verifyEmail,           // ADD THIS
+  resendVerificationEmail // ADD THIS
 } = require("../controllers/authController");
 
 const { verifyToken, isAdmin } = require("../middleware/auth");
@@ -81,7 +83,13 @@ router.get('/google/callback',
 );
 
 // ============================================
-// 🥈 2. OTHER SPECIFIC ROUTES (NO PARAMETERS)
+// 🥈 2. EMAIL VERIFICATION ROUTES (ADD HERE)
+// ============================================
+router.get('/verify-email', verifyEmail);
+router.post('/resend-verification', resendVerificationEmail);
+
+// ============================================
+// 🥉 3. OTHER SPECIFIC ROUTES (NO PARAMETERS)
 // ============================================
 router.post("/register", register);
 router.post("/login", login);
@@ -89,20 +97,20 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 
 // ============================================
-// 🥉 3. PROTECTED ROUTES (WITH AUTH)
+// 4. PROTECTED ROUTES (WITH AUTH)
 // ============================================
 router.get("/profile", verifyToken, getProfile);
 router.put("/profile", verifyToken, upload.single('avatar'), updateProfile);
 
 // ============================================
-// 4. ADMIN ROUTES
+// 5. ADMIN ROUTES
 // ============================================
 router.post("/register-staff", verifyToken, isAdmin, registerStaff);
 router.get("/staff/all", verifyToken, isAdmin, getAllStaff);
 router.get("/customers/all", verifyToken, getAllCustomers);
 
 // ============================================
-// ⚠️ 5. DYNAMIC ROUTE - MUST BE LAST!
+// ⚠️ 6. DYNAMIC ROUTE - MUST BE LAST!
 // ============================================
 router.get("/:id", getUserById);
 
