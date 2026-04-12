@@ -407,29 +407,141 @@ const registerStaff = async (req, res) => {
 };
 
 // ============================================
-// FORGOT PASSWORD - (keep your existing implementation)
+// FORGOT PASSWORD
 // ============================================
 const forgotPassword = async (req, res) => {
-  // Your existing forgotPassword code here
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      return res.status(404).json({ message: "No account with that email" });
+    }
+    
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000;
+    await user.save();
+    
+    const resetURL = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
+    
+    const message = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+        <h2>Reset Your Password</h2>
+        <p>Click the link below to reset your password:</p>
+        <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; background: #0284c7; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
+        <p>This link expires in 1 hour.</p>
+      </div>
+    `;
+    
+    await sendEmail({ email: user.email, subject: "Password Reset", html: message });
+    
+    res.json({ message: "Password reset email sent" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // ============================================
-// RESET PASSWORD - (keep your existing implementation)
+// RESET PASSWORD
 // ============================================
 const resetPassword = async (req, res) => {
-  // Your existing resetPassword code here
+  try {
+    const { token } = req.params;
+    const { password } = req.body;
+    
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.valid) {
+      return res.status(400).json({ message: passwordCheck.message });
+    }
+    
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+    
+    res.json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // ============================================
-// GOOGLE LOGIN - (keep your existing implementation)
+// GOOGLE LOGIN - Handle Google OAuth callback
 // ============================================
 const googleLogin = async (req, res) => {
-  // Your existing googleLogin code here
-  // Make sure to set isEmailVerified: true for Google users
+  try {
+    const { id, email, name, picture } = req.user;
+    
+    console.log('🔍 Google user data:', { id, email, name, picture });
+    
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      const tempPassword = crypto.randomBytes(20).toString('hex');
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      
+      user = new User({
+        name,
+        email,
+        googleId: id,
+        googleAvatar: picture,
+        role: 'customer',
+        isEmailVerified: true,
+        password: hashedPassword
+      });
+      await user.save();
+      console.log(`✅ New Google user created: ${email}`);
+    } else {
+      user.googleId = id;
+      user.googleAvatar = picture;
+      user.isEmailVerified = true;
+      await user.save();
+      console.log(`✅ Existing user updated with Google: ${email}`);
+    }
+    
+    const token = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "7d" }
+    );
+    
+    const userData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      avatar: user.googleAvatar || user.avatar
+    };
+    
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
+    const redirectUrl = `${frontendURL}/oauth-redirect?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`;
+    
+    console.log('✅ Google login successful, redirecting');
+    res.redirect(redirectUrl);
+    
+  } catch (error) {
+    console.error("❌ Google login error:", error);
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendURL}/login?error=google_auth_failed`);
+  }
 };
 
 // ============================================
-// GET ALL CUSTOMERS, GET ALL STAFF, GET USER BY ID
+// GET ALL CUSTOMERS
 // ============================================
 const getAllCustomers = async (req, res) => {
   try {
@@ -440,6 +552,9 @@ const getAllCustomers = async (req, res) => {
   }
 };
 
+// ============================================
+// GET ALL STAFF
+// ============================================
 const getAllStaff = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -452,6 +567,9 @@ const getAllStaff = async (req, res) => {
   }
 };
 
+// ============================================
+// GET USER BY ID
+// ============================================
 const getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -465,7 +583,7 @@ const getUserById = async (req, res) => {
 };
 
 // ============================================
-// GET PROFILE & UPDATE PROFILE
+// GET PROFILE
 // ============================================
 const getProfile = async (req, res) => {
   try {
@@ -479,8 +597,58 @@ const getProfile = async (req, res) => {
   }
 };
 
+// ============================================
+// UPDATE PROFILE - FIXED VERSION
+// ============================================
 const updateProfile = async (req, res) => {
-  // Your existing updateProfile code here
+  console.log("========== PROFILE UPDATE ==========");
+  console.log("req.body:", req.body);
+  console.log("req.file:", req.file);
+  
+  try {
+    const userId = req.user.id;
+    const { name, phone, address } = req.body;
+    
+    console.log("User ID:", userId);
+    console.log("Update data:", { name, phone, address });
+    
+    // Build update object
+    const updateData = {};
+    if (name !== undefined && name !== '') updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (address !== undefined) updateData.address = address;
+    
+    // Handle avatar if uploaded
+    if (req.file) {
+      updateData.avatar = `/uploads/avatars/${req.file.filename}`;
+      console.log("Avatar file:", req.file.filename);
+    }
+    
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: "No data to update" });
+    }
+    
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    console.log("User updated successfully:", updatedUser);
+    
+    res.json({
+      message: "Profile updated successfully",
+      user: updatedUser
+    });
+    
+  } catch (error) {
+    console.error("Update profile error:", error);
+    res.status(500).json({ message: error.message });
+  }
 };
 
 // ============================================

@@ -28,6 +28,7 @@ function Booking() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
+  const [infoConfirmed, setInfoConfirmed] = useState(false);
   
   // Get preselected data from navigation state
   const preselectedOasis = location.state?.oasis || null;
@@ -38,10 +39,13 @@ function Booking() {
   const [selectedPackage] = useState(preselectedPackage?.name || null);
   const [selectedSession, setSelectedSession] = useState(null);
   
+  // Get logged-in user data from localStorage
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
+    fullName: loggedInUser.name || '',
+    email: loggedInUser.email || '',
+    phone: loggedInUser.phone || '',
     guestCount: 1,
     reservationDate: '',
     checkoutDate: '',
@@ -146,17 +150,9 @@ function Booking() {
     const newErrors = {};
     
     if (step === 1) {
-      // Guest info validation
-      if (!formData.fullName.trim()) {
-        newErrors.fullName = 'Full name is required';
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = 'Email is required';
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = 'Email is invalid';
-      }
-      if (!formData.phone.trim()) {
-        newErrors.phone = 'Phone number is required';
+      // Guest info validation (only guest count)
+      if (!formData.guestCount || formData.guestCount < 1) {
+        newErrors.guestCount = 'Number of guests is required';
       }
       
       // Capacity validation
@@ -169,6 +165,11 @@ function Booking() {
       if (formData.guestCount > maxCapacity) {
         const extraCost = (formData.guestCount - maxCapacity) * 150;
         newErrors.guestCount = `Maximum ${maxCapacity} guests (${formData.guestCount - maxCapacity} extra @ ₱150/head = ₱${extraCost.toLocaleString()})`;
+      }
+      
+      // Check if info is confirmed
+      if (!infoConfirmed) {
+        newErrors.confirmInfo = 'Please confirm your information first';
       }
     }
     
@@ -190,6 +191,11 @@ function Booking() {
   };
 
   const handleNext = () => {
+    if (step === 1 && !infoConfirmed) {
+      setErrors({ ...errors, confirmInfo: 'Please confirm your information first' });
+      return;
+    }
+    
     if (validateStep()) {
       setStep(step + 1);
       window.scrollTo(0, 0);
@@ -303,7 +309,6 @@ function Booking() {
             <form className="booking-form" onSubmit={handleSubmit}>
               {step === 1 && (
                 <>
-                  {/* Show selected oasis and package (read-only) */}
                   <div className="selected-info">
                     <div className="info-card">
                       <span className="info-label">Selected Oasis:</span>
@@ -319,7 +324,11 @@ function Booking() {
                     formData={formData} 
                     errors={errors} 
                     handleChange={handleChange}
+                    onConfirm={() => setInfoConfirmed(true)}
+                    isConfirmed={infoConfirmed}
                   />
+                  
+                  {errors.confirmInfo && <span className="error-message confirm-error">{errors.confirmInfo}</span>}
                 </>
               )}
               
@@ -378,7 +387,12 @@ function Booking() {
                   </button>
                 )}
                 {step < 4 ? (
-                  <button type="button" className="btn-next" onClick={handleNext}>
+                  <button 
+                    type="button" 
+                    className={`btn-next ${(step === 1 && !infoConfirmed) ? 'disabled' : ''}`} 
+                    onClick={handleNext}
+                    disabled={step === 1 && !infoConfirmed}
+                  >
                     Continue <i className="fas fa-arrow-right"></i>
                   </button>
                 ) : (

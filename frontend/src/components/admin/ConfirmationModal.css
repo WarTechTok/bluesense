@@ -1,0 +1,11 @@
+/* frontend/src/components/admin/ConfirmationModal.css */
+.confirm-modal {
+  max-width: 400px;
+}
+
+.confirm-text {
+  text-align: center;
+  font-size: 1rem;
+  color: #475569;
+  margin: 0;
+}

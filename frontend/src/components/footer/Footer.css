@@ -63,12 +63,11 @@
   color: #0284c7;
 }
 
-/* Contact Info - Fix background */
+/* Contact Info - FORCE DARK BACKGROUND */
 .contact-info {
   list-style: none;
   padding: 0;
   margin: 0;
-  background: transparent;
 }
 
 .contact-info li {
@@ -76,13 +75,20 @@
   margin-bottom: 10px;
   font-size: 0.8rem;
   line-height: 1.4;
-  background: transparent;
+  background: #1e293b !important;
+  padding: 0 !important;
+  border: none !important;
+  display: block !important;
 }
 
-/* Force all sections to have same background */
+/* Force all footer elements to have dark background */
+.footer,
+.footer *,
 .footer-section,
-.footer-section * {
-  background: transparent;
+.footer-section *,
+.contact-info,
+.contact-info * {
+  background-color: #1e293b;
 }
 
 /* Bottom Bar */
@@ -101,10 +107,7 @@
   margin: 0;
 }
 
-/* ============================================ */
-/* RESPONSIVE */
-/* ============================================ */
-
+/* Responsive */
 @media (max-width: 900px) {
   .footer-container {
     grid-template-columns: repeat(2, 1fr);

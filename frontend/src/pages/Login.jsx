@@ -15,6 +15,14 @@ function Login() {
   const [cooldown, setCooldown] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(null);
 
+  // Add no-navbar class when on login page
+  useEffect(() => {
+    document.body.classList.add('no-navbar');
+    return () => {
+      document.body.classList.remove('no-navbar');
+    };
+  }, []);
+
   useEffect(() => {
     let timer;
     if (cooldown > 0) {

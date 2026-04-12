@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as adminApi from '../../services/admin/adminApi';
 import './ManagementPages.css';
 
@@ -10,6 +11,14 @@ const BookingManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     customerName: '',
     customerContact: '',
@@ -24,12 +33,22 @@ const BookingManagement = () => {
     status: 'Pending'
   });
 
-  useEffect(() => {
-    fetchBookings();
+  // Wrap fetchBookings with useCallback to prevent infinite loop
+  const fetchBookings = useCallback(async () => {
+    try {
+      const data = await adminApi.getAllBookings();
+      setBookings(data);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+      showConfirmationModal('Error', 'Failed to fetch bookings', null, 'OK');
+    }
   }, []);
 
   useEffect(() => {
-    // Filter bookings directly instead of calling filterBookings function
+    fetchBookings();
+  }, [fetchBookings]);
+
+  useEffect(() => {
     if (statusFilter === 'all') {
       setFilteredBookings(bookings);
     } else {
@@ -37,13 +56,18 @@ const BookingManagement = () => {
     }
   }, [bookings, statusFilter]);
 
-  const fetchBookings = async () => {
-    try {
-      const data = await adminApi.getAllBookings();
-      setBookings(data);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
-    }
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
   };
 
   const handleOpenModal = (booking = null) => {
@@ -70,46 +94,67 @@ const BookingManagement = () => {
   };
 
   const handleConfirm = async (id) => {
-    try {
-      await adminApi.updateBookingStatus(id, 'Confirmed');
-      fetchBookings();
-      alert('✅ Booking confirmed successfully!');
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-      alert('Error confirming booking');
-    }
+    showConfirmationModal(
+      'Confirm Booking',
+      'Are you sure you want to confirm this booking?',
+      async () => {
+        try {
+          await adminApi.updateBookingStatus(id, 'Confirmed');
+          fetchBookings();
+          showConfirmationModal('Success', 'Booking confirmed successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error confirming booking:', error);
+          showConfirmationModal('Error', 'Error confirming booking', null, 'OK');
+        }
+      },
+      'Yes, Confirm',
+      'Cancel'
+    );
   };
 
   const handleCancel = async (id) => {
-    try {
-      await adminApi.updateBookingStatus(id, 'Cancelled');
-      fetchBookings();
-      alert('✅ Booking cancelled successfully!');
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      alert('Error cancelling booking');
-    }
+    showConfirmationModal(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      async () => {
+        try {
+          await adminApi.updateBookingStatus(id, 'Cancelled');
+          fetchBookings();
+          showConfirmationModal('Success', 'Booking cancelled successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error cancelling booking:', error);
+          showConfirmationModal('Error', 'Error cancelling booking', null, 'OK');
+        }
+      },
+      'Yes, Cancel',
+      'No, Go Back'
+    );
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this booking?')) {
-      try {
-        await adminApi.deleteBooking(id);
-        fetchBookings();
-        alert('✅ Booking deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting booking:', error);
-        alert('Error deleting booking');
-      }
-    }
+    showConfirmationModal(
+      'Delete Booking',
+      'Are you sure you want to delete this booking? This action cannot be undone.',
+      async () => {
+        try {
+          await adminApi.deleteBooking(id);
+          fetchBookings();
+          showConfirmationModal('Success', 'Booking deleted successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error deleting booking:', error);
+          showConfirmationModal('Error', 'Error deleting booking', null, 'OK');
+        }
+      },
+      'Yes, Delete',
+      'Cancel'
+    );
   };
 
   const handleSubmit = async () => {
     try {
-      // Validate all required fields
       if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || 
           !formData.bookingDate || !formData.pax || !formData.downpayment || !formData.paymentMethod) {
-        alert('Please fill in all required fields');
+        showConfirmationModal('Validation Error', 'Please fill in all required fields', null, 'OK');
         return;
       }
 
@@ -128,20 +173,18 @@ const BookingManagement = () => {
       };
 
       if (editingBooking) {
-        // If editing, use the booking's existing ID
         bookingPayload._id = editingBooking._id;
         await adminApi.createBooking(bookingPayload);
       } else {
-        // Create new booking
         await adminApi.createBooking(bookingPayload);
       }
       setIsModalOpen(false);
       fetchBookings();
-      alert('✅ Booking saved successfully!');
+      showConfirmationModal('Success', 'Booking saved successfully!', null, 'OK');
     } catch (error) {
       console.error('Error saving booking:', error);
       const errorMsg = error.response?.data?.message || error.message || 'Error saving booking';
-      alert('❌ ' + errorMsg);
+      showConfirmationModal('Error', errorMsg, null, 'OK');
     }
   };
 
@@ -174,7 +217,6 @@ const BookingManagement = () => {
         <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add Booking</button>
       </div>
 
-      {/* STATUS FILTER */}
       <div className="filter-section">
         <label>Filter by Status:</label>
         <select 
@@ -190,7 +232,6 @@ const BookingManagement = () => {
         </select>
       </div>
 
-      {/* STATS */}
       <div className="stats-row">
         <div className="stat-card">
           <h3>Pending</h3>
@@ -344,6 +385,16 @@ const BookingManagement = () => {
           </div>
         </form>
       </Modal>
+
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        onConfirm={confirmationModal.onConfirm}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+      />
     </div>
   );
 };

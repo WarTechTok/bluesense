@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as adminApi from '../../services/admin/adminApi';
 import { validateRoom } from '../../utils/adminValidation';
 import './ManagementPages.css';
@@ -14,6 +15,14 @@ const RoomManagement = () => {
   const [selectedRoomForStaff, setSelectedRoomForStaff] = useState(null);
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [staffNotes, setStaffNotes] = useState('');
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     name: '',
     capacity: '',
@@ -22,27 +31,42 @@ const RoomManagement = () => {
     status: 'Available'
   });
 
-  useEffect(() => {
-    fetchRooms();
-    fetchStaff();
-  }, []);
-
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       const data = await adminApi.getAllRooms();
       setRooms(data);
     } catch (error) {
       console.error('Error fetching rooms:', error);
+      showConfirmationModal('Error', 'Failed to fetch rooms', null, 'OK');
     }
-  };
+  }, []);
 
-  const fetchStaff = async () => {
+  const fetchStaff = useCallback(async () => {
     try {
       const data = await adminApi.getAllStaff();
       setStaff(data);
     } catch (error) {
       console.error('Error fetching staff:', error);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchRooms();
+    fetchStaff();
+  }, [fetchRooms, fetchStaff]);
+
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
   };
 
   const handleOpenModal = (room = null) => {
@@ -64,12 +88,9 @@ const RoomManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      // ============================================
-      // FORM VALIDATION USING UTILITY
-      // ============================================
       const validation = validateRoom(formData);
       if (!validation.isValid) {
-        alert(validation.error);
+        showConfirmationModal('Validation Error', validation.error, null, 'OK');
         return;
       }
 
@@ -80,31 +101,33 @@ const RoomManagement = () => {
       }
       setIsModalOpen(false);
       fetchRooms();
-      alert('✅ Room saved successfully!');
+      showConfirmationModal('Success', 'Room saved successfully!', null, 'OK');
     } catch (error) {
       console.error('Error saving room:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error saving room';
-      alert('❌ ' + errorMsg);
+      showConfirmationModal('Error', errorMsg, null, 'OK');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this room?')) {
-      try {
-        await adminApi.deleteRoom(id);
-        fetchRooms();
-        alert('Room deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting room:', error);
-        const errorMsg = error.response?.data?.error || error.message || 'Error deleting room';
-        alert(errorMsg);
-      }
-    }
+    showConfirmationModal(
+      'Delete Room',
+      'Are you sure you want to delete this room? This action cannot be undone.',
+      async () => {
+        try {
+          await adminApi.deleteRoom(id);
+          fetchRooms();
+          showConfirmationModal('Success', 'Room deleted successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error deleting room:', error);
+          const errorMsg = error.response?.data?.error || error.message || 'Error deleting room';
+          showConfirmationModal('Error', errorMsg, null, 'OK');
+        }
+      },
+      'Yes, Delete',
+      'Cancel'
+    );
   };
-
-  // ============================================
-  // STAFF ASSIGNMENT HANDLERS
-  // ============================================
 
   const handleOpenStaffModal = (room) => {
     setSelectedRoomForStaff(room);
@@ -115,7 +138,7 @@ const RoomManagement = () => {
 
   const handleAssignStaff = async () => {
     if (!selectedStaffId) {
-      alert('Please select a staff member');
+      showConfirmationModal('Validation Error', 'Please select a staff member', null, 'OK');
       return;
     }
 
@@ -126,26 +149,32 @@ const RoomManagement = () => {
       });
       setIsStaffModalOpen(false);
       fetchRooms();
-      alert('Staff assigned successfully!');
+      showConfirmationModal('Success', 'Staff assigned successfully!', null, 'OK');
     } catch (error) {
       console.error('Error assigning staff:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error assigning staff';
-      alert(errorMsg);
+      showConfirmationModal('Error', errorMsg, null, 'OK');
     }
   };
 
-  const handleRemoveStaff = async (roomId, staffId) => {
-    if (window.confirm('Remove this staff member from the room?')) {
-      try {
-        await adminApi.removeStaffFromRoom(roomId, staffId);
-        fetchRooms();
-        alert('Staff removed successfully!');
-      } catch (error) {
-        console.error('Error removing staff:', error);
-        const errorMsg = error.response?.data?.error || error.message || 'Error removing staff';
-        alert(errorMsg);
-      }
-    }
+  const handleRemoveStaff = async (roomId, staffId, staffName) => {
+    showConfirmationModal(
+      'Remove Staff',
+      `Are you sure you want to remove ${staffName} from this room?`,
+      async () => {
+        try {
+          await adminApi.removeStaffFromRoom(roomId, staffId);
+          fetchRooms();
+          showConfirmationModal('Success', 'Staff removed successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error removing staff:', error);
+          const errorMsg = error.response?.data?.error || error.message || 'Error removing staff';
+          showConfirmationModal('Error', errorMsg, null, 'OK');
+        }
+      },
+      'Yes, Remove',
+      'Cancel'
+    );
   };
 
   const columns = [
@@ -166,7 +195,7 @@ const RoomManagement = () => {
                   <span>{assignment.staffId?.name || 'Unknown Staff'}</span>
                   <button 
                     className="btn-small btn-remove"
-                    onClick={() => handleRemoveStaff(room._id, assignment.staffId._id)}
+                    onClick={() => handleRemoveStaff(room._id, assignment.staffId._id, assignment.staffId?.name)}
                   >
                     Remove
                   </button>
@@ -264,9 +293,7 @@ const RoomManagement = () => {
         </form>
       </Modal>
 
-      {/* ============================================ */}
-      {/* STAFF ASSIGNMENT MODAL */}
-      {/* ============================================ */}
+      {/* Staff Assignment Modal */}
       <Modal
         isOpen={isStaffModalOpen}
         title={`Assign Staff to ${selectedRoomForStaff?.name || 'Room'}`}
@@ -299,6 +326,17 @@ const RoomManagement = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        onConfirm={confirmationModal.onConfirm}
+        onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+        confirmText={confirmationModal.confirmText}
+        cancelText={confirmationModal.cancelText}
+      />
     </div>
   );
 };

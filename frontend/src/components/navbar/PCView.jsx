@@ -17,9 +17,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
 
   const mainDropdownRef = useRef(null);
 
-  // ============================================
-  // FIX 1: Lock background scroll when edit modal is open
-  // ============================================
   useEffect(() => {
     if (showEditModal) {
       document.body.style.overflow = 'hidden';
@@ -31,10 +28,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
     };
   }, [showEditModal]);
 
-  // ============================================
-  // FIX 2: Click outside to close main dropdown only
-  // View dropdown and Edit modal have their own overlays
-  // ============================================
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (mainDropdownRef.current && !mainDropdownRef.current.contains(event.target)) {
@@ -51,16 +44,12 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
     setAvatarError(prev => ({ ...prev, [type]: true }));
   };
 
-  // ============================================
-  // VIEW PROFILE DROPDOWN
-  // ============================================
   const ViewProfileDropdown = () => {
     const avatarSrc = getAvatarSrc();
     const hasAvatar = avatarSrc && !avatarError['view'];
 
     return (
       <>
-        {/* FIX 2: Overlay behind view dropdown - click to close */}
         <div
           style={{
             position: 'fixed',
@@ -122,9 +111,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
     );
   };
 
-  // ============================================
-  // GET AVATAR FOR MAIN BUTTON
-  // ============================================
   const getMainAvatar = () => {
     const avatarSrc = getAvatarSrc();
     if (!avatarSrc || avatarError['main']) {
@@ -144,6 +130,9 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
     );
   };
 
+  // Debug: log the onEditProfile function
+  console.log('onEditProfile in PCView:', onEditProfile);
+
   return (
     <div className="nav-right desktop-only">
       {userData ? (
@@ -152,7 +141,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
             <Link to="/dashboard" className="dashboard-link">Dashboard</Link>
           )}
 
-          {/* Profile Button */}
           <div className="dropdown-container" ref={mainDropdownRef}>
             <button
               onClick={() => {
@@ -170,7 +158,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
               </div>
             </button>
 
-            {/* Main Dropdown */}
             {showMainDropdown && (
               <div className="pc-dropdown main-dropdown">
                 <button
@@ -208,16 +195,24 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
             )}
           </div>
 
-          {/* View Profile Dropdown with overlay */}
           {showViewDropdown && <ViewProfileDropdown />}
 
-          {/* FIX 3: Edit Modal - click outside overlay handled inside EditProfileModal */}
           <EditProfileModal
             isOpen={showEditModal}
-            onClose={() => setShowEditModal(false)}
+            onClose={() => {
+              console.log('Closing edit modal');
+              setShowEditModal(false);
+            }}
             userData={userData}
             getAvatarSrc={getAvatarSrc}
-            onSave={onEditProfile}
+            onSave={(data) => {
+              console.log('EditProfileModal onSave called with:', data);
+              if (onEditProfile) {
+                onEditProfile(data);
+              } else {
+                console.error('onEditProfile is undefined!');
+              }
+            }}
           />
         </>
       ) : (

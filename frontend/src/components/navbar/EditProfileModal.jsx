@@ -1,7 +1,6 @@
 // src/components/navbar/EditProfileModal.jsx
 // ============================================
-// EDIT PROFILE MODAL - Popup modal for editing
-// user profile. Closes when clicking outside.
+// EDIT PROFILE MODAL - Popup modal for editing user profile
 // ============================================
 
 import React, { useState, useEffect } from 'react';
@@ -9,32 +8,42 @@ import './EditProfileModal.css';
 
 function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
   const [editForm, setEditForm] = useState({
-    name: userData?.name || '',
-    phone: userData?.phone || '',
-    address: userData?.address || ''
+    name: '',
+    phone: '',
+    address: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
+  // Reset form when modal opens and load latest userData
   useEffect(() => {
-    if (userData) {
+    if (isOpen && userData) {
       setEditForm({
         name: userData.name || '',
         phone: userData.phone || '',
         address: userData.address || ''
       });
+      setError('');
+      setLoading(false);
     }
-  }, [userData]);
+  }, [isOpen, userData]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSave(editForm);
-    onClose();
+    setLoading(true);
+    setError('');
+    
+    try {
+      await onSave(editForm);
+      // onSave will close the modal, so no need to setLoading(false) here
+    } catch (err) {
+      setError(err.message || 'Failed to update profile');
+      setLoading(false);
+    }
   };
 
-  // ============================================
-  // FIX: Click outside overlay to close modal
-  // ============================================
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -46,6 +55,8 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
       <div className="edit-modal">
         <button className="edit-close-btn" onClick={onClose}>×</button>
         <h2 className="edit-title">Edit Profile</h2>
+
+        {error && <div className="edit-error">{error}</div>}
 
         <div className="edit-avatar-container">
           <div className="edit-avatar">
@@ -99,7 +110,9 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
 
         <div className="edit-actions">
           <button type="button" className="edit-cancel-btn" onClick={onClose}>Cancel</button>
-          <button type="submit" className="edit-save-btn" onClick={handleSubmit}>Save Changes</button>
+          <button type="submit" className="edit-save-btn" onClick={handleSubmit} disabled={loading}>
+            {loading ? 'Saving...' : 'Save Changes'}
+          </button>
         </div>
       </div>
     </div>

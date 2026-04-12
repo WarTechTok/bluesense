@@ -1,3 +1,8 @@
+// frontend/src/pages/admin/Reports.jsx
+// ============================================
+// REPORTS - Clean design matching theme
+// ============================================
+
 import React, { useState } from 'react';
 import './ManagementPages.css';
 import * as adminApi from '../../services/admin/adminApi';
@@ -44,10 +49,19 @@ const Reports = () => {
       link.href = url;
       link.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error exporting report:', error);
       alert('Error exporting report');
     }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
   };
 
   return (
@@ -56,140 +70,179 @@ const Reports = () => {
         <h1>Reports</h1>
       </div>
 
-      <div className="report-filters">
-        <div className="filter-group">
-          <label>Report Type:</label>
-          <select value={reportType} onChange={(e) => setReportType(e.target.value)}>
-            <option value="reservation">Reservation Report</option>
-            <option value="sales">Sales Report</option>
-            <option value="inventory">Inventory Usage Report</option>
-            <option value="staff">Staff Activity Report</option>
-          </select>
+      {/* Filter Section */}
+      <div className="filters-card">
+        <div className="filters-grid">
+          <div className="filter-group">
+            <label>Report Type</label>
+            <select 
+              value={reportType} 
+              onChange={(e) => setReportType(e.target.value)}
+              className="filter-select"
+            >
+              <option value="reservation">Reservation Report</option>
+              <option value="sales">Sales Report</option>
+              <option value="inventory">Inventory Usage Report</option>
+              <option value="staff">Staff Activity Report</option>
+            </select>
+          </div>
+
+          {reportType !== 'staff' && (
+            <>
+              <div className="filter-group">
+                <label>Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
+              <div className="filter-group">
+                <label>End Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="filter-actions">
+            <button className="btn-primary" onClick={handleGenerateReport}>
+              Generate Report
+            </button>
+            <button className="btn-outline" onClick={handleExport}>
+              Export JSON
+            </button>
+          </div>
         </div>
-
-        {reportType !== 'staff' && (
-          <>
-            <div className="filter-group">
-              <label>Start Date:</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="filter-group">
-              <label>End Date:</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
-            </div>
-          </>
-        )}
-
-        <button className="btn-primary" onClick={handleGenerateReport}>
-          Generate Report
-        </button>
-        <button className="btn-secondary" onClick={handleExport}>
-          Export as JSON
-        </button>
       </div>
 
-      {loading && <p className="loading-msg">Loading report...</p>}
+      {/* Loading State */}
+      {loading && (
+        <div className="loading-state">
+          <div className="spinner"></div>
+          <p>Generating report...</p>
+        </div>
+      )}
 
-      {reportData && (
+      {/* Report Results */}
+      {reportData && !loading && (
         <div className="report-container">
-          <h3>{reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report</h3>
+          <div className="report-header">
+            <h3>
+              {reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report
+            </h3>
+            {startDate && endDate && (
+              <p className="report-date-range">
+                {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+              </p>
+            )}
+          </div>
 
-          {reportType === 'sales' && (
-            <div className="report-summary">
-              <h4>Total Sales: ₱{reportData.totalSales?.toLocaleString() || 0}</h4>
-              <p>Number of Transactions: {reportData.sales?.length || 0}</p>
+          {/* Summary for Sales Report */}
+          {reportType === 'sales' && reportData.totalSales !== undefined && (
+            <div className="stats-grid small">
+              <div className="stat-card">
+                <div className="stat-title">Total Sales</div>
+                <div className="stat-value">{formatCurrency(reportData.totalSales)}</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-title">Transactions</div>
+                <div className="stat-value">{reportData.sales?.length || 0}</div>
+              </div>
             </div>
           )}
 
-          <table className="report-table">
-            <thead>
-              <tr>
-                {reportType === 'reservation' && (
-                  <>
-                    <th>Guest</th>
-                    <th>Email</th>
-                    <th>Check-In</th>
-                    <th>Check-Out</th>
-                    <th>Status</th>
-                  </>
-                )}
-                {reportType === 'sales' && (
-                  <>
-                    <th>Booking ID</th>
-                    <th>Guest</th>
-                    <th>Amount</th>
-                    <th>Date</th>
-                  </>
-                )}
-                {reportType === 'inventory' && (
-                  <>
-                    <th>Item</th>
-                    <th>Total Used</th>
-                    <th>Current Stock</th>
-                  </>
-                )}
-                {reportType === 'staff' && (
-                  <>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Activity Count</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.isArray(reportData) && reportData.length === 0 && (
+          {/* Data Table */}
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center' }}>No data available</td>
-                </tr>
-              )}
-              {Array.isArray(reportData) && reportData.map((row, idx) => (
-                <tr key={idx}>
                   {reportType === 'reservation' && (
                     <>
-                      <td>{row.guestName}</td>
-                      <td>{row.guestEmail}</td>
-                      <td>{new Date(row.checkIn).toLocaleDateString()}</td>
-                      <td>{new Date(row.checkOut).toLocaleDateString()}</td>
-                      <td>{row.status}</td>
+                      <th>Guest Name</th>
+                      <th>Email</th>
+                      <th>Check-In</th>
+                      <th>Check-Out</th>
+                      <th>Status</th>
                     </>
                   )}
                   {reportType === 'sales' && (
                     <>
-                      <td>{row._id}</td>
-                      <td>{row.reservation?.guestName || 'N/A'}</td>
-                      <td>₱{row.amount}</td>
-                      <td>{new Date(row.date).toLocaleDateString()}</td>
+                      <th>Booking ID</th>
+                      <th>Guest Name</th>
+                      <th>Amount</th>
+                      <th>Date</th>
                     </>
                   )}
                   {reportType === 'inventory' && (
                     <>
-                      <td>{row.item}</td>
-                      <td>{row.totalUsed}</td>
-                      <td>{row.currentStock}</td>
+                      <th>Item Name</th>
+                      <th>Total Used</th>
+                      <th>Current Stock</th>
                     </>
                   )}
                   {reportType === 'staff' && (
                     <>
-                      <td>{row.name}</td>
-                      <td>{row.role}</td>
-                      <td>{row.status}</td>
-                      <td>{row.activityCount}</td>
+                      <th>Staff Name</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Activity</th>
                     </>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(!reportData || (Array.isArray(reportData) && reportData.length === 0) || 
+                  (reportData.sales && reportData.sales.length === 0)) ? (
+                  <tr>
+                    <td colSpan="5" className="no-data">No data available</td>
+                  </tr>
+                ) : (
+                  (reportData.sales || reportData || []).map((row, idx) => (
+                    <tr key={idx}>
+                      {reportType === 'reservation' && (
+                        <>
+                          <td>{row.guestName || row.customerName || 'N/A'}</td>
+                          <td>{row.guestEmail || row.customerEmail || 'N/A'}</td>
+                          <td>{row.checkIn ? new Date(row.checkIn).toLocaleDateString() : 'N/A'}</td>
+                          <td>{row.checkOut ? new Date(row.checkOut).toLocaleDateString() : 'N/A'}</td>
+                          <td><span className={`status-badge status-${(row.status || 'pending').toLowerCase()}`}>{row.status || 'Pending'}</span></td>
+                        </>
+                      )}
+                      {reportType === 'sales' && (
+                        <>
+                          <td>{row._id || row.bookingId || 'N/A'}</td>
+                          <td>{row.customerName || row.guestName || 'N/A'}</td>
+                          <td className="amount">{formatCurrency(row.amount || row.downpayment || 0)}</td>
+                          <td>{new Date(row.date || row.createdAt).toLocaleDateString()}</td>
+                        </>
+                      )}
+                      {reportType === 'inventory' && (
+                        <>
+                          <td>{row.item || row.name || 'N/A'}</td>
+                          <td>{row.totalUsed || 0}</td>
+                          <td>{row.currentStock || 0}</td>
+                        </>
+                      )}
+                      {reportType === 'staff' && (
+                        <>
+                          <td>{row.name || 'N/A'}</td>
+                          <td>{row.role || 'Staff'}</td>
+                          <td><span className={`status-badge ${row.status === 'active' ? 'status-active' : 'status-inactive'}`}>{row.status || 'Active'}</span></td>
+                          <td>{row.activityCount || 0}</td>
+                        </>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

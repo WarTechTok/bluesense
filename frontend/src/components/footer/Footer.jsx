@@ -12,14 +12,14 @@ function Footer() {
     <footer className="footer">
       <div className="footer-container">
 
-        {/* ── Brand Section ── */}
+        {/* Brand Section */}
         <div className="footer-section">
           <h3>Catherine's Oasis</h3>
           <p>Your private escape in Marilao, Bulacan</p>
           <p className="footer-address">1106 Cordero Subdivision, Lambakin, Marilao, Bulacan</p>
         </div>
 
-        {/* ── Quick Links ── */}
+        {/* Quick Links */}
         <div className="footer-section">
           <h3>Quick Links</h3>
           <ul className="footer-links">
@@ -32,7 +32,7 @@ function Footer() {
           </ul>
         </div>
 
-        {/* ── Account ── */}
+        {/* Account */}
         <div className="footer-section">
           <h3>Account</h3>
           <ul className="footer-links">
@@ -42,40 +42,11 @@ function Footer() {
           </ul>
         </div>
 
-        {/* ── Information Section ── */}
+        {/* Information - No card, just text */}
         <div className="footer-section">
           <h3>Information</h3>
           <ul className="contact-info">
-            <li>
-              <a 
-                href="https://www.facebook.com/profile.php?id=100082901994008" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#94a3b8', textDecoration: 'none' }}
-              >
-                Facebook
-              </a>
-            </li>
-            <li>
-              <a 
-                href="https://www.instagram.com/catherinesoasis_marilao" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#94a3b8', textDecoration: 'none' }}
-              >
-                Instagram
-              </a>
-            </li>
-            <li>
-              <a 
-                href="https://www.tiktok.com/@catherinesoasismarilao" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ color: '#94a3b8', textDecoration: 'none' }}
-              >
-                TikTok
-              </a>
-            </li>
+            <li>Facebook · Instagram · TikTok</li>
             <li>GCash · Maya · GoTyme · Cash</li>
             <li>Check-in: 8AM · Check-out: 6PM</li>
           </ul>
@@ -83,7 +54,7 @@ function Footer() {
 
       </div>
 
-      {/* ── Bottom Bar ── */}
+      {/* Bottom Bar */}
       <div className="footer-bottom">
         <p>© {new Date().getFullYear()} Catherine's Oasis. All rights reserved.</p>
       </div>

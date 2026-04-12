@@ -1772,6 +1772,104 @@
   }
 }
 
+/* Info Note */
+.info-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #e0f2fe;
+  border-radius: 12px;
+  margin-top: 20px;
+  font-size: 0.8rem;
+  color: #0369a1;
+}
+
+.info-note i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.info-note p {
+  margin: 0;
+}
+
+/* Read-only inputs */
+.readonly-input {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+  cursor: not-allowed;
+  border-color: #e2e8f0 !important;
+}
+
+.input-wrapper.read-only {
+  opacity: 0.9;
+}
+
+/* Warning note */
+.info-note.warning {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #fef3c7;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.info-note.warning i {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.info-note.warning p {
+  margin: 0;
+}
+
+/* Confirm Section */
+.confirm-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.confirm-info-btn {
+  padding: 10px 32px;
+  background: #0284c7;
+  border: none;
+  border-radius: 40px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.confirm-info-btn:hover {
+  background: #0369a1;
+  transform: translateY(-2px);
+}
+
+.confirm-error {
+  text-align: center;
+  display: block;
+  margin-top: 16px;
+  color: #dc2626;
+}
+
+/* Disabled button */
+.btn-next.disabled,
+.btn-next:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .upload-icon-btn {
