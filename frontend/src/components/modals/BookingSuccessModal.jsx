@@ -67,10 +67,24 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
                 <span className="detail-label">Guests:</span>
                 <span className="detail-value">{bookingDetails.guests} persons</span>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">Downpayment:</span>
-                <span className="detail-value">₱{bookingDetails.downpayment?.toLocaleString()}</span>
-              </div>
+              {bookingDetails.paymentType === 'downpayment' && (
+                <>
+                  <div className="detail-item">
+                    <span className="detail-label">Total Amount:</span>
+                    <span className="detail-value">₱{bookingDetails.totalAmount?.toLocaleString()}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Downpayment (30%):</span>
+                    <span className="detail-value">₱{bookingDetails.downpayment?.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+              {bookingDetails.paymentType === 'fullpayment' && (
+                <div className="detail-item">
+                  <span className="detail-label">Total Amount Paid:</span>
+                  <span className="detail-value">₱{bookingDetails.totalAmount?.toLocaleString()}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -83,8 +97,15 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
           </p>
           <ul>
             <li>Please present your booking reference upon arrival</li>
-            <li>Downpayment is non-refundable</li>
-            <li>Balance must be paid upon check-in</li>
+            {bookingDetails.paymentType === 'downpayment' && (
+              <>
+                <li>Downpayment is non-refundable</li>
+                <li>Balance must be paid upon check-in</li>
+              </>
+            )}
+            {bookingDetails.paymentType === 'fullpayment' && (
+              <li>Full payment is non-refundable</li>
+            )}
             <li>Please bring a valid government ID</li>
           </ul>
         </div>

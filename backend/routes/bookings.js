@@ -12,7 +12,8 @@ const {
   getBookingsByCustomerEmail,
   updateBookingStatus,
   updatePaymentStatus,
-  deleteBooking
+  deleteBooking,
+  getBookedDatesWithSessions
 } = require("../controllers/bookingController");
 const { verifyToken, isStaff } = require("../middleware/auth");
 
@@ -22,6 +23,9 @@ const { verifyToken, isStaff } = require("../middleware/auth");
 
 // POST /api/bookings - magsubmit ng booking (customer)
 router.post("/", createBooking);
+
+// GET /api/bookings/booked-dates - kunin ang booked dates with sessions (public)
+router.get("/booked-dates", getBookedDatesWithSessions);
 
 // GET /api/bookings/customer/:email - tingnan ang bookings ng customer (no login)
 router.get("/customer/:email", getBookingsByCustomerEmail);

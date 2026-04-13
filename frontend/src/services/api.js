@@ -4,7 +4,7 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-const API_BASE_URL = "http://192.168.100.224:8080";
+//const API_BASE_URL = "http://192.168.100.224:8080";
 
 //const API_BASE_URL = "http://192.168.100.236:8080";
 
@@ -18,7 +18,7 @@ const API_BASE_URL = "http://192.168.100.224:8080";
 // const API_BASE_URL = "http://[SCHOOL-IP-HERE]:8080";
 
 // OPTION 4: Laptop (LOCAL - for testing)
-//const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "http://localhost:8080";
 
 // ============================================
 // AUTHENTICATION API CALLS
@@ -123,17 +123,18 @@ export async function getHistory() {
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
   
-  // Check if user is logged in
-  if (!token) {
-    throw new Error('Please login to make a booking');
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+  
+  // Add token if available (optional for public booking)
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
   
   const res = await fetch(`${API_BASE_URL}/api/bookings`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify(bookingData),
   });
   

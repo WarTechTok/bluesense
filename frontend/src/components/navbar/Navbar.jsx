@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import LogoutConfirmModal from "../modals/LogoutConfirmModal";
-import SaveConfirmModal from "./SaveConfirmModal";
+import EditProfileModal from "./EditProfileModal";
 import PCView from "./PCView";
 import MobileView from "./MobileView";
 import "./Navbar.css";
@@ -19,8 +19,6 @@ function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
-  const [pendingSaveData, setPendingSaveData] = useState(null);
 
   // Scroll state for glass effect
   const [scrolled, setScrolled] = useState(false);
@@ -63,12 +61,22 @@ function Navbar() {
       loadUserFromStorage();
     };
 
+    // Listen for profile updates from other components
+    const handleProfileUpdated = (event) => {
+      if (event.detail) {
+        setUserData(event.detail);
+        setUserRole(event.detail.role);
+      }
+    };
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("focus", handleStorageChange);
+    window.addEventListener("profileUpdated", handleProfileUpdated);
 
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleStorageChange);
+      window.removeEventListener("profileUpdated", handleProfileUpdated);
     };
   }, [location.pathname]);
 
@@ -93,12 +101,12 @@ function Navbar() {
   };
 
   useEffect(() => {
-    if (showViewModal || showEditModal || showSaveConfirm) {
+    if (showViewModal || showEditModal) {
       document.body.classList.add("modal-open");
     } else {
       document.body.classList.remove("modal-open");
     }
-  }, [showViewModal, showEditModal, showSaveConfirm]);
+  }, [showViewModal, showEditModal]);
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -133,12 +141,17 @@ function Navbar() {
     return null;
   };
 
-  // FAST SAVE - No extra API calls
-  const saveProfileToDatabase = async (updatedData) => {
+  const handleEditProfile = () => {
+    setShowEditModal(true);
+  };
+
+  const handleSaveFromModal = async (updatedData) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
     try {
+      // Phone number from EditProfileModal is already cleaned (just digits)
+      // Send it as-is to the backend
       const response = await axios.put(
         "http://localhost:8080/api/auth/profile",
         {
@@ -155,14 +168,16 @@ function Navbar() {
       );
 
       if (response.data.user) {
-        // Update localStorage
-        const updatedUser = { ...userData, ...response.data.user };
+        // Update localStorage with the response from backend
+        const updatedUser = { 
+          ...userData, 
+          ...response.data.user
+        };
         localStorage.setItem("user", JSON.stringify(updatedUser));
         setUserData(updatedUser);
         setUserRole(updatedUser.role);
 
-        // Close modals
-        setShowSaveConfirm(false);
+        // Close edit modal
         setShowEditModal(false);
 
         // Dispatch event for other components
@@ -170,31 +185,19 @@ function Navbar() {
           new CustomEvent("profileUpdated", { detail: updatedUser }),
         );
 
-        // Optional success message
-        // alert("Profile updated successfully!");
+        // Show success message
+        // You can add a toast notification here if you have one
       }
     } catch (error) {
       console.error("Failed to save profile:", error);
-      alert(
+      throw new Error(
         error.response?.data?.message ||
-          "Failed to save profile. Please try again.",
+          "Failed to save profile. Please try again."
       );
     }
   };
 
-  const handleSaveClick = (updatedData) => {
-    console.log("handleSaveClick called with:", updatedData);
-    setPendingSaveData(updatedData);
-    setShowSaveConfirm(true);
-  };
 
-  const confirmSave = () => {
-    console.log("confirmSave called, pendingSaveData:", pendingSaveData);
-    if (pendingSaveData) {
-      saveProfileToDatabase(pendingSaveData);
-      setPendingSaveData(null);
-    }
-  };
 
   return (
     <>
@@ -275,7 +278,7 @@ function Navbar() {
             userRole={userRole}
             getAvatarSrc={getAvatarSrc}
             onViewProfile={() => setShowViewModal(true)}
-            onEditProfile={handleSaveClick}
+            onEditProfile={handleEditProfile}
             onLogout={handleLogout}
           />
 
@@ -299,7 +302,7 @@ function Navbar() {
         userRole={userRole}
         getAvatarSrc={getAvatarSrc}
         onViewProfile={() => setShowViewModal(true)}
-        onEditProfile={handleSaveClick}
+        onEditProfile={handleEditProfile}
         onLogout={handleLogout}
       />
 
@@ -310,14 +313,13 @@ function Navbar() {
         onConfirm={confirmLogout}
       />
 
-      {/* Save Confirmation Modal */}
-      <SaveConfirmModal
-        isOpen={showSaveConfirm}
-        onClose={() => {
-          setShowSaveConfirm(false);
-          setPendingSaveData(null);
-        }}
-        onConfirm={confirmSave}
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        userData={userData}
+        getAvatarSrc={getAvatarSrc}
+        onSave={handleSaveFromModal}
       />
     </>
   );

@@ -102,8 +102,41 @@ const createBooking = async (req, res) => {
       addons,
       specialRequests,
       paymentMethod,
+      paymentType,
       paymentProof
     } = req.body;
+
+    // ============================================
+    // VALIDATE REQUIRED FIELDS
+    // ============================================
+    
+    if (!customerName || !customerContact || !customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'Customer name, contact, and email are required'
+      });
+    }
+
+    if (!oasis || !packageName || !session) {
+      return res.status(400).json({
+        success: false,
+        message: 'Oasis, package, and session selection are required'
+      });
+    }
+
+    if (!bookingDate || !pax || !totalPrice || !downpayment) {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking date, number of guests, total price, and downpayment are required'
+      });
+    }
+
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment method is required'
+      });
+    }
 
     const selectedDate = new Date(bookingDate);
     const { start, end } = getDayRange(selectedDate);
@@ -264,6 +297,9 @@ const createBooking = async (req, res) => {
     // CREATE BOOKING - ALL CHECKS PASSED
     // ============================================
 
+    // Auto-mark as paid if payment method is Cash
+    const paymentStatusForBooking = paymentMethod === 'Cash' ? 'Paid' : 'Pending';
+
     const newBooking = new Booking({
       customerName,
       customerContact,
@@ -273,21 +309,24 @@ const createBooking = async (req, res) => {
       session,
       bookingDate,
       pax,
-      totalPrice,
+      totalAmount: totalPrice,
       downpayment,
       addons: addons || {},
       specialRequests: specialRequests || '',
       paymentMethod,
+      paymentType: paymentType || 'downpayment',
       paymentProof: paymentProof || null,
       status: 'Pending',
-      paymentStatus: 'Pending'
+      paymentStatus: paymentStatusForBooking
     });
 
     await newBooking.save();
 
     res.status(201).json({
       success: true,
-      message: 'Booking submitted successfully. Please complete your downpayment.',
+      message: paymentMethod === 'Cash' 
+        ? 'Booking submitted successfully. Payment marked as paid.' 
+        : 'Booking submitted successfully. Please complete your downpayment and upload proof.',
       booking: newBooking
     });
 
@@ -424,6 +463,92 @@ const deleteBooking = async (req, res) => {
   }
 };
 
+// ============================================
+// GET BOOKED DATES WITH SESSION INFO
+// ============================================
+
+const getBookedDatesWithSessions = async (req, res) => {
+  try {
+    const { oasis, package: packageName } = req.query;
+    
+    if (!oasis || !packageName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Oasis and package are required'
+      });
+    }
+
+    // Fetch all bookings for this oasis and package
+    const bookings = await Booking.find({
+      oasis,
+      package: packageName,
+      status: { $in: ['Pending', 'Confirmed'] }
+    });
+
+    // Group bookings by date and session
+    const bookedDatesMap = {};
+    
+    bookings.forEach(booking => {
+      const dateStr = booking.bookingDate.toISOString().split('T')[0];
+      
+      if (!bookedDatesMap[dateStr]) {
+        bookedDatesMap[dateStr] = {
+          date: dateStr,
+          Day: { booked: false, count: 0, names: [] },
+          Night: { booked: false, count: 0, names: [] },
+          '22hrs': { booked: false, count: 0, names: [] }
+        };
+      }
+
+      const sessionInfo = bookedDatesMap[dateStr][booking.session];
+      sessionInfo.count += 1;
+      sessionInfo.names.push(booking.customerName);
+    });
+
+    // Process each date to determine availability
+    Object.keys(bookedDatesMap).forEach(dateStr => {
+      const dayInfo = bookedDatesMap[dateStr];
+      const sessionConfig = OASIS_CONFIG[oasis]?.sessions;
+      
+      // Check if 22hrs session has any bookings - if yes, block entire day
+      if (dayInfo['22hrs'].count > 0) {
+        dayInfo.Day.booked = true;
+        dayInfo.Night.booked = true;
+        if (dayInfo['22hrs'].count >= sessionConfig['22hrs'].maxBookings) {
+          dayInfo['22hrs'].booked = true;
+        }
+      } else {
+        // Check Day session capacity
+        if (dayInfo.Day.count >= sessionConfig.Day.maxBookings) {
+          dayInfo.Day.booked = true;
+        }
+        
+        // Check Night session capacity
+        if (dayInfo.Night.count >= sessionConfig.Night.maxBookings) {
+          dayInfo.Night.booked = true;
+        }
+        
+        // Check 22hrs capacity (if any exist)
+        if (dayInfo['22hrs'].count >= sessionConfig['22hrs'].maxBookings) {
+          dayInfo['22hrs'].booked = true;
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      bookedDates: bookedDatesMap
+    });
+
+  } catch (error) {
+    console.error('Error fetching booked dates:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getAllBookings,
@@ -431,5 +556,6 @@ module.exports = {
   getBookingsByCustomerEmail,
   updateBookingStatus,
   updatePaymentStatus,
-  deleteBooking
+  deleteBooking,
+  getBookedDatesWithSessions
 };

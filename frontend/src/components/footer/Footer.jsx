@@ -47,7 +47,7 @@ function Footer() {
           <h3>Information</h3>
           <ul className="contact-info">
             <li>Facebook · Instagram · TikTok</li>
-            <li>GCash · Maya · GoTyme · Cash</li>
+            <li>GCash · Maya · GoTyme · SeaBank</li>
             <li>Check-in: 8AM · Check-out: 6PM</li>
           </ul>
         </div>

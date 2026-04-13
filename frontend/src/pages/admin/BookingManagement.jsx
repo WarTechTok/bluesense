@@ -357,7 +357,6 @@ const BookingManagement = () => {
               <option value="Maya">Maya</option>
               <option value="GoTyme">GoTyme</option>
               <option value="SeaBank">SeaBank</option>
-              <option value="Cash">Cash</option>
             </select>
           </div>
           <div className="form-group">
@@ -371,6 +370,36 @@ const BookingManagement = () => {
               <option value="Partial">Partial</option>
             </select>
           </div>
+          
+          {/* Payment Proof Section */}
+          {formData.paymentMethod && formData.paymentProof && (
+            <div className="form-group payment-proof-section">
+              <label>Payment Proof (Screenshot)</label>
+              <div className="payment-proof-display">
+                <img 
+                  src={formData.paymentProof} 
+                  alt="Payment Proof" 
+                  className="payment-proof-image"
+                  style={{ maxWidth: '100%', maxHeight: '300px' }}
+                />
+                <p className="payment-proof-note">
+                  <i className="fas fa-info-circle"></i>
+                  Payment proof uploaded by customer for {formData.paymentMethod}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {!formData.paymentMethod && (
+            <div className="form-group payment-info-section">
+              <label>Payment Information</label>
+              <p className="payment-info-box">
+                <i className="fas fa-info-circle"></i>
+                Payment method information will be displayed after selection
+              </p>
+            </div>
+          )}
+          
           <div className="form-group">
             <label>Booking Status</label>
             <select

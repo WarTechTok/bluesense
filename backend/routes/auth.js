@@ -21,8 +21,9 @@ const {
   googleLogin,
   updateProfile,
   getProfile,
-  verifyEmail,           // ADD THIS
-  resendVerificationEmail // ADD THIS
+  changePassword,
+  verifyEmail,           
+  resendVerificationEmail 
 } = require("../controllers/authController");
 
 const { verifyToken, isAdmin } = require("../middleware/auth");
@@ -101,6 +102,7 @@ router.post("/reset-password/:token", resetPassword);
 // ============================================
 router.get("/profile", verifyToken, getProfile);
 router.put("/profile", verifyToken, upload.single('avatar'), updateProfile);
+router.post("/change-password", verifyToken, changePassword);
 
 // ============================================
 // 5. ADMIN ROUTES

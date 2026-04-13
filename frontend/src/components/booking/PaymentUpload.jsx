@@ -29,7 +29,7 @@ function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpa
     formData.append('amount', downpayment);
 
     try {
-      const response = await fetch('/api/payments/upload', {
+      const response = await fetch('http://localhost:8080/api/payments/upload', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: formData

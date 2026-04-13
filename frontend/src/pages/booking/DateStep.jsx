@@ -48,51 +48,53 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
         </div>
       </div>
       
-      {/* Selected Package Info */}
-      <div className="selected-info">
-        <div className="info-card">
-          <span className="info-label">Selected Oasis:</span>
-          <span className="info-value">{selectedOasis}</span>
+      {/* Full Width Calendar */}
+      <div className="calendar-wrapper full-width-top">
+        <h3 className="section-title">
+          <i className="fas fa-calendar-alt"></i>
+          Select Date
+        </h3>
+        <div className="calendar-container landscape">
+          <AvailabilityCalendar
+            selectedDate={formData.reservationDate ? new Date(formData.reservationDate) : null}
+            onDateChange={handleDateChange}
+            oasis={selectedOasis}
+            packageName={selectedPackage}
+          />
+          {errors.reservationDate && (
+            <span className="error-message">{errors.reservationDate}</span>
+          )}
         </div>
-        <div className="info-card">
-          <span className="info-label">Selected Package:</span>
-          <span className="info-value">{selectedPackage}</span>
-        </div>
+        {formData.reservationDate && (
+          <div className="selected-display">
+            <i className="fas fa-check-circle"></i>
+            <span>
+              {new Date(formData.reservationDate).toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                month: 'long', 
+                day: 'numeric',
+                year: 'numeric'
+              })}
+            </span>
+          </div>
+        )}
       </div>
 
-      {/* Two Column Layout */}
-      <div className="date-step-layout">
+      {/* Info and Session Below Calendar */}
+      <div className="date-step-layout bottom-section">
         
-        {/* Calendar Column */}
-        <div className="calendar-wrapper">
-          <h3 className="section-title">
-            <i className="fas fa-calendar-alt"></i>
-            Select Date
-          </h3>
-          <div className="calendar-container">
-            <AvailabilityCalendar
-              selectedDate={formData.reservationDate ? new Date(formData.reservationDate) : null}
-              onDateChange={handleDateChange}
-              oasis={selectedOasis}
-              packageName={selectedPackage}
-            />
-            {errors.reservationDate && (
-              <span className="error-message">{errors.reservationDate}</span>
-            )}
-          </div>
-          {formData.reservationDate && (
-            <div className="selected-display">
-              <i className="fas fa-check-circle"></i>
-              <span>
-                {new Date(formData.reservationDate).toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  month: 'long', 
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </span>
+        {/* Selected Package Info */}
+        <div className="info-wrapper">
+          <div className="selected-info">
+            <div className="info-card">
+              <span className="info-label">Selected Oasis:</span>
+              <span className="info-value">{selectedOasis}</span>
             </div>
-          )}
+            <div className="info-card">
+              <span className="info-label">Selected Package:</span>
+              <span className="info-value">{selectedPackage}</span>
+            </div>
+          </div>
         </div>
 
         {/* Session Column */}

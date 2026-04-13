@@ -376,11 +376,53 @@
   margin-bottom: 24px;
 }
 
-.calendar-wrapper,
+.date-step-layout.bottom-section {
+  grid-template-columns: 1fr 1fr;
+  margin-top: 24px;
+}
+
+.calendar-wrapper {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.calendar-wrapper.full-width-top {
+  grid-column: 1 / -1;
+  background: transparent;
+  padding: 0;
+  border: none;
+  margin-bottom: 20px;
+}
+
 .session-wrapper {
   background: #f8fafc;
   border-radius: 16px;
   padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.info-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.info-wrapper .selected-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.info-wrapper .info-card {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
 
@@ -409,6 +451,17 @@
   border-radius: 12px;
   padding: 16px;
   border: 1px solid #e2e8f0;
+}
+
+.calendar-container.landscape {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  min-height: 550px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .selected-display {
@@ -719,6 +772,90 @@
   font-size: 0.8rem;
   color: #0369a1;
   margin-top: 16px;
+}
+
+/* Payment Type Section */
+.payment-type-section {
+  margin: 24px 0;
+}
+
+.payment-type-section .section-subtitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.payment-type-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.payment-type-card {
+  display: flex;
+  align-items: flex-start;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.payment-type-card:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.payment-type-card input[type="radio"] {
+  margin-right: 12px;
+  margin-top: 2px;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #0284c7;
+}
+
+.payment-type-card input[type="radio"]:checked {
+  accent-color: #0284c7;
+}
+
+.payment-type-card input[type="radio"]:checked + .payment-type-info {
+  color: #0284c7;
+}
+
+.payment-type-card.payment-type-card input[type="radio"]:checked ~ * {
+  border-color: #0284c7;
+}
+
+.payment-type-card:has(input:checked) {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.payment-type-info {
+  flex: 1;
+}
+
+.payment-type-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.payment-type-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.payment-type-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0284c7;
 }
 
 /* ============================================ */
@@ -1950,6 +2087,23 @@
   
   .date-step-layout {
     grid-template-columns: 1fr;
+  }
+
+  .date-step-layout.bottom-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .calendar-container.landscape {
+    min-height: 400px;
+  }
+
+  .info-wrapper .selected-info {
+    flex-direction: row;
+    gap: 12px;
+  }
+
+  .info-wrapper .info-card {
+    flex: 1;
   }
   
   .payment-methods-grid {

@@ -17,6 +17,15 @@
   gap: 40px;
 }
 
+/* Ensure all footer sections have no white background */
+.footer-section {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* Section Headers */
 .footer-section h3 {
   color: white;
@@ -63,11 +72,15 @@
   color: #0284c7;
 }
 
-/* Contact Info - FORCE DARK BACKGROUND */
+/* Contact Info */
 .contact-info {
   list-style: none;
-  padding: 0;
-  margin: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .contact-info li {
@@ -75,20 +88,29 @@
   margin-bottom: 10px;
   font-size: 0.8rem;
   line-height: 1.4;
-  background: #1e293b !important;
+  background: transparent !important;
   padding: 0 !important;
   border: none !important;
-  display: block !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: block;
 }
 
-/* Force all footer elements to have dark background */
-.footer,
-.footer *,
-.footer-section,
-.footer-section *,
-.contact-info,
-.contact-info * {
-  background-color: #1e293b;
+/* Override any potential ul/li styles in footer */
+.footer ul {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.footer li {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 /* Bottom Bar */

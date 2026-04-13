@@ -15,7 +15,8 @@ const BookingSummary = ({
   pricePerNight, 
   totalPrice,
   addonsTotal,
-  downpayment
+  downpayment,
+  paymentType
 }) => {
   
   // Get package display name with proper formatting
@@ -235,23 +236,43 @@ const BookingSummary = ({
               <span className="value">₱{totalWithExtra.toLocaleString()}</span>
             </div>
             
-            {/* Downpayment */}
-            <div className="summary-downpayment">
-              <span className="label">Downpayment Required</span>
-              <span className="downpayment-amount">₱{downpayment.toLocaleString()}</span>
-            </div>
+            {/* Downpayment - Only show if downpayment type is selected */}
+            {paymentType === 'downpayment' && (
+              <>
+                <div className="summary-downpayment">
+                  <span className="label">Downpayment Required</span>
+                  <span className="downpayment-amount">₱{downpayment.toLocaleString()}</span>
+                </div>
+                
+                {/* Remaining Balance */}
+                <div className="summary-item">
+                  <span className="label">Remaining Balance</span>
+                  <span className="value">₱{(totalWithExtra - downpayment).toLocaleString()}</span>
+                </div>
+              </>
+            )}
             
-            {/* Remaining Balance */}
-            <div className="summary-item">
-              <span className="label">Remaining Balance</span>
-              <span className="value">₱{(totalWithExtra - downpayment).toLocaleString()}</span>
-            </div>
+            {/* Full Payment Note */}
+            {paymentType === 'fullpayment' && (
+              <div className="summary-item" style={{ background: '#d4edda', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
+                <span className="label" style={{ color: '#155724' }}>Payment Type</span>
+                <span className="value" style={{ color: '#155724', fontWeight: '600' }}>Full Payment</span>
+              </div>
+            )}
             
             {/* Note */}
-            <div className="summary-note">
-              <i className="fas fa-info-circle"></i>
-              <span>Downpayment is required to secure your reservation. Balance payable upon arrival.</span>
-            </div>
+            {paymentType === 'downpayment' && (
+              <div className="summary-note">
+                <i className="fas fa-info-circle"></i>
+                <span>Downpayment is required to secure your reservation. Balance payable upon arrival.</span>
+              </div>
+            )}
+            {paymentType === 'fullpayment' && (
+              <div className="summary-note" style={{ background: '#d4edda', color: '#155724' }}>
+                <i className="fas fa-check-circle"></i>
+                <span>Full payment is required. No additional payment needed upon arrival.</span>
+              </div>
+            )}
             {extraPersonsFee > 0 && (
               <div className="summary-note" style={{ background: '#fef3c7', color: '#92400e' }}>
                 <i className="fas fa-exclamation-triangle"></i>

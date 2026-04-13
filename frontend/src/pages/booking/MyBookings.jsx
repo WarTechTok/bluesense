@@ -145,8 +145,8 @@ const MyBookings = () => {
                         <span className="value">{booking.pax} persons</span>
                       </div>
                       <div className="info-row">
-                        <span className="label">Down Payment:</span>
-                        <span className="value">₱{booking.downpayment?.toLocaleString()}</span>
+                        <span className="label">{!booking.paymentType || booking.paymentType === 'downpayment' ? 'Down Payment' : 'Total Amount'}:</span>
+                        <span className="value">₱{(!booking.paymentType || booking.paymentType === 'downpayment' ? booking.downpayment : booking.totalAmount)?.toLocaleString()}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Payment Status:</span>
@@ -240,12 +240,16 @@ const MyBookings = () => {
                 <h4>Payment Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">Down Payment</span>
-                    <span className="value">₱{selectedBooking.downpayment?.toLocaleString()}</span>
+                    <span className="label">{selectedBooking.paymentType === 'fullpayment' ? 'Total Amount' : 'Down Payment'}</span>
+                    <span className="value">₱{(selectedBooking.paymentType === 'fullpayment' ? selectedBooking.totalAmount : selectedBooking.downpayment)?.toLocaleString()}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Method</span>
                     <span className="value">{selectedBooking.paymentMethod || 'Cash'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="label">Payment Type</span>
+                    <span className="value">{selectedBooking.paymentType === 'fullpayment' ? '✓ Full Payment' : 'Downpayment (30%)'}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Status</span>

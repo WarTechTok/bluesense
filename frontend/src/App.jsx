@@ -26,6 +26,7 @@ import ContactUs from "./pages/ContactUs";
 import Gallery from "./pages/Gallery";
 import Booking from "./pages/booking/Booking";
 import MyBookings from "./pages/booking/MyBookings";
+import Profile from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail";  // ADD THIS IMPORT
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from './pages/OAuthRedirect';
@@ -92,6 +93,14 @@ function App() {
         <Route path="/oauth-redirect" element={<OAuthRedirect />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/my-bookings" element={<MyBookings />} />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Protected Route - Admin/Staff ONLY - Admin redirect to admin dashboard */}
         <Route 

@@ -29,6 +29,11 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  session: {
+    type: String,
+    enum: ['Day', 'Night', '22hrs'],
+    required: true
+  },
   bookingDate: {
     type: Date,
     required: true
@@ -43,10 +48,19 @@ const bookingSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  totalAmount: {
+    type: Number,
+    required: true
+  },
   paymentMethod: {
     type: String,
-    enum: ["GCash", "Maya", "GoTyme", "SeaBank", "Cash"],
+    enum: ["Cash", "GCash", "Maya", "GoTyme", "SeaBank"],
     required: true
+  },
+  paymentType: {
+    type: String,
+    enum: ["downpayment", "fullpayment"],
+    default: "downpayment"
   },
   paymentStatus: {
     type: String,

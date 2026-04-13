@@ -14,6 +14,13 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
     phone: formData.phone || ''
   });
 
+  // Handle field changes and update parent
+  const handleFieldChange = (e) => {
+    const { name, value } = e.target;
+    setUserInfo(prev => ({ ...prev, [name]: value }));
+    handleChange(e);
+  };
+
   // Listen for profile updates from navbar
   useEffect(() => {
     const handleProfileUpdate = (event) => {
@@ -79,45 +86,51 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
 
       <div className="form-grid">
         <div className="form-group full-width">
-          <label>Full Name</label>
-          <div className="input-wrapper read-only">
+          <label>Full Name <span className="required">*</span></label>
+          <div className="input-wrapper">
             <i className="fas fa-user input-icon"></i>
             <input 
               type="text" 
+              name="fullName"
               value={userInfo.fullName} 
-              readOnly
-              disabled
-              className="readonly-input"
+              onChange={handleFieldChange}
+              placeholder="Enter your full name"
+              className={errors?.fullName ? 'error' : ''}
             />
           </div>
+          {errors?.fullName && <span className="error-message">{errors.fullName}</span>}
         </div>
         
         <div className="form-group">
-          <label>Email Address</label>
-          <div className="input-wrapper read-only">
+          <label>Email Address <span className="required">*</span></label>
+          <div className="input-wrapper">
             <i className="fas fa-envelope input-icon"></i>
             <input 
               type="email" 
+              name="email"
               value={userInfo.email} 
-              readOnly
-              disabled
-              className="readonly-input"
+              onChange={handleFieldChange}
+              placeholder="Enter your email"
+              className={errors?.email ? 'error' : ''}
             />
           </div>
+          {errors?.email && <span className="error-message">{errors.email}</span>}
         </div>
         
         <div className="form-group">
-          <label>Phone Number</label>
-          <div className="input-wrapper read-only">
+          <label>Phone Number <span className="required">*</span></label>
+          <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>
             <input 
               type="tel" 
-              value={userInfo.phone || 'Not provided'} 
-              readOnly
-              disabled
-              className="readonly-input"
+              name="phone"
+              value={userInfo.phone} 
+              onChange={handleFieldChange}
+              placeholder="Enter your phone number"
+              className={errors?.phone ? 'error' : ''}
             />
           </div>
+          {errors?.phone && <span className="error-message">{errors.phone}</span>}
         </div>
         
         <div className="form-group">
@@ -131,10 +144,10 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
               onChange={handleChange}
               min="1"
               max="100"
-              className={errors.guestCount ? 'error' : ''}
+              className={errors?.guestCount ? 'error' : ''}
             />
           </div>
-          {errors.guestCount && <span className="error-message">{errors.guestCount}</span>}
+          {errors?.guestCount && <span className="error-message">{errors.guestCount}</span>}
         </div>
       </div>
       

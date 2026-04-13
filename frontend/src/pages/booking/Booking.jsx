@@ -50,7 +50,8 @@ function Booking() {
     reservationDate: '',
     checkoutDate: '',
     specialRequests: '',
-    paymentMethod: 'cash',
+    paymentMethod: '',
+    paymentType: 'downpayment',
     agreeTerms: false,
     session: '',
     paymentProof: null
@@ -150,7 +151,18 @@ function Booking() {
     const newErrors = {};
     
     if (step === 1) {
-      // Guest info validation (only guest count)
+      // Required contact info validation
+      if (!formData.fullName || formData.fullName.trim() === '') {
+        newErrors.fullName = 'Full name is required';
+      }
+      if (!formData.email || formData.email.trim() === '') {
+        newErrors.email = 'Email is required';
+      }
+      if (!formData.phone || formData.phone.trim() === '') {
+        newErrors.phone = 'Phone number is required';
+      }
+
+      // Guest info validation
       if (!formData.guestCount || formData.guestCount < 1) {
         newErrors.guestCount = 'Number of guests is required';
       }
@@ -179,6 +191,19 @@ function Booking() {
       }
       if (!selectedSession) {
         newErrors.session = 'Please select a session';
+      }
+    }
+
+    if (step === 3) {
+      if (!formData.paymentMethod) {
+        newErrors.paymentMethod = 'Please select a payment method';
+      }
+      if (!formData.paymentType) {
+        newErrors.paymentType = 'Please select a payment type (downpayment or full payment)';
+      }
+      // Payment proof required for digital payments
+      if (formData.paymentMethod && !formData.paymentProof) {
+        newErrors.paymentProof = 'Please upload payment proof';
       }
     }
     
@@ -213,6 +238,22 @@ function Booking() {
     setIsSubmitting(true);
     
     try {
+      // Helper function to map payment method to proper casing
+      const mapPaymentMethod = (method) => {
+        const mapping = {
+          'cash': 'Cash',
+          'gcash': 'GCash',
+          'maya': 'Maya',
+          'seabank': 'SeaBank',
+          'gotyme': 'GoTyme'
+        };
+        return mapping[method] || method;
+      };
+
+      // Handle payment proof file - Note: Payment proof upload will be handled separately
+      // Not included in initial booking to avoid payload size issues
+      // User can upload payment proof after booking confirmation
+
       const bookingPayload = {
         customerName: formData.fullName,
         customerContact: formData.phone,
@@ -224,13 +265,19 @@ function Booking() {
         pax: Number(formData.guestCount),
         totalPrice: getTotalPrice(),
         downpayment: getDownpaymentAmount(),
+        paymentType: formData.paymentType,
         addons: selectedAddons,
         specialRequests: formData.specialRequests,
-        paymentMethod: formData.paymentMethod === 'cash' ? 'Cash' : formData.paymentMethod === 'gcash' ? 'GCash' : 'GoTyme',
-        paymentProof: formData.paymentProof
+        paymentMethod: mapPaymentMethod(formData.paymentMethod)
+        // paymentProof: Not included to avoid payload size issues
       };
       
+      // Debug log
+      console.log('📤 Booking Payload:', bookingPayload);
+      
       const result = await createBooking(bookingPayload);
+      
+      console.log('✅ Booking Response:', result);
       
       if (result.booking) {
         setBookingDetails({
@@ -241,15 +288,19 @@ function Booking() {
           checkIn: new Date(formData.reservationDate).toLocaleDateString(),
           guests: formData.guestCount,
           totalAmount: getTotalPrice(),
-          downpayment: getDownpaymentAmount()
+          downpayment: getDownpaymentAmount(),
+          paymentType: formData.paymentType
         });
         setShowSuccessModal(true);
       } else {
+        console.error('❌ Booking failed:', result);
         alert(result.message || 'Something went wrong. Please try again.');
       }
     } catch (error) {
-      console.error('Booking error:', error);
-      alert('Failed to submit booking. Please try again.');
+      console.error('❌ Booking error:', error);
+      const errorMsg = error?.response?.data?.message || error?.message || 'Failed to submit booking. Please try again.';
+      console.error('Error details:', error?.response?.data);
+      alert(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -302,6 +353,7 @@ function Booking() {
             totalPrice={totalPrice}
             addonsTotal={calculateAddonsTotal()}
             downpayment={downpayment}
+            paymentType={formData.paymentType}
           />
           
           <div className="booking-form-wrapper">

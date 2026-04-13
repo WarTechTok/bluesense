@@ -154,14 +154,13 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     const newUser = new User({
       name,
       email,
-      password: hashedPassword,
+      password,
       role: role || "customer",
       phone,
       address,
@@ -380,12 +379,10 @@ const registerStaff = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const newStaff = new User({
       name,
       email,
-      password: hashedPassword,
+      password,
       role: role || "staff",
       isEmailVerified: true, // Staff accounts are auto-verified
     });
@@ -468,7 +465,7 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: passwordCheck.message });
     }
     
-    user.password = await bcrypt.hash(password, 10);
+    user.password = password;  // Pre-save middleware will hash it
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
     await user.save();
@@ -615,7 +612,7 @@ const updateProfile = async (req, res) => {
     // Build update object
     const updateData = {};
     if (name !== undefined && name !== '') updateData.name = name;
-    if (phone !== undefined) updateData.phone = phone;
+    if (phone !== undefined && phone !== '') updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
     
     // Handle avatar if uploaded
@@ -631,7 +628,7 @@ const updateProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: false }
     ).select('-password');
     
     if (!updatedUser) {
@@ -652,6 +649,40 @@ const updateProfile = async (req, res) => {
 };
 
 // ============================================
+// CHANGE PASSWORD
+// ============================================
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current password and new password are required' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Verify current password
+    const isValidPassword = await user.comparePassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Current password is incorrect' });
+    }
+
+    // Update to new password (will be hashed by pre-save middleware)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================================
 // EXPORT
 // ============================================
 module.exports = {
@@ -667,5 +698,6 @@ module.exports = {
   resetPassword,
   googleLogin,
   getProfile,
-  updateProfile
+  updateProfile,
+  changePassword
 };

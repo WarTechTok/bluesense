@@ -111,10 +111,18 @@ function ReviewStep({
               <span>Total Amount:</span>
               <strong>₱{totalPrice.toLocaleString()}</strong>
             </div>
-            <div className="review-item downpayment">
-              <span>Downpayment:</span>
-              <strong>₱{downpayment.toLocaleString()}</strong>
-            </div>
+            {formData.paymentType === 'downpayment' && (
+              <div className="review-item downpayment">
+                <span>Downpayment (30%):</span>
+                <strong>₱{downpayment.toLocaleString()}</strong>
+              </div>
+            )}
+            {formData.paymentType === 'fullpayment' && (
+              <div className="review-item downpayment">
+                <span>Payment Type:</span>
+                <strong>Full Payment (No Balance Due)</strong>
+              </div>
+            )}
           </div>
 
           {/* Add-ons List */}
@@ -170,10 +178,21 @@ function ReviewStep({
             <div className="modal-body terms-modal-body">
               <div className="terms-content">
                 <h4>1. Booking and Payment</h4>
-                <p>A downpayment is required to secure your reservation. The remaining balance must be paid upon arrival.</p>
-                
-                <h4>2. Cancellation and Refunds</h4>
+              {formData.paymentType === 'downpayment' ? (
+                <>
+                  <p>A downpayment (30%) is required to secure your reservation. The remaining balance must be paid upon arrival.</p>
+                  <p>Your downpayment amount: ₱{downpayment.toLocaleString()}</p>
+                </>
+              ) : (
+                <p>Full payment is required upfront. No additional payment is needed upon arrival.</p>
+              )}
+              
+              <h4>2. Cancellation and Refunds</h4>
+              {formData.paymentType === 'downpayment' ? (
                 <p>Downpayment is non-refundable. Rescheduling is allowed at least 1 week before the booking date.</p>
+              ) : (
+                <p>Full payment is non-refundable. Rescheduling is allowed at least 1 week before the booking date.</p>
+              )}
                 
                 <h4>3. Check-in / Check-out</h4>
                 <p>Check-in: 8:00 AM | Check-out: 6:00 PM for Day session.<br/>
