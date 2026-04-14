@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import './ManagementPages.css';
 import * as adminApi from '../../services/admin/adminApi';
+import { exportToExcel, exportToExcelWithSummary, exportToJSON } from '../../utils/excelExport';
 
 const Reports = () => {
   const [reportType, setReportType] = useState('reservation');
@@ -39,19 +40,54 @@ const Reports = () => {
     }
   };
 
-  const handleExport = async () => {
+  const handleExportExcel = async () => {
     try {
-      const data = await adminApi.exportReportAsJSON(reportType, startDate, endDate);
-      const dataStr = JSON.stringify(data, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      if (!reportData) {
+        alert('Please generate a report first');
+        return;
+      }
+
+      const fileName = `${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
+      const dataToExport = reportData.sales || reportData || [];
+
+      if (reportType === 'sales' && reportData.totalSales !== undefined) {
+        // Export with summary for sales
+        const summary = {
+          totalSales: reportData.totalSales,
+          transactionCount: dataToExport.length
+        };
+        exportToExcelWithSummary(dataToExport, summary, reportType, fileName);
+      } else {
+        // Export regular data
+        exportToExcel(dataToExport, reportType, fileName);
+      }
+
+      alert('Report exported successfully as Excel');
     } catch (error) {
-      console.error('Error exporting report:', error);
+      console.error('Error exporting Excel:', error);
+      alert('Error exporting report');
+    }
+  };
+
+  const handleExportJSON = async () => {
+    try {
+      if (!reportData) {
+        alert('Please generate a report first');
+        return;
+      }
+
+      const fileName = `${reportType}-report-${new Date().toISOString().split('T')[0]}.json`;
+      const dataToExport = {
+        reportType,
+        generatedDate: new Date().toISOString(),
+        data: reportData.sales || reportData,
+        ...(reportData.totalSales && { summary: { totalSales: reportData.totalSales } })
+      };
+
+      exportToJSON(dataToExport, reportType, fileName);
+      alert('Report exported successfully as JSON');
+    } catch (error) {
+      console.error('Error exporting JSON:', error);
       alert('Error exporting report');
     }
   };
@@ -112,10 +148,13 @@ const Reports = () => {
 
           <div className="filter-actions">
             <button className="btn-primary" onClick={handleGenerateReport}>
-              Generate Report
+              <i className="fas fa-sync-alt"></i> Generate Report
             </button>
-            <button className="btn-outline" onClick={handleExport}>
-              Export JSON
+            <button className="btn-success" onClick={handleExportExcel} disabled={!reportData}>
+              <i className="fas fa-file-excel"></i> Export Excel
+            </button>
+            <button className="btn-outline" onClick={handleExportJSON} disabled={!reportData}>
+              <i className="fas fa-file-code"></i> Export JSON
             </button>
           </div>
         </div>
@@ -216,8 +255,8 @@ const Reports = () => {
                       )}
                       {reportType === 'sales' && (
                         <>
-                          <td>{row._id || row.bookingId || 'N/A'}</td>
-                          <td>{row.customerName || row.guestName || 'N/A'}</td>
+                          <td>{row.booking?.bookingReference || (row.booking?._id ? row.booking._id.slice(-6).toUpperCase() : row._id || 'N/A')}</td>
+                          <td>{row.booking?.customerName || row.customerName || row.guestName || 'N/A'}</td>
                           <td className="amount">{formatCurrency(row.amount || row.downpayment || 0)}</td>
                           <td>{new Date(row.date || row.createdAt).toLocaleDateString()}</td>
                         </>

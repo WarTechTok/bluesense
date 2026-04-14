@@ -72,6 +72,13 @@ const bookingSchema = new mongoose.Schema({
     default: null
   },
   
+  // Booking reference (like 6879D0)
+  bookingReference: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  
   // Status
   status: {
     type: String,

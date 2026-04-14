@@ -233,6 +233,11 @@ const BookingManagement = () => {
   };
 
   const columns = [
+    { 
+      key: 'bookingReference', 
+      label: 'Booking ID',
+      render: (value, row) => value || (row._id ? row._id.slice(-6).toUpperCase() : 'N/A')
+    },
     { key: 'customerName', label: 'Customer Name' },
     { key: 'customerContact', label: 'Contact' },
     { key: 'oasis', label: 'Location' },

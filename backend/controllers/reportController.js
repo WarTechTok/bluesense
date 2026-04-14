@@ -55,7 +55,7 @@ exports.getSalesReport = async (req, res) => {
       };
     }
 
-    const sales = await Sale.find(query).populate('reservation');
+    const sales = await Sale.find(query).populate('reservation').populate('booking');
     const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
 
     res.json({ sales, totalSales });
@@ -174,7 +174,7 @@ exports.exportReportAsJSON = async (req, res) => {
       if (startDate && endDate) {
         query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
       }
-      reportData = await Sale.find(query).populate('reservation');
+      reportData = await Sale.find(query).populate('reservation').populate('booking');
     } else if (reportType === 'inventory') {
       reportData = await Inventory.find();
     }

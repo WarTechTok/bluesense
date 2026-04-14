@@ -281,7 +281,7 @@ function Booking() {
       
       if (result.booking) {
         setBookingDetails({
-          bookingId: result.booking._id?.slice(-6).toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase(),
+          bookingId: result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase(),
           oasis: selectedOasis,
           package: selectedPackage,
           session: selectedSession,

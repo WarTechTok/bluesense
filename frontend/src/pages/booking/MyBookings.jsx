@@ -217,6 +217,10 @@ const MyBookings = () => {
                 <h4>Booking Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
+                    <span className="label">Booking Reference</span>
+                    <span className="value" style={{ fontWeight: 'bold', fontSize: '1.1em', color: '#00a8e8' }}>{selectedBooking.bookingReference || selectedBooking._id?.slice(-6).toUpperCase() || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
                     <span className="label">Venue</span>
                     <span className="value">{selectedBooking.oasis}</span>
                   </div>

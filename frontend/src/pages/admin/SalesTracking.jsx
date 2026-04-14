@@ -105,16 +105,21 @@ const SalesTracking = () => {
                   <td colSpan="4" style={{ textAlign: 'center' }}>No sales data</td>
                 </tr>
               ) : (
-                sales.map((sale, idx) => (
-                  <tr key={idx}>
-                    <td>{sale._id || 'N/A'}</td>
-                    <td>
-                      {sale.booking?.customerName || sale.reservation?.guestName || 'N/A'}
-                    </td>
-                    <td>₱{(sale.amount || 0).toLocaleString()}</td>
-                    <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
-                  </tr>
-                ))
+                sales.map((sale, idx) => {
+                  // Get booking reference with proper fallback
+                  const bookingRef = sale.booking?.bookingReference || 
+                                    (sale.booking?._id ? sale.booking._id.slice(-6).toUpperCase() : 'N/A');
+                  const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
+                  
+                  return (
+                    <tr key={idx}>
+                      <td>{bookingRef}</td>
+                      <td>{customerName}</td>
+                      <td>₱{(sale.amount || 0).toLocaleString()}</td>
+                      <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

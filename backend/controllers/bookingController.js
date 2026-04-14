@@ -72,6 +72,20 @@ const PACKAGE_CAPACITY = {
 };
 
 // ============================================
+// HELPER: Generate unique booking reference
+// ============================================
+// Generates reference like: 6879D0
+
+const generateBookingReference = () => {
+  const chars = 'ABCDEFHJKLMNPQRSTUVWXYZ0123456789';
+  let reference = '';
+  for (let i = 0; i < 6; i++) {
+    reference += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return reference;
+};
+
+// ============================================
 // HELPER: Get start and end of day
 // ============================================
 
@@ -336,6 +350,17 @@ const createBooking = async (req, res) => {
     // Auto-mark as paid if payment method is Cash
     const paymentStatusForBooking = paymentMethod === 'Cash' ? 'Paid' : 'Pending';
 
+    // Generate unique booking reference
+    let bookingReference;
+    let isUnique = false;
+    while (!isUnique) {
+      bookingReference = generateBookingReference();
+      const existingRef = await Booking.findOne({ bookingReference });
+      if (!existingRef) {
+        isUnique = true;
+      }
+    }
+
     const newBooking = new Booking({
       customerName,
       customerContact,
@@ -353,7 +378,8 @@ const createBooking = async (req, res) => {
       paymentType: paymentType || 'downpayment',
       paymentProof: paymentProof || null,
       status: 'Pending',
-      paymentStatus: paymentStatusForBooking
+      paymentStatus: paymentStatusForBooking,
+      bookingReference: bookingReference
     });
 
     await newBooking.save();
