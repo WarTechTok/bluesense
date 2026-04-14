@@ -7,6 +7,14 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   const [bookedDates, setBookedDates] = useState({});
   const [loading, setLoading] = useState(false);
 
+  // Helper to convert date to YYYY-MM-DD using local date (not UTC/ISO)
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   useEffect(() => {
     const fetchBookedDates = async () => {
       if (!oasis || !packageName) {
@@ -96,7 +104,7 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
 
   const getDateStatus = (day) => {
     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = getLocalDateString(date); // Use local date, not UTC
     const status = bookedDates[dateStr] || null;
     
     // Log when a booked date is found
@@ -145,36 +153,39 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
     const status = getDateStatus(day);
     const disabled = isDateDisabled(day);
     const selected = isDateSelected(day);
+    const hasBooked = status && (status.Day.booked || status.Night.booked || status['22hrs']?.booked);
     
     days.push(
       <div
         key={day}
-        className={`calendar-day ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''}`}
+        className={`calendar-day ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''} ${hasBooked ? 'has-booked' : ''}`}
         onClick={() => !disabled && handleDateClick(day)}
       >
         <div className="day-number">{day}</div>
         
         {status && (
           <svg className="diagonal-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Diagonal line from top-left to bottom-right */}
-            <line x1="0" y1="0" x2="100" y2="100" stroke="#333" strokeWidth="2" />
+            {/* Subtle diagonal line - very faint */}
+            <line x1="0" y1="0" x2="100" y2="100" stroke="#e8e8e8" strokeWidth="1" opacity="0.4" />
             
-            {/* Day session (left) */}
+            {/* Day session (left) - same size, color changes when booked */}
             <circle 
               cx="25" 
               cy="50" 
-              r="6" 
+              r="7"
               className={`session-indicator ${status.Day.booked ? 'booked' : 'available'}`}
-              fill={status.Day.booked ? '#ef4444' : '#10b981'}
+              fill={status.Day.booked ? '#dc2626' : '#10b981'}
+              opacity="1"
             />
             
-            {/* Night session (right) */}
+            {/* Night session (right) - same size, color changes when booked */}
             <circle 
               cx="75" 
               cy="50" 
-              r="6" 
+              r="7"
               className={`session-indicator ${status.Night.booked ? 'booked' : 'available'}`}
-              fill={status.Night.booked ? '#ef4444' : '#10b981'}
+              fill={status.Night.booked ? '#dc2626' : '#10b981'}
+              opacity="1"
             />
           </svg>
         )}

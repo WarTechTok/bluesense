@@ -123,9 +123,15 @@ export async function getHistory() {
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
   
-  const headers = {
-    'Content-Type': 'application/json'
-  };
+  // Check if bookingData is FormData (includes file upload)
+  const isFormData = bookingData instanceof FormData;
+  
+  const headers = {};
+  
+  // Only set Content-Type for JSON, FormData sets its own headers
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   
   // Add token if available (optional for public booking)
   if (token) {
@@ -135,7 +141,7 @@ export async function createBooking(bookingData) {
   const res = await fetch(`${API_BASE_URL}/api/bookings`, {
     method: 'POST',
     headers,
-    body: JSON.stringify(bookingData),
+    body: isFormData ? bookingData : JSON.stringify(bookingData),
   });
   
   const data = await res.json();

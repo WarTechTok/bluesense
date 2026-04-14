@@ -75,13 +75,15 @@ const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actio
                       </button>
                     )}
                     {actions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        className={`btn-${action.type}`}
-                        onClick={() => action.handler(row)}
-                      >
-                        {action.label}
-                      </button>
+                      (!action.condition || action.condition(row)) && (
+                        <button
+                          key={idx}
+                          className={`btn-${action.type}`}
+                          onClick={() => action.handler(row)}
+                        >
+                          {action.label}
+                        </button>
+                      )
                     ))}
                   </td>
                 )}

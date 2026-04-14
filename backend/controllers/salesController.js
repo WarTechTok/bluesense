@@ -9,11 +9,13 @@ const Sale = require('../models/Sale');
 /**
  * GET /api/admin/sales
  * Get all sales transactions (Admin only)
- * Includes reservation details
+ * Includes booking or reservation details
  */
 exports.getAllSales = async (req, res) => {
   try {
-    const sales = await Sale.find().populate('reservation');
+    const sales = await Sale.find()
+      .populate('booking')
+      .populate('reservation');
     res.json(sales);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -35,7 +37,9 @@ exports.getDailySales = async (req, res) => {
 
     const dailySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
-    }).populate('reservation');
+    })
+      .populate('booking')
+      .populate('reservation');
 
     const total = dailySales.reduce((sum, sale) => sum + sale.amount, 0);
     res.json({ sales: dailySales, total });
@@ -57,7 +61,9 @@ exports.getWeeklySales = async (req, res) => {
 
     const weeklySales = await Sale.find({
       date: { $gte: startOfWeek }
-    }).populate('reservation');
+    })
+      .populate('booking')
+      .populate('reservation');
 
     const total = weeklySales.reduce((sum, sale) => sum + sale.amount, 0);
     res.json({ sales: weeklySales, total });
@@ -69,7 +75,7 @@ exports.getWeeklySales = async (req, res) => {
 /**
  * GET /api/admin/sales/monthly?month=0&year=2026
  * Get sales for a specific month
- * Query: month (0-11), year (e.g., 2026)
+ * Query: month (0-11, where 0=January), year (e.g., 2026)
  * Returns: sales array and total for the month
  */
 exports.getMonthlySales = async (req, res) => {
@@ -80,7 +86,9 @@ exports.getMonthlySales = async (req, res) => {
 
     const monthlySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
-    }).populate('reservation');
+    })
+      .populate('booking')
+      .populate('reservation');
 
     const total = monthlySales.reduce((sum, sale) => sum + sale.amount, 0);
     res.json({ sales: monthlySales, total });

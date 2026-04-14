@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
+import PaymentVerificationModal from '../../components/admin/PaymentVerificationModal';
 import * as adminApi from '../../services/admin/adminApi';
 import './ManagementPages.css';
 
@@ -11,6 +12,8 @@ const BookingManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [verificationModalOpen, setVerificationModalOpen] = useState(false);
+  const [selectedBookingForVerification, setSelectedBookingForVerification] = useState(null);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -150,6 +153,47 @@ const BookingManagement = () => {
     );
   };
 
+  const handleOpenPaymentVerification = (booking) => {
+    setSelectedBookingForVerification(booking);
+    setVerificationModalOpen(true);
+  };
+
+  const handleVerifyPayment = async (bookingId) => {
+    try {
+      await adminApi.verifyPayment(bookingId);
+      fetchBookings();
+      showConfirmationModal(
+        'Success',
+        'Payment verified successfully! Booking confirmed and customer notified via email.',
+        null,
+        'OK'
+      );
+    } catch (error) {
+      console.error('Error verifying payment:', error);
+      showConfirmationModal('Error', 'Error verifying payment: ' + error.message, null, 'OK');
+    }
+  };
+
+  const handleRejectPayment = async (bookingId) => {
+    showConfirmationModal(
+      'Reject Payment',
+      'Are you sure you want to reject this payment? The customer will need to resubmit their payment proof.',
+      async () => {
+        try {
+          // Set payment status to Rejected
+          await adminApi.updatePaymentStatus(bookingId, 'Rejected');
+          fetchBookings();
+          showConfirmationModal('Payment Rejected', 'Payment has been rejected. Customer will need to resubmit proof.', null, 'OK');
+        } catch (error) {
+          console.error('Error rejecting payment:', error);
+          showConfirmationModal('Error', 'Error rejecting payment: ' + error.message, null, 'OK');
+        }
+      },
+      'Yes, Reject',
+      'Cancel'
+    );
+  };
+
   const handleSubmit = async () => {
     try {
       if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || 
@@ -258,6 +302,14 @@ const BookingManagement = () => {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
         onDelete={handleDelete}
+        actions={[
+          {
+            label: '📋 View Payment',
+            type: 'payment',
+            handler: (booking) => handleOpenPaymentVerification(booking),
+            condition: (booking) => booking.paymentStatus === 'Pending' || booking.paymentStatus === 'Rejected'
+          }
+        ]}
       />
 
       <Modal
@@ -423,6 +475,17 @@ const BookingManagement = () => {
         onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
         confirmText={confirmationModal.confirmText}
         cancelText={confirmationModal.cancelText}
+      />
+
+      <PaymentVerificationModal
+        isOpen={verificationModalOpen}
+        booking={selectedBookingForVerification}
+        onClose={() => {
+          setVerificationModalOpen(false);
+          setSelectedBookingForVerification(null);
+        }}
+        onVerify={handleVerifyPayment}
+        onReject={handleRejectPayment}
       />
     </div>
   );

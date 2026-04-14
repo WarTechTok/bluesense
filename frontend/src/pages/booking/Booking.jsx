@@ -250,32 +250,32 @@ function Booking() {
         return mapping[method] || method;
       };
 
-      // Handle payment proof file - Note: Payment proof upload will be handled separately
-      // Not included in initial booking to avoid payload size issues
-      // User can upload payment proof after booking confirmation
-
-      const bookingPayload = {
-        customerName: formData.fullName,
-        customerContact: formData.phone,
-        customerEmail: formData.email,
-        oasis: selectedOasis,
-        package: selectedPackage,
-        session: selectedSession,
-        bookingDate: formData.reservationDate,
-        pax: Number(formData.guestCount),
-        totalPrice: getTotalPrice(),
-        downpayment: getDownpaymentAmount(),
-        paymentType: formData.paymentType,
-        addons: selectedAddons,
-        specialRequests: formData.specialRequests,
-        paymentMethod: mapPaymentMethod(formData.paymentMethod)
-        // paymentProof: Not included to avoid payload size issues
-      };
+      // Create FormData to handle file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('customerName', formData.fullName);
+      formDataToSend.append('customerContact', formData.phone);
+      formDataToSend.append('customerEmail', formData.email);
+      formDataToSend.append('oasis', selectedOasis);
+      formDataToSend.append('package', selectedPackage);
+      formDataToSend.append('session', selectedSession);
+      formDataToSend.append('bookingDate', formData.reservationDate);
+      formDataToSend.append('pax', Number(formData.guestCount));
+      formDataToSend.append('totalPrice', getTotalPrice());
+      formDataToSend.append('downpayment', getDownpaymentAmount());
+      formDataToSend.append('paymentType', formData.paymentType);
+      formDataToSend.append('paymentMethod', mapPaymentMethod(formData.paymentMethod));
+      formDataToSend.append('specialRequests', formData.specialRequests || '');
+      formDataToSend.append('addons', JSON.stringify(selectedAddons || {}));
+      
+      // Add payment proof file if uploaded
+      if (formData.paymentProof) {
+        formDataToSend.append('paymentProof', formData.paymentProof);
+      }
       
       // Debug log
-      console.log('📤 Booking Payload:', bookingPayload);
+      console.log('📤 Booking with file:', formData.paymentProof);
       
-      const result = await createBooking(bookingPayload);
+      const result = await createBooking(formDataToSend);
       
       console.log('✅ Booking Response:', result);
       

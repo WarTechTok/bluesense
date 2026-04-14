@@ -29,10 +29,19 @@ const reportRoutes = require("./routes/reports.js");
 
 const app = express();
 
-// Middleware
+// Create uploads folder for payment proofs if it doesn't exist
+const paymentProofDir = path.join(__dirname, 'uploads/payment-proofs');
+if (!fs.existsSync(paymentProofDir)) {
+  fs.mkdirSync(paymentProofDir, { recursive: true });
+  console.log('✅ Created uploads/payment-proofs folder');
+}
+
+// Middleware Order is IMPORTANT!
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+
+// Apply urlencoded and json AFTER cors but on main app
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
 
 // Serve static files from public folder (for logo, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -48,7 +57,7 @@ if (!fs.existsSync(uploadDir)) {
   console.log('✅ Created uploads/avatars folder');
 }
 
-// Serve static files for avatars
+// Serve static files for avatars and payment proofs
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Google OAuth Strategy

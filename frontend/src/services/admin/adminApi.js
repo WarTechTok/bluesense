@@ -54,6 +54,27 @@ apiClient.interceptors.request.use((config) => {
 });
 
 // ============================================
+// RESPONSE ERROR INTERCEPTOR
+// ============================================
+// Logs API errors with details for debugging
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      console.error(`❌ API Error [${error.response.status}]:`, error.response.data);
+    } else if (error.request) {
+      // Request made but no response received
+      console.error('❌ No response from API:', error.message);
+    } else {
+      // Error in request setup
+      console.error('❌ Request error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+// ============================================
 // DASHBOARD API ENDPOINTS
 // ============================================
 // GET /dashboard/stats - Dashboard statistics
@@ -328,6 +349,23 @@ export const updatePaymentStatus = async (id, paymentStatus) => {
     return res.data;
   } catch (error) {
     console.error('Error updating payment status:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// VERIFY PAYMENT AND CONFIRM BOOKING
+// ============================================
+// Params: id - Booking MongoDB _id
+// Returns: Updated booking object with status Confirmed and paymentStatus Paid
+// Requires: Staff role
+// Actions: Updates payment status to Paid, booking status to Confirmed, sends email to customer
+export const verifyPayment = async (id) => {
+  try {
+    const res = await apiClient.patch(`/bookings/${id}/verify`);
+    return res.data;
+  } catch (error) {
+    console.error('Error verifying payment:', error);
     throw error;
   }
 };
@@ -739,7 +777,7 @@ export const getWeeklySales = async () => {
 // ============================================
 // GET MONTHLY SALES
 // ============================================
-// Params: month - Month number (1-12), year - Year number
+// Params: month - Month number (0-11, where 0=January), year - Year number
 // Returns: Monthly revenue with transaction details
 // Requires: Admin role
 export const getMonthlySales = async (month, year) => {

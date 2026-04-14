@@ -171,10 +171,22 @@
   min-height: 80px;
 }
 
+/* Highlight date cell if any session is booked */
+.diagonal-calendar .calendar-day.has-booked {
+  background: #fef2f2;
+  border-color: #faca15;
+  box-shadow: 0 0 8px rgba(250, 202, 21, 0.3);
+}
+
 .diagonal-calendar .calendar-day:not(.disabled):not(.empty):hover {
   border-color: #667eea;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
   transform: translateY(-2px);
+}
+
+.diagonal-calendar .calendar-day.has-booked:hover {
+  border-color: #faca15;
+  box-shadow: 0 0 12px rgba(250, 202, 21, 0.4);
 }
 
 .diagonal-calendar .calendar-day.empty {
@@ -247,6 +259,21 @@
 .diagonal-calendar .session-label.booked {
   fill: #ef4444;
   font-weight: bold;
+}
+
+/* Session indicator circles - make booked ones stand out WAY more */
+.diagonal-calendar .session-indicator {
+  transition: all 0.3s ease;
+}
+
+.diagonal-calendar .session-indicator.booked {
+  opacity: 1;
+  font-weight: bold;
+  filter: drop-shadow(0 0 3px rgba(220, 38, 38, 0.6));
+}
+
+.diagonal-calendar .session-indicator.available {
+  opacity: 0.7;
 }
 
 .diagonal-calendar .session-indicator {

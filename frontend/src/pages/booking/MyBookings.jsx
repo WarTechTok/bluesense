@@ -145,8 +145,8 @@ const MyBookings = () => {
                         <span className="value">{booking.pax} persons</span>
                       </div>
                       <div className="info-row">
-                        <span className="label">{!booking.paymentType || booking.paymentType === 'downpayment' ? 'Down Payment' : 'Total Amount'}:</span>
-                        <span className="value">₱{(!booking.paymentType || booking.paymentType === 'downpayment' ? booking.downpayment : booking.totalAmount)?.toLocaleString()}</span>
+                        <span className="label">{booking.paymentType === 'fullpayment' ? 'Total Amount' : 'Down Payment'}:</span>
+                        <span className="value">₱{(booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Payment Status:</span>

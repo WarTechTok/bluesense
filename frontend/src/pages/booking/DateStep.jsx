@@ -3,11 +3,48 @@
 // DATE STEP - Select date and session
 // ============================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import AvailabilityCalendar from '../../components/booking/AvailabilityCalendar';
 import SessionSelector from '../../components/booking/SessionSelector';
 
 function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage, onSessionSelect, selectedSession }) {
+  const [bookedSessions, setBookedSessions] = useState({});
+
+  // Fetch booked sessions for selected date
+  useEffect(() => {
+    if (!formData.reservationDate || !selectedOasis || !selectedPackage) {
+      setBookedSessions({});
+      return;
+    }
+
+    const fetchBookedSessions = async () => {
+      try {
+        const backendUrl = "http://localhost:8080";
+        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}`;
+        
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.bookedDates) {
+            const dateStr = formData.reservationDate;
+            const dateBookings = data.bookedDates[dateStr] || {};
+            
+            // Extract which sessions are booked
+            const bookedSessionData = {};
+            if (dateBookings.Day?.booked) bookedSessionData.Day = true;
+            if (dateBookings.Night?.booked) bookedSessionData.Night = true;
+            if (dateBookings['22hrs']?.booked) bookedSessionData['22hrs'] = true;
+            
+            setBookedSessions(bookedSessionData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching booked sessions:', error);
+      }
+    };
+
+    fetchBookedSessions();
+  }, [formData.reservationDate, selectedOasis, selectedPackage]);
   
   const handleDateChange = (date) => {
     // Fix timezone issue - use local date instead of UTC
@@ -108,6 +145,7 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
             onSessionChange={handleSessionChange}
             oasis={selectedOasis}
             packageName={selectedPackage}
+            bookedSessions={bookedSessions}
           />
           {currentSession && (
             <div className="selected-display">

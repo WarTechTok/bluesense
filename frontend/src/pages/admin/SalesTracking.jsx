@@ -7,27 +7,41 @@ const SalesTracking = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('daily');
   const [totalSales, setTotalSales] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchSales = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        // Debug: Check if token exists
+        const token = localStorage.getItem('token');
+        console.log('🔐 Token exists:', !!token, token ? `(${token.length} chars)` : '');
+        
         let data;
 
         if (selectedPeriod === 'daily') {
           const today = new Date().toISOString().split('T')[0];
+          console.log('📅 Fetching daily sales for:', today);
           data = await adminApi.getDailySales(today);
         } else if (selectedPeriod === 'weekly') {
+          console.log('📅 Fetching weekly sales');
           data = await adminApi.getWeeklySales();
         } else {
           const now = new Date();
+          console.log('📅 Fetching monthly sales for:', now.getMonth(), now.getFullYear());
           data = await adminApi.getMonthlySales(now.getMonth(), now.getFullYear());
         }
 
+        console.log('✅ Sales data received:', data);
         setSales(data.sales || []);
         setTotalSales(data.total || 0);
       } catch (error) {
-        console.error('Error fetching sales:', error);
+        console.error('❌ Error fetching sales:', error);
+        console.error('   Status:', error.response?.status);
+        console.error('   Error Data:', error.response?.data);
+        setError(error.response?.data?.error || error.message || 'Failed to fetch sales data');
       } finally {
         setLoading(false);
       }
@@ -68,6 +82,11 @@ const SalesTracking = () => {
 
       <div className="sales-table-container">
         <h3>Sales Details</h3>
+        {error && (
+          <div style={{ color: 'red', padding: '10px', marginBottom: '10px', backgroundColor: '#ffe0e0', borderRadius: '4px' }}>
+            ❌ Error: {error}
+          </div>
+        )}
         {loading ? (
           <p>Loading sales data...</p>
         ) : (
@@ -88,10 +107,12 @@ const SalesTracking = () => {
               ) : (
                 sales.map((sale, idx) => (
                   <tr key={idx}>
-                    <td>{sale._id}</td>
-                    <td>{sale.reservation?.guestName || 'N/A'}</td>
-                    <td>₱{sale.amount}</td>
-                    <td>{new Date(sale.date).toLocaleDateString()}</td>
+                    <td>{sale._id || 'N/A'}</td>
+                    <td>
+                      {sale.booking?.customerName || sale.reservation?.guestName || 'N/A'}
+                    </td>
+                    <td>₱{(sale.amount || 0).toLocaleString()}</td>
+                    <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
                   </tr>
                 ))
               )}

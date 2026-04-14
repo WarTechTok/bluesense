@@ -5,7 +5,7 @@
 
 import React from 'react';
 
-function SessionSelector({ selectedSession, onSessionChange, oasis, packageName }) {
+function SessionSelector({ selectedSession, onSessionChange, oasis, packageName, bookedSessions = {} }) {
   
   // Get pricing based on oasis and package
   const getSessionPrice = (session) => {
@@ -104,25 +104,34 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName 
   return (
     <div className="session-selector">
       <div className="session-options">
-        {sessions.map((session) => (
-          <label 
-            key={session.id} 
-            className={`session-option ${selectedSession === session.id ? 'selected' : ''}`}
-          >
-            <input
-              type="radio"
-              name="session"
-              value={session.id}
-              checked={selectedSession === session.id}
-              onChange={() => onSessionChange(session.id)}
-            />
-            <div className="session-info">
-              <div className="session-name">{session.name}</div>
-              <div className="session-time">{session.time}</div>
-            </div>
-            <div className="session-price">{getSessionPrice(session.id)}</div>
-          </label>
-        ))}
+        {sessions.map((session) => {
+          const isBooked = bookedSessions[session.id];
+          const isDisabled = isBooked;
+          
+          return (
+            <label 
+              key={session.id} 
+              className={`session-option ${selectedSession === session.id ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+            >
+              <input
+                type="radio"
+                name="session"
+                value={session.id}
+                checked={selectedSession === session.id}
+                onChange={() => !isDisabled && onSessionChange(session.id)}
+                disabled={isDisabled}
+              />
+              <div className="session-info">
+                <div className="session-name">
+                  {session.name}
+                  {isBooked && <span className="booked-badge">Already Booked</span>}
+                </div>
+                <div className="session-time">{session.time}</div>
+              </div>
+              <div className="session-price">{getSessionPrice(session.id)}</div>
+            </label>
+          );
+        })}
       </div>
     </div>
   );

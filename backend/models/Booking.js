@@ -64,8 +64,12 @@ const bookingSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ["Pending", "Paid", "Partial"],
+    enum: ["Pending", "Paid", "Partial", "Rejected"],
     default: "Pending"
+  },
+  paymentProof: {
+    type: String,  // URL or file path
+    default: null
   },
   
   // Status
@@ -79,6 +83,14 @@ const bookingSchema = new mongoose.Schema({
   confirmedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User"
+  },
+  paymentVerifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  paymentVerifiedAt: {
+    type: Date,
+    default: null
   }
   
 }, { timestamps: true });
