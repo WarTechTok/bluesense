@@ -11,64 +11,84 @@ const Sale = require("../models/Sale");
 // ============================================
 
 const OASIS_CONFIG = {
-  'Oasis 1': {
+  "Oasis 1": {
     maxBookingsPerDay: 6,
     maxPaxPerDay: 120,
     sessions: {
-      'Day': {
+      Day: {
         maxBookings: 3,
         maxPax: 60,
-        availablePackages: ['Package 1', 'Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
+        availablePackages: [
+          "Package 1",
+          "Package 2",
+          "Package 3",
+          "Package 4",
+          "Package 5",
+          "Package 5+",
+        ],
       },
-      'Night': {
+      Night: {
         maxBookings: 3,
         maxPax: 60,
-        availablePackages: ['Package 1', 'Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
+        availablePackages: [
+          "Package 1",
+          "Package 2",
+          "Package 3",
+          "Package 4",
+          "Package 5",
+          "Package 5+",
+        ],
       },
-      '22hrs': {
+      "22hrs": {
         maxBookings: 2,
         maxPax: 40,
-        availablePackages: ['Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+']
-      }
-    }
+        availablePackages: [
+          "Package 2",
+          "Package 3",
+          "Package 4",
+          "Package 5",
+          "Package 5+",
+        ],
+      },
+    },
   },
-  'Oasis 2': {
+  "Oasis 2": {
     maxBookingsPerDay: 8,
     maxPaxPerDay: 200,
     sessions: {
-      'Day': {
+      Day: {
         maxBookings: 4,
         maxPax: 100,
-        availablePackages: ['Package A', 'Package B', 'Package C']
+        availablePackages: ["Package A", "Package B", "Package C"],
       },
-      'Night': {
+      Night: {
         maxBookings: 4,
         maxPax: 100,
-        availablePackages: ['Package A', 'Package B', 'Package C']
+        availablePackages: ["Package A", "Package B", "Package C"],
       },
-      '22hrs': {
+      "22hrs": {
         maxBookings: 3,
         maxPax: 80,
-        availablePackages: ['Package B', 'Package C']
-      }
-    }
-  }
+        availablePackages: ["Package B", "Package C"],
+      },
+    },
+  },
 };
 
 const PACKAGE_CAPACITY = {
-  'Oasis 1': {
-    'Package 1': 20,
-    'Package 2': 4,
-    'Package 3': 12,
-    'Package 4': 15,
-    'Package 5': 25,
-    'Package 5+': 50
+  "Oasis 1": {
+    "Package 1": { base: 20, max: 100 }, // 20 base, up to 100 total with extra charge
+    "Package 2": { base: 20, max: 100 },
+    "Package 3": { base: 20, max: 100 },
+    "Package 4": { base: 20, max: 100 },
+    "Package 5": { base: 20, max: 100 },
+    "Package 5+": { base: 30, max: 100 }, // 30 base, up to 100 total
   },
-  'Oasis 2': {
-    'Package A': 30,
-    'Package B': 30,
-    'Package C': 100
-  }
+  "Oasis 2": {
+    "Package A": { base: 30, max: 100 },
+    "Package B": { base: 30, max: 100 },
+    "Package C": { base: 50, max: 100 }, // 50 base, up to 100 total
+  },
 };
 
 // ============================================
@@ -77,10 +97,12 @@ const PACKAGE_CAPACITY = {
 // Generates reference like: 1, 2, 3, 4, 5 (sequential numeric ID)
 
 const generateBookingReference = async () => {
-  const latestBooking = await Booking.findOne({ bookingReference: { $exists: true } })
+  const latestBooking = await Booking.findOne({
+    bookingReference: { $exists: true },
+  })
     .sort({ createdAt: -1 })
     .limit(1);
-  
+
   let nextNumber = 1;
   if (latestBooking && latestBooking.bookingReference) {
     const currentNumber = parseInt(latestBooking.bookingReference);
@@ -88,7 +110,7 @@ const generateBookingReference = async () => {
       nextNumber = currentNumber + 1;
     }
   }
-  
+
   return String(nextNumber);
 };
 
@@ -110,8 +132,8 @@ const getDayRange = (date) => {
 
 const createBooking = async (req, res) => {
   try {
-    console.log('📥 Booking Request Body:', req.body);
-    console.log('📥 Booking File:', req.file);
+    console.log("📥 Booking Request Body:", req.body);
+    console.log("📥 Booking File:", req.file);
 
     const {
       customerName,
@@ -127,121 +149,152 @@ const createBooking = async (req, res) => {
       addons,
       specialRequests,
       paymentMethod,
-      paymentType
+      paymentType,
     } = req.body;
 
     // Get payment proof file from multer
-    const paymentProof = req.file ? `/uploads/payment-proofs/${req.file.filename}` : null;
+    const paymentProof = req.file
+      ? `/uploads/payment-proofs/${req.file.filename}`
+      : null;
 
-    console.log('💾 Payment Proof Path:', paymentProof);
+    console.log("💾 Payment Proof Path:", paymentProof);
 
     // Parse addons if it's a JSON string (from FormData)
     let parsedAddons = {};
     try {
-      if (addons && typeof addons === 'string') {
+      if (addons && typeof addons === "string") {
         parsedAddons = JSON.parse(addons);
       } else if (addons) {
         parsedAddons = addons;
       }
     } catch (e) {
-      console.log('⚠️ Could not parse addons:', e);
+      console.log("⚠️ Could not parse addons:", e);
     }
 
     // ============================================
     // VALIDATE REQUIRED FIELDS
     // ============================================
-    
+
     if (!customerName || !customerContact || !customerEmail) {
       return res.status(400).json({
         success: false,
-        message: 'Customer name, contact, and email are required'
+        message: "Customer name, contact, and email are required",
       });
     }
 
     if (!oasis || !packageName || !session) {
       return res.status(400).json({
         success: false,
-        message: 'Oasis, package, and session selection are required'
+        message: "Oasis, package, and session selection are required",
       });
     }
 
     if (!bookingDate || !pax || !totalPrice || !downpayment) {
       return res.status(400).json({
         success: false,
-        message: 'Booking date, number of guests, total price, and downpayment are required'
+        message:
+          "Booking date, number of guests, total price, and downpayment are required",
       });
     }
 
     if (!paymentMethod) {
       return res.status(400).json({
         success: false,
-        message: 'Payment method is required'
+        message: "Payment method is required",
       });
     }
 
     // Parse booking date correctly as local date (not UTC)
     // bookingDate comes as "YYYY-MM-DD" from frontend
     let selectedDate;
-    if (typeof bookingDate === 'string') {
-      const [year, month, day] = bookingDate.split('-');
-      selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
+    if (typeof bookingDate === "string") {
+      const [year, month, day] = bookingDate.split("-");
+      selectedDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        0,
+        0,
+        0,
+        0,
+      );
     } else {
       selectedDate = new Date(bookingDate);
     }
-    
-    console.log(`📅 Parsed booking date: ${bookingDate} → ${selectedDate.toISOString()}`);
+
+    console.log(
+      `📅 Parsed booking date: ${bookingDate} → ${selectedDate.toISOString()}`,
+    );
     const { start, end } = getDayRange(selectedDate);
 
     // ============================================
     // 1. CHECK PACKAGE CAPACITY
     // ============================================
-    
-    const maxPackagePax = PACKAGE_CAPACITY[oasis]?.[packageName];
-    if (maxPackagePax && pax > maxPackagePax) {
-      return res.status(400).json({
-        success: false,
-        message: `${packageName} can only accommodate up to ${maxPackagePax} persons. You have ${pax} persons.`
-      });
+
+    // 1. CHECK PACKAGE CAPACITY - Allow extra guests up to max
+    const packageLimit = PACKAGE_CAPACITY[oasis]?.[packageName];
+    if (packageLimit) {
+      // Handle both old format (number) and new format (object)
+      const maxAllowed =
+        typeof packageLimit === "object" ? packageLimit.max : packageLimit;
+      const baseCapacity =
+        typeof packageLimit === "object" ? packageLimit.base : packageLimit;
+
+      if (pax > maxAllowed) {
+        return res.status(400).json({
+          success: false,
+          message: `${packageName} can only accommodate up to ${maxAllowed} persons maximum. You have ${pax} persons.`,
+        });
+      }
+
+      // Log extra guests if any (for debugging)
+      if (pax > baseCapacity) {
+        const extraGuests = pax - baseCapacity;
+        console.log(
+          `✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * 150}`,
+        );
+      }
     }
 
     // ============================================
     // 2. CHECK SESSION AVAILABILITY FOR THIS PACKAGE
     // ============================================
-    
+
     const sessionConfig = OASIS_CONFIG[oasis]?.sessions[session];
     if (!sessionConfig) {
       return res.status(400).json({
         success: false,
-        message: `${session} session is not available for ${oasis}.`
+        message: `${session} session is not available for ${oasis}.`,
       });
     }
-    
+
     if (!sessionConfig.availablePackages.includes(packageName)) {
       return res.status(400).json({
         success: false,
-        message: `${packageName} is not available for ${session} session. Available packages: ${sessionConfig.availablePackages.join(', ')}`
+        message: `${packageName} is not available for ${session} session. Available packages: ${sessionConfig.availablePackages.join(", ")}`,
       });
     }
 
     // ============================================
     // 3. CHECK EXISTING BOOKINGS ON SAME DATE
     // ============================================
-    
+
     const existingBookings = await Booking.find({
       oasis,
       bookingDate: { $gte: start, $lt: end },
-      status: { $in: ['Pending', 'Confirmed'] }
+      status: { $in: ["Pending", "Confirmed"] },
     });
 
     // 3a. Check if customer already booked this date
     const customerExistingBooking = existingBookings.find(
-      b => b.customerEmail === customerEmail
+      (b) => b.customerEmail === customerEmail,
     );
-    
+
     if (customerExistingBooking) {
       return res.status(400).json({
         success: false,
-        message: 'You already have a booking on this date. Please choose another date.'
+        message:
+          "You already have a booking on this date. Please choose another date.",
       });
     }
 
@@ -249,7 +302,7 @@ const createBooking = async (req, res) => {
     if (existingBookings.length >= OASIS_CONFIG[oasis].maxBookingsPerDay) {
       return res.status(400).json({
         success: false,
-        message: `${oasis} is fully booked for this date. Please choose another date.`
+        message: `${oasis} is fully booked for this date. Please choose another date.`,
       });
     }
 
@@ -258,95 +311,99 @@ const createBooking = async (req, res) => {
     if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
       return res.status(400).json({
         success: false,
-        message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`
+        message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`,
       });
     }
 
     // ============================================
     // 4. CHECK SESSION-SPECIFIC AVAILABILITY
     // ============================================
-    
+
     // IMPORTANT: Sessions are shared across ALL packages for an oasis
     // If a session is booked for any package, that session is unavailable
     console.log(`🔍 Checking if ${session} is available on ${bookingDate}`);
-    console.log(`   Date range: ${start.toISOString()} to ${end.toISOString()}`);
-    
+    console.log(
+      `   Date range: ${start.toISOString()} to ${end.toISOString()}`,
+    );
+
     const confirmedSessionBooking = await Booking.findOne({
       oasis,
       session,
       bookingDate: { $gte: start, $lt: end },
-      status: 'Confirmed',
-      paymentStatus: 'Paid'
+      status: "Confirmed",
+      paymentStatus: "Paid",
     });
-    
+
     if (confirmedSessionBooking) {
       console.log(`❌ Found conflicting booking:`, confirmedSessionBooking);
       return res.status(400).json({
         success: false,
-        message: `${session} session is already booked on this date. Please choose a different session (Day, Night, or 22hrs).`
+        message: `${session} session is already booked on this date. Please choose a different session (Day, Night, or 22hrs).`,
       });
     }
-    
+
     console.log(`✅ ${session} session is available on this date`);
 
     // ============================================
     // 5. CHECK PENDING BOOKING LIMIT (per customer)
     // ============================================
-    
+
     const existingPendingBooking = await Booking.findOne({
       customerEmail,
-      status: 'Pending',
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+      status: "Pending",
+      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
     });
 
     if (existingPendingBooking) {
       return res.status(400).json({
         success: false,
-        message: 'You have a pending booking. Please complete your payment first.'
+        message:
+          "You have a pending booking. Please complete your payment first.",
       });
     }
 
     // ============================================
     // 6. CHECK FUTURE BOOKINGS LIMIT (per customer)
     // ============================================
-    
+
     const futureBookingsCount = await Booking.countDocuments({
       customerEmail,
       bookingDate: { $gte: new Date() },
-      status: { $in: ['Pending', 'Confirmed'] }
+      status: { $in: ["Pending", "Confirmed"] },
     });
 
     if (futureBookingsCount >= 2) {
       return res.status(400).json({
         success: false,
-        message: 'You already have 2 upcoming bookings. Please complete or cancel one first.'
+        message:
+          "You already have 2 upcoming bookings. Please complete or cancel one first.",
       });
     }
 
     // ============================================
     // 7. CHECK DATE ADVANCE LIMITS
     // ============================================
-    
+
     // 7a. Max 3 months advance
     const maxAdvanceDate = new Date();
     maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
-    
+
     if (selectedDate > maxAdvanceDate) {
       return res.status(400).json({
         success: false,
-        message: 'You can only book up to 3 months in advance.'
+        message: "You can only book up to 3 months in advance.",
       });
     }
-    
+
     // 7b. Min 1 day advance
     const minAdvanceDate = new Date();
     minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
     minAdvanceDate.setHours(0, 0, 0, 0);
-    
+
     if (selectedDate < minAdvanceDate) {
       return res.status(400).json({
         success: false,
-        message: 'Bookings must be made at least 1 day in advance.'
+        message: "Bookings must be made at least 1 day in advance.",
       });
     }
 
@@ -355,7 +412,8 @@ const createBooking = async (req, res) => {
     // ============================================
 
     // Auto-mark as paid if payment method is Cash
-    const paymentStatusForBooking = paymentMethod === 'Cash' ? 'Paid' : 'Pending';
+    const paymentStatusForBooking =
+      paymentMethod === "Cash" ? "Paid" : "Pending";
 
     // Generate unique booking reference
     let bookingReference;
@@ -380,30 +438,30 @@ const createBooking = async (req, res) => {
       totalAmount: totalPrice,
       downpayment,
       addons: parsedAddons || {},
-      specialRequests: specialRequests || '',
+      specialRequests: specialRequests || "",
       paymentMethod,
-      paymentType: paymentType || 'downpayment',
+      paymentType: paymentType || "downpayment",
       paymentProof: paymentProof || null,
-      status: 'Pending',
+      status: "Pending",
       paymentStatus: paymentStatusForBooking,
-      bookingReference: bookingReference
+      bookingReference: bookingReference,
     });
 
     await newBooking.save();
 
     res.status(201).json({
       success: true,
-      message: paymentMethod === 'Cash' 
-        ? 'Booking submitted successfully. Payment marked as paid.' 
-        : 'Booking submitted successfully. Please complete your downpayment and upload proof.',
-      booking: newBooking
+      message:
+        paymentMethod === "Cash"
+          ? "Booking submitted successfully. Payment marked as paid."
+          : "Booking submitted successfully. Please complete your downpayment and upload proof.",
+      booking: newBooking,
     });
-
   } catch (error) {
-    console.error('Create booking error:', error);
-    res.status(400).json({ 
-      success: false, 
-      message: error.message 
+    console.error("Create booking error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -417,14 +475,14 @@ const getAllBookings = async (req, res) => {
     const bookings = await Booking.find()
       .sort({ createdAt: -1 })
       .populate("confirmedBy", "name email");
-    
+
     // Auto-generate booking references for any bookings that don't have them
     const updatedBookings = [];
     for (const booking of bookings) {
       if (!booking.bookingReference) {
         let bookingReference;
         let isUnique = false;
-        
+
         // Generate unique reference
         while (!isUnique) {
           bookingReference = await generateBookingReference();
@@ -433,15 +491,17 @@ const getAllBookings = async (req, res) => {
             isUnique = true;
           }
         }
-        
+
         // Update booking with new reference
         booking.bookingReference = bookingReference;
         await booking.save();
-        console.log(`✅ Generated booking reference ${bookingReference} for booking ${booking._id}`);
+        console.log(
+          `✅ Generated booking reference ${bookingReference} for booking ${booking._id}`,
+        );
       }
       updatedBookings.push(booking);
     }
-      
+
     res.json(updatedBookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -454,13 +514,15 @@ const getAllBookings = async (req, res) => {
 
 const getBookingById = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id)
-      .populate("confirmedBy", "name email");
-      
+    const booking = await Booking.findById(req.params.id).populate(
+      "confirmedBy",
+      "name email",
+    );
+
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
-    
+
     res.json(booking);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -475,40 +537,40 @@ const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, confirmedBy } = req.body;
-    
+
     // Prevent operations on completed bookings
     const currentBooking = await Booking.findById(id);
-    if (currentBooking.status === 'Completed') {
-      return res.status(400).json({ message: 'Cannot modify a completed booking' });
+    if (currentBooking.status === "Completed") {
+      return res
+        .status(400)
+        .json({ message: "Cannot modify a completed booking" });
     }
-    
+
     const updateData = { status };
     if (confirmedBy) {
       updateData.confirmedBy = confirmedBy;
     }
-    
-    const booking = await Booking.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true }
-    );
-    
+
+    const booking = await Booking.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
     // Create sale record if booking is confirmed
-    if (status === 'Confirmed' && booking.totalAmount) {
+    if (status === "Confirmed" && booking.totalAmount) {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale) {
         const sale = new Sale({
           booking: id,
-          amount: booking.totalAmount
+          amount: booking.totalAmount,
         });
         await sale.save();
         console.log(`✅ Sale record created for booking ${id}`);
       }
     }
-    
+
     res.json({
       message: `Booking ${status}`,
-      booking
+      booking,
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -523,16 +585,16 @@ const updatePaymentStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { paymentStatus } = req.body;
-    
+
     const booking = await Booking.findByIdAndUpdate(
       id,
       { paymentStatus },
-      { new: true }
+      { new: true },
     );
-    
+
     res.json({
       message: `Payment ${paymentStatus}`,
-      booking
+      booking,
     });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -546,15 +608,15 @@ const updatePaymentStatus = async (req, res) => {
 const getBookingsByCustomerEmail = async (req, res) => {
   try {
     const { email } = req.params;
-    
+
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
     }
-    
+
     const bookings = await Booking.find({ customerEmail: email })
       .sort({ createdAt: -1 })
       .populate("confirmedBy", "name email");
-    
+
     res.json(bookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -568,13 +630,15 @@ const getBookingsByCustomerEmail = async (req, res) => {
 const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Prevent deletion of completed bookings
     const booking = await Booking.findById(id);
-    if (booking.status === 'Completed') {
-      return res.status(400).json({ message: 'Cannot delete a completed booking' });
+    if (booking.status === "Completed") {
+      return res
+        .status(400)
+        .json({ message: "Cannot delete a completed booking" });
     }
-    
+
     await Booking.findByIdAndDelete(id);
     res.json({ message: "Booking deleted successfully" });
   } catch (error) {
@@ -589,19 +653,19 @@ const deleteBooking = async (req, res) => {
 const getBookedDatesWithSessions = async (req, res) => {
   try {
     const { oasis, package: packageName } = req.query;
-    
+
     if (!oasis) {
       return res.status(400).json({
         success: false,
-        message: 'Oasis is required'
+        message: "Oasis is required",
       });
     }
 
     // Helper to convert date to YYYY-MM-DD using local date (not UTC/ISO)
     const getLocalDateString = (date) => {
       const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     };
 
@@ -609,51 +673,55 @@ const getBookedDatesWithSessions = async (req, res) => {
     // Sessions are shared across packages - if Day is booked on any package, it's booked
     const bookings = await Booking.find({
       oasis,
-      status: 'Confirmed',
-      paymentStatus: 'Paid'
+      status: "Confirmed",
+      paymentStatus: "Paid",
     }).lean();
 
-    console.log(`📅 Found ${bookings.length} confirmed bookings for ${oasis} (across ALL packages)`);
+    console.log(
+      `📅 Found ${bookings.length} confirmed bookings for ${oasis} (across ALL packages)`,
+    );
 
     // Group bookings by date and session
     const bookedDatesMap = {};
-    
-    bookings.forEach(booking => {
+
+    bookings.forEach((booking) => {
       const dateStr = getLocalDateString(booking.bookingDate); // Use local date, not UTC
-      
+
       if (!bookedDatesMap[dateStr]) {
         bookedDatesMap[dateStr] = {
           date: dateStr,
           Day: { booked: false, count: 0, names: [] },
           Night: { booked: false, count: 0, names: [] },
-          '22hrs': { booked: false, count: 0, names: [] }
+          "22hrs": { booked: false, count: 0, names: [] },
         };
       }
 
       // Make sure session is valid before accessing
-      const session = booking.session || 'Day'; // Default to Day if not set
+      const session = booking.session || "Day"; // Default to Day if not set
       if (bookedDatesMap[dateStr][session]) {
         const sessionInfo = bookedDatesMap[dateStr][session];
         sessionInfo.count += 1;
         sessionInfo.names.push(booking.customerName);
-        console.log(`  📍 ${dateStr} ${session}: +1 booking (total: ${sessionInfo.count})`);
+        console.log(
+          `  📍 ${dateStr} ${session}: +1 booking (total: ${sessionInfo.count})`,
+        );
       }
     });
 
     // Process each date to determine availability
-    Object.keys(bookedDatesMap).forEach(dateStr => {
+    Object.keys(bookedDatesMap).forEach((dateStr) => {
       const dayInfo = bookedDatesMap[dateStr];
       const sessionConfig = OASIS_CONFIG[oasis]?.sessions;
-      
+
       if (!sessionConfig) {
         console.warn(`⚠️ No session config for ${oasis}`);
         return;
       }
-      
+
       // Mark as booked if ANY booking exists (not just when threshold reached)
       // This shows even a single booking on the calendar
-      if (dayInfo['22hrs'].count > 0) {
-        dayInfo['22hrs'].booked = true;
+      if (dayInfo["22hrs"].count > 0) {
+        dayInfo["22hrs"].booked = true;
         dayInfo.Day.booked = true;
         dayInfo.Night.booked = true;
       } else {
@@ -661,25 +729,24 @@ const getBookedDatesWithSessions = async (req, res) => {
         if (dayInfo.Day.count > 0) {
           dayInfo.Day.booked = true;
         }
-        
+
         if (dayInfo.Night.count > 0) {
           dayInfo.Night.booked = true;
         }
       }
     });
 
-    console.log('📤 Returning booked dates:', Object.keys(bookedDatesMap));
-    
+    console.log("📤 Returning booked dates:", Object.keys(bookedDatesMap));
+
     res.json({
       success: true,
-      bookedDates: bookedDatesMap
+      bookedDates: bookedDatesMap,
     });
-
   } catch (error) {
-    console.error('Error fetching booked dates:', error);
+    console.error("Error fetching booked dates:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -694,11 +761,11 @@ const verifyPayment = async (req, res) => {
     const userId = req.user?.id; // From auth token
 
     const booking = await Booking.findById(id);
-    
+
     if (!booking) {
       return res.status(404).json({
         success: false,
-        message: 'Booking not found'
+        message: "Booking not found",
       });
     }
 
@@ -706,14 +773,14 @@ const verifyPayment = async (req, res) => {
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
       {
-        paymentStatus: 'Paid',
-        status: 'Confirmed',
+        paymentStatus: "Paid",
+        status: "Confirmed",
         paymentVerifiedBy: userId,
         paymentVerifiedAt: new Date(),
-        confirmedBy: userId
+        confirmedBy: userId,
       },
-      { new: true }
-    ).populate('paymentVerifiedBy', 'name email');
+      { new: true },
+    ).populate("paymentVerifiedBy", "name email");
 
     // Create sale record for revenue tracking
     try {
@@ -721,22 +788,22 @@ const verifyPayment = async (req, res) => {
       if (!existingSale && booking.totalAmount) {
         const sale = new Sale({
           booking: id,
-          amount: booking.totalAmount
+          amount: booking.totalAmount,
         });
         await sale.save();
         console.log(`✅ Sale record created for booking ${id}`);
       }
     } catch (saleError) {
-      console.error('⚠️  Failed to create sale record:', saleError.message);
+      console.error("⚠️  Failed to create sale record:", saleError.message);
       // Continue with email even if sale creation fails
     }
 
     // Send email notification to customer
-    const sendEmail = require('../utils/sendEmail');
+    const sendEmail = require("../utils/sendEmail");
     try {
       await sendEmail({
         to: booking.customerEmail,
-        subject: 'Booking Confirmation - Catherine\'s Oasis',
+        subject: "Booking Confirmation - Catherine's Oasis",
         html: `
           <h2>Booking Confirmed!</h2>
           <p>Dear ${booking.customerName},</p>
@@ -755,24 +822,24 @@ const verifyPayment = async (req, res) => {
           <p>Please keep this email for your records. You can now show this booking confirmation to our staff when you arrive.</p>
           <p>If you have any questions, feel free to contact us.</p>
           <p>Thank you,<br/>Catherine's Oasis Team</p>
-        `
+        `,
       });
     } catch (emailError) {
-      console.error('Error sending confirmation email:', emailError);
+      console.error("Error sending confirmation email:", emailError);
       // Don't throw error, booking is already confirmed
     }
 
     res.json({
       success: true,
-      message: 'Payment verified successfully. Booking confirmed and customer notified.',
-      booking: updatedBooking
+      message:
+        "Payment verified successfully. Booking confirmed and customer notified.",
+      booking: updatedBooking,
     });
-
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error("Error verifying payment:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -786,5 +853,5 @@ module.exports = {
   updatePaymentStatus,
   deleteBooking,
   getBookedDatesWithSessions,
-  verifyPayment
+  verifyPayment,
 };

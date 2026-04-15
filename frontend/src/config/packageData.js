@@ -6,8 +6,9 @@ export const oasisPackages = {
       'Package 1': {
         name: 'Package 1',
         image: '/images/packages/oasis1/package-1.jpg',
-        description: 'Cottage Only',
-        capacity: 20,
+        description: 'Cottage Only (No Room)',
+        baseCapacity: 20,
+        maxCapacity: 20,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -26,7 +27,8 @@ export const oasisPackages = {
         name: 'Package 2',
         image: '/images/packages/oasis1/package-2.jpg',
         description: '1 AC Room (Superior - 2-4 pax)',
-        capacity: 4,
+        baseCapacity: 4,
+        maxCapacity: 4,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -48,7 +50,8 @@ export const oasisPackages = {
         name: 'Package 3',
         image: '/images/packages/oasis1/package-3.jpg',
         description: '1 AC Room (Family - 8-12 pax)',
-        capacity: 12,
+        baseCapacity: 12,
+        maxCapacity: 12,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -71,7 +74,8 @@ export const oasisPackages = {
         name: 'Package 4',
         image: '/images/packages/oasis1/package-4.jpg',
         description: '2 AC Rooms (Family + Superior - 12-15 pax)',
-        capacity: 15,
+        baseCapacity: 15,
+        maxCapacity: 15,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -94,7 +98,8 @@ export const oasisPackages = {
         name: 'Package 5',
         image: '/images/packages/oasis1/package-5.jpg',
         description: '4 AC Rooms (2 Family + 2 Superior - 22-25 pax)',
-        capacity: 25,
+        baseCapacity: 25,
+        maxCapacity: 25,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -116,12 +121,13 @@ export const oasisPackages = {
       'Package 5+': {
         name: 'Package 5+',
         image: '/images/packages/oasis1/package-5plus.jpg',
-        description: '4 AC Rooms + Extra Space (30-50 pax)',
-        capacity: 50,
+        description: '4 AC Rooms + Extra Space (30-100 pax)',
+        baseCapacity: 30,
+        maxCapacity: 100,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
-          'Two Air Conditioned Family rooms & Two Superior rooms (22-25 sleeping capacity)',
+          'Two Air Conditioned Family rooms & Two Superior rooms',
           'Smart TV with Netflix',
           'Fridge',
           'Free WiFi',
@@ -145,7 +151,8 @@ export const oasisPackages = {
         name: 'Package A',
         image: '/images/packages/oasis2/package-a.jpg',
         description: 'Pool & Open Spaces Only',
-        capacity: 30,
+        baseCapacity: 30,
+        maxCapacity: 30,
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -162,7 +169,8 @@ export const oasisPackages = {
         name: 'Package B',
         image: '/images/packages/oasis2/package-b.jpg',
         description: '1 AC Family Room',
-        capacity: 30,
+        baseCapacity: 30,
+        maxCapacity: 30,
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -181,7 +189,8 @@ export const oasisPackages = {
         name: 'Package C',
         image: '/images/packages/oasis2/package-c.jpg',
         description: 'Ideal for Events (50-100 pax)',
-        capacity: 100,
+        baseCapacity: 50,
+        maxCapacity: 100,
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -207,7 +216,16 @@ export const oasisPackages = {
   }
 };
 
-// Helper function to get price
+// Helper function to extract price from addon string
+export const getAddonPrice = (addonString) => {
+  const match = addonString.match(/₱(\d+,?\d*)/);
+  if (match) {
+    return parseInt(match[1].replace(/,/g, ''));
+  }
+  return 0;
+};
+
+// Helper function to get base package price
 export const getPackagePrice = (oasis, packageName, session, date, pax = null) => {
   const packageData = oasisPackages[oasis]?.packages[packageName];
   if (!packageData) return 0;
@@ -222,13 +240,47 @@ export const getPackagePrice = (oasis, packageName, session, date, pax = null) =
     return packageData.pricing[paxKey]?.[session]?.[dayType] || 0;
   }
   
-  return packageData.pricing[session]?.[dayType] || 0;
+  // Handle null sessions (like 22hrs for Package 1 and Package A)
+  const sessionPricing = packageData.pricing[session];
+  if (!sessionPricing) return 0;
+  
+  return sessionPricing[dayType] || 0;
+};
+
+// Calculate total price with extra guests (₱150 per person over base capacity)
+export const getTotalPriceWithExtras = (oasis, packageName, session, date, guestCount, selectedAddons = {}) => {
+  // Get base package price
+  const basePrice = getPackagePrice(oasis, packageName, session, date, guestCount);
+  if (basePrice === 0) return 0;
+  
+  // Get package capacity
+  const packageData = oasisPackages[oasis]?.packages[packageName];
+  if (!packageData) return basePrice;
+  
+  const baseCapacity = packageData.baseCapacity;
+  const extraGuestCharge = 150; // ₱150 per extra guest
+  
+  // Calculate extra guest charges
+  let extraGuestTotal = 0;
+  if (guestCount > baseCapacity) {
+    const extraGuests = guestCount - baseCapacity;
+    extraGuestTotal = extraGuests * extraGuestCharge;
+  }
+  
+  // Calculate addons total
+  const addonsTotal = Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
+  
+  // Return total (base price + extra guests + addons)
+  return basePrice + extraGuestTotal + addonsTotal;
 };
 
 // Helper to check if session is available for package
 export const isSessionAvailable = (oasis, packageName, session) => {
   const packageData = oasisPackages[oasis]?.packages[packageName];
-  return packageData?.pricing[session] !== null && packageData?.pricing[session] !== undefined;
+  if (!packageData) return false;
+  
+  const sessionPricing = packageData.pricing[session];
+  return sessionPricing !== null && sessionPricing !== undefined;
 };
 
 // Get available sessions for package
@@ -237,15 +289,40 @@ export const getAvailableSessions = (oasis, packageName) => {
   if (!packageData) return [];
   
   const sessions = [];
-  if (packageData.pricing.Day) sessions.push('Day');
-  if (packageData.pricing.Night) sessions.push('Night');
-  if (packageData.pricing['22hrs']) sessions.push('22hrs');
+  if (isSessionAvailable(oasis, packageName, 'Day')) sessions.push('Day');
+  if (isSessionAvailable(oasis, packageName, 'Night')) sessions.push('Night');
+  if (isSessionAvailable(oasis, packageName, '22hrs')) sessions.push('22hrs');
   
   return sessions;
 };
 
 // Get downpayment amount based on session
-export const getDownpayment = (session) => {
+export const getDownpayment = (session, totalPrice = null) => {
+  // For Night or 22hrs sessions, downpayment is ₱5,000
   if (session === 'Night' || session === '22hrs') return 5000;
+  // For Day sessions, downpayment is ₱3,000
   return 3000;
+};
+
+// Get full payment amount (returns the total price)
+export const getFullPayment = (totalPrice) => {
+  return totalPrice;
+};
+
+// Get max capacity for package (including extra guests)
+export const getMaxCapacity = (oasis, packageName) => {
+  const packageData = oasisPackages[oasis]?.packages[packageName];
+  return packageData?.maxCapacity || packageData?.baseCapacity || 0;
+};
+
+// Get base capacity for package
+export const getBaseCapacity = (oasis, packageName) => {
+  const packageData = oasisPackages[oasis]?.packages[packageName];
+  return packageData?.baseCapacity || 0;
+};
+
+// Get available addons for package
+export const getAvailableAddons = (oasis, packageName) => {
+  const packageData = oasisPackages[oasis]?.packages[packageName];
+  return packageData?.addons || [];
 };

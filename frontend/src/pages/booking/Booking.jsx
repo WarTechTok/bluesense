@@ -60,19 +60,6 @@ function Booking() {
   
   const [errors, setErrors] = useState({});
 
-  // Helper functions for capacity
-  const getMaxCapacityForPackage = () => {
-    if (selectedOasis === 'Oasis 1') {
-      if (selectedPackage === 'Package 5+') return 100;
-      return 20;
-    }
-    if (selectedOasis === 'Oasis 2') {
-      if (selectedPackage === 'Package C') return 100;
-      return 30;
-    }
-    return 100;
-  };
-
   const getMinCapacityForPackage = () => {
     if (selectedOasis === 'Oasis 1' && selectedPackage === 'Package 5+') return 30;
     if (selectedOasis === 'Oasis 2' && selectedPackage === 'Package C') return 50;
@@ -100,7 +87,7 @@ function Booking() {
     return currentPackage.sessions || [];
   };
 
-  // Calculate price based on selections
+  // Calculate base package price
   const calculatePrice = () => {
     if (!selectedOasis || !selectedPackage || !selectedSession || !formData.reservationDate) {
       return 0;
@@ -112,16 +99,53 @@ function Booking() {
     return Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
   };
 
+  // Calculate extra guest charges (₱150 per person over base capacity)
+  const calculateExtraGuestCharges = () => {
+    const packageData = oasisPackages[selectedOasis]?.packages[selectedPackage];
+    if (!packageData) return 0;
+    
+    // Get base capacity (included guests with no extra charge)
+    const baseCapacity = packageData.baseCapacity || packageData.capacity || 0;
+    const currentGuests = formData.guestCount;
+    
+    if (currentGuests > baseCapacity) {
+      const extraGuests = currentGuests - baseCapacity;
+      return extraGuests * 150; // ₱150 per extra guest
+    }
+    return 0;
+  };
+
+  // Calculate total price including base price, extra guests, and addons
+  const getTotalPrice = () => {
+    const basePrice = calculatePrice();
+    const extraGuestCharges = calculateExtraGuestCharges();
+    const addonsTotal = calculateAddonsTotal();
+    const total = basePrice + extraGuestCharges + addonsTotal;
+    
+    // Debug log to verify calculations
+    console.log('💰 Price Breakdown:', {
+      basePrice,
+      extraGuestCharges,
+      addonsTotal,
+      total,
+      guestCount: formData.guestCount,
+      baseCapacity: oasisPackages[selectedOasis]?.packages[selectedPackage]?.baseCapacity || oasisPackages[selectedOasis]?.packages[selectedPackage]?.capacity,
+      selectedPackage
+    });
+    
+    return total;
+  };
+
+  // Calculate nights based on session
   const calculateNights = () => {
     if (!formData.reservationDate) return 1;
     if (selectedSession === '22hrs') return 1;
+    if (selectedSession === 'Night') return 1;
+    if (selectedSession === 'Day') return 1;
     return 1;
   };
 
-  const getTotalPrice = () => {
-    return calculatePrice() + calculateAddonsTotal();
-  };
-
+  // Get downpayment amount based on session
   const getDownpaymentAmount = () => {
     return getDownpayment(selectedSession);
   };
@@ -149,10 +173,12 @@ function Booking() {
     
     // Update extra guest warning when guest count changes
     if (name === 'guestCount') {
-      const maxCapacity = getMaxCapacityForPackage();
+      const packageData = oasisPackages[selectedOasis]?.packages[selectedPackage];
+      const baseCapacity = packageData?.baseCapacity || packageData?.capacity || 0;
       const guestCount = parseInt(value) || 0;
-      if (guestCount > maxCapacity) {
-        const extraCount = guestCount - maxCapacity;
+      
+      if (guestCount > baseCapacity) {
+        const extraCount = guestCount - baseCapacity;
         const extraCost = extraCount * 150;
         setExtraGuestWarning(`⚠️ Extra charge: ${extraCount} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added to your total.`);
       } else {
@@ -283,6 +309,8 @@ function Booking() {
       
       // Debug log
       console.log('📤 Booking with file:', formData.paymentProof);
+      console.log('💰 Total Price:', getTotalPrice());
+      console.log('💰 Downpayment:', getDownpaymentAmount());
       
       const result = await createBooking(formDataToSend);
       

@@ -127,7 +127,7 @@ const BookingSummary = ({
   const maxCapacity = getMaxCapacity();
   const minCapacity = getMinCapacity();
   const extraPersonsCount = formData.guestCount - maxCapacity;
-  const totalWithExtra = totalPrice + extraPersonsFee;
+  const totalWithExtra = totalPrice;
 
   // Check if guest count is below minimum
   const isBelowMin = minCapacity > 0 && formData.guestCount < minCapacity;
