@@ -6,10 +6,10 @@
 import React, { useState } from 'react';
 import './ManagementPages.css';
 import * as adminApi from '../../services/admin/adminApi';
-import { exportToExcel, exportToExcelWithSummary, exportToJSON } from '../../utils/excelExport';
+import { exportToExcel, exportToExcelWithSummary } from '../../utils/excelExport';
 
 const Reports = () => {
-  const [reportType, setReportType] = useState('reservation');
+  const [reportType, setReportType] = useState('booking');
   const [reportData, setReportData] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -20,11 +20,20 @@ const Reports = () => {
       setLoading(true);
       let data;
 
-      if (reportType === 'reservation') {
-        data = await adminApi.getReservationReport(startDate, endDate);
-      } else if (reportType === 'sales') {
+      if (reportType === 'sales') {
         const result = await adminApi.getSalesReport(startDate, endDate);
         data = { sales: result.sales, totalSales: result.totalSales };
+      } else if (reportType === 'booking') {
+        data = await adminApi.getAllBookings();
+        // Filter by date range if provided
+        if (startDate && endDate) {
+          const start = new Date(startDate);
+          const end = new Date(endDate);
+          data = data.filter(booking => {
+            const bookingDate = new Date(booking.bookingDate);
+            return bookingDate >= start && bookingDate <= end;
+          });
+        }
       } else if (reportType === 'inventory') {
         data = await adminApi.getInventoryUsageReport(startDate, endDate);
       } else if (reportType === 'staff') {
@@ -69,29 +78,6 @@ const Reports = () => {
     }
   };
 
-  const handleExportJSON = async () => {
-    try {
-      if (!reportData) {
-        alert('Please generate a report first');
-        return;
-      }
-
-      const fileName = `${reportType}-report-${new Date().toISOString().split('T')[0]}.json`;
-      const dataToExport = {
-        reportType,
-        generatedDate: new Date().toISOString(),
-        data: reportData.sales || reportData,
-        ...(reportData.totalSales && { summary: { totalSales: reportData.totalSales } })
-      };
-
-      exportToJSON(dataToExport, reportType, fileName);
-      alert('Report exported successfully as JSON');
-    } catch (error) {
-      console.error('Error exporting JSON:', error);
-      alert('Error exporting report');
-    }
-  };
-
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-PH', {
       style: 'currency',
@@ -116,7 +102,7 @@ const Reports = () => {
               onChange={(e) => setReportType(e.target.value)}
               className="filter-select"
             >
-              <option value="reservation">Reservation Report</option>
+              <option value="booking">Booking Report</option>
               <option value="sales">Sales Report</option>
               <option value="inventory">Inventory Usage Report</option>
               <option value="staff">Staff Activity Report</option>
@@ -152,9 +138,6 @@ const Reports = () => {
             </button>
             <button className="btn-success" onClick={handleExportExcel} disabled={!reportData}>
               <i className="fas fa-file-excel"></i> Export Excel
-            </button>
-            <button className="btn-outline" onClick={handleExportJSON} disabled={!reportData}>
-              <i className="fas fa-file-code"></i> Export JSON
             </button>
           </div>
         </div>
@@ -201,12 +184,20 @@ const Reports = () => {
             <table className="data-table">
               <thead>
                 <tr>
-                  {reportType === 'reservation' && (
+                  {reportType === 'booking' && (
                     <>
+                      <th>Booking ID</th>
                       <th>Guest Name</th>
-                      <th>Email</th>
-                      <th>Check-In</th>
-                      <th>Check-Out</th>
+                      <th>Contact No.</th>
+                      <th>Pool/Villa Name</th>
+                      <th>Amount</th>
+                      <th>Payment Status</th>
+                      <th>Booking Date</th>
+                      <th>Reservation Date</th>
+                      <th>Time Slot</th>
+                      <th>No. of Guests</th>
+                      <th>Total Paid</th>
+                      <th>Balance</th>
                       <th>Status</th>
                     </>
                   )}
@@ -239,25 +230,33 @@ const Reports = () => {
                 {(!reportData || (Array.isArray(reportData) && reportData.length === 0) || 
                   (reportData.sales && reportData.sales.length === 0)) ? (
                   <tr>
-                    <td colSpan="5" className="no-data">No data available</td>
+                    <td colSpan="13" className="no-data">No data available</td>
                   </tr>
                 ) : (
                   (reportData.sales || reportData || []).map((row, idx) => (
                     <tr key={idx}>
-                      {reportType === 'reservation' && (
+                      {reportType === 'booking' && (
                         <>
-                          <td>{row.guestName || row.customerName || 'N/A'}</td>
-                          <td>{row.guestEmail || row.customerEmail || 'N/A'}</td>
-                          <td>{row.checkIn ? new Date(row.checkIn).toLocaleDateString() : 'N/A'}</td>
-                          <td>{row.checkOut ? new Date(row.checkOut).toLocaleDateString() : 'N/A'}</td>
+                          <td>{row.bookingReference || (row._id ? row._id.slice(-6).toUpperCase() : 'N/A')}</td>
+                          <td>{row.customerName || 'N/A'}</td>
+                          <td>{row.customerContact || 'N/A'}</td>
+                          <td>{row.oasis || 'N/A'}</td>
+                          <td className="amount">{formatCurrency(row.totalAmount || 0)}</td>
+                          <td><span className={`status-badge status-${(row.paymentStatus || 'pending').toLowerCase()}`}>{row.paymentStatus || 'Pending'}</span></td>
+                          <td>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : 'N/A'}</td>
+                          <td>{row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : 'N/A'}</td>
+                          <td>{row.session || 'N/A'}</td>
+                          <td>{row.pax || 0}</td>
+                          <td className="amount">{formatCurrency(row.paymentType === 'fullpayment' ? (row.totalAmount || 0) : (row.downpayment || 0))}</td>
+                          <td className="amount">{formatCurrency(row.paymentType === 'fullpayment' ? 0 : ((row.totalAmount || 0) - (row.downpayment || 0)))}</td>
                           <td><span className={`status-badge status-${(row.status || 'pending').toLowerCase()}`}>{row.status || 'Pending'}</span></td>
                         </>
                       )}
                       {reportType === 'sales' && (
                         <>
-                          <td>{row.booking?.bookingReference || (row.booking?._id ? row.booking._id.slice(-6).toUpperCase() : row._id || 'N/A')}</td>
+                          <td>{row.booking?.bookingReference || (row.booking?._id ? row.booking._id.slice(-6).toUpperCase() : (row._id ? row._id.slice(-6).toUpperCase() : 'N/A'))}</td>
                           <td>{row.booking?.customerName || row.customerName || row.guestName || 'N/A'}</td>
-                          <td className="amount">{formatCurrency(row.amount || row.downpayment || 0)}</td>
+                          <td className="amount">{formatCurrency(row.amount || row.booking?.totalAmount || 0)}</td>
                           <td>{new Date(row.date || row.createdAt).toLocaleDateString()}</td>
                         </>
                       )}

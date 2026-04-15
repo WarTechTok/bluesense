@@ -410,8 +410,32 @@ const getAllBookings = async (req, res) => {
     const bookings = await Booking.find()
       .sort({ createdAt: -1 })
       .populate("confirmedBy", "name email");
+    
+    // Auto-generate booking references for any bookings that don't have them
+    const updatedBookings = [];
+    for (const booking of bookings) {
+      if (!booking.bookingReference) {
+        let bookingReference;
+        let isUnique = false;
+        
+        // Generate unique reference
+        while (!isUnique) {
+          bookingReference = generateBookingReference();
+          const existingRef = await Booking.findOne({ bookingReference });
+          if (!existingRef) {
+            isUnique = true;
+          }
+        }
+        
+        // Update booking with new reference
+        booking.bookingReference = bookingReference;
+        await booking.save();
+        console.log(`✅ Generated booking reference ${bookingReference} for booking ${booking._id}`);
+      }
+      updatedBookings.push(booking);
+    }
       
-    res.json(bookings);
+    res.json(updatedBookings);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -444,6 +468,12 @@ const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, confirmedBy } = req.body;
+    
+    // Prevent operations on completed bookings
+    const currentBooking = await Booking.findById(id);
+    if (currentBooking.status === 'Completed') {
+      return res.status(400).json({ message: 'Cannot modify a completed booking' });
+    }
     
     const updateData = { status };
     if (confirmedBy) {
@@ -531,6 +561,13 @@ const getBookingsByCustomerEmail = async (req, res) => {
 const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Prevent deletion of completed bookings
+    const booking = await Booking.findById(id);
+    if (booking.status === 'Completed') {
+      return res.status(400).json({ message: 'Cannot delete a completed booking' });
+    }
+    
     await Booking.findByIdAndDelete(id);
     res.json({ message: "Booking deleted successfully" });
   } catch (error) {

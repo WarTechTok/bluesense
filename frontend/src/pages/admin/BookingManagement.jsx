@@ -28,6 +28,7 @@ const BookingManagement = () => {
     customerEmail: '',
     oasis: '',
     package: '',
+    session: '',
     bookingDate: '',
     pax: '1',
     downpayment: '',
@@ -85,6 +86,7 @@ const BookingManagement = () => {
         customerEmail: '',
         oasis: '',
         package: '',
+        session: '',
         bookingDate: '',
         pax: '1',
         downpayment: '',
@@ -153,6 +155,25 @@ const BookingManagement = () => {
     );
   };
 
+  const handleComplete = async (id) => {
+    showConfirmationModal(
+      'Mark as Completed',
+      'Are you sure you want to mark this booking as completed?',
+      async () => {
+        try {
+          await adminApi.updateBookingStatus(id, 'Completed');
+          fetchBookings();
+          showConfirmationModal('Success', 'Booking marked as completed!', null, 'OK');
+        } catch (error) {
+          console.error('Error completing booking:', error);
+          showConfirmationModal('Error', 'Error marking booking as completed', null, 'OK');
+        }
+      },
+      'Yes, Complete',
+      'Cancel'
+    );
+  };
+
   const handleOpenPaymentVerification = (booking) => {
     setSelectedBookingForVerification(booking);
     setVerificationModalOpen(true);
@@ -197,7 +218,7 @@ const BookingManagement = () => {
   const handleSubmit = async () => {
     try {
       if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || 
-          !formData.bookingDate || !formData.pax || !formData.downpayment || !formData.paymentMethod) {
+          !formData.session || !formData.bookingDate || !formData.pax || !formData.downpayment || !formData.paymentMethod) {
         showConfirmationModal('Validation Error', 'Please fill in all required fields', null, 'OK');
         return;
       }
@@ -208,6 +229,7 @@ const BookingManagement = () => {
         customerEmail: formData.customerEmail,
         oasis: formData.oasis,
         package: formData.package,
+        session: formData.session,
         bookingDate: formData.bookingDate,
         pax: parseInt(formData.pax),
         downpayment: parseFloat(formData.downpayment),
@@ -232,20 +254,38 @@ const BookingManagement = () => {
     }
   };
 
+  const getSessionDisplay = (session) => {
+    if (!session) return 'N/A';
+    const sessionMap = {
+      'Day': '🌅 Day (6AM - 5PM)',
+      'Night': '🌙 Night (5PM - 10PM)',
+      '22hrs': '⏰ Whole Day (6AM - 4AM)'
+    };
+    return sessionMap[session] || session;
+  };
+
   const columns = [
     { 
-      key: 'bookingReference', 
-      label: 'Booking ID',
-      render: (value, row) => value || (row._id ? row._id.slice(-6).toUpperCase() : 'N/A')
+      key: 'index', 
+      label: 'ID',
+      render: (value, row, index) => index + 1,
+      width: '40px'
     },
     { key: 'customerName', label: 'Customer Name' },
     { key: 'customerContact', label: 'Contact' },
+    { key: 'session', label: 'Time Slot', render: (value) => getSessionDisplay(value) },
     { key: 'oasis', label: 'Location' },
     { key: 'package', label: 'Package' },
     { 
       key: 'bookingDate', 
       label: 'Booking Date', 
       render: (value) => new Date(value).toLocaleDateString() 
+    },
+    { 
+      key: 'bookingReference', 
+      label: 'Ref Code',
+      render: (value, row) => value || (row._id ? row._id.slice(-6).toUpperCase() : 'N/A'),
+      width: '70px'
     },
     { 
       key: 'paymentStatus', 
@@ -309,6 +349,12 @@ const BookingManagement = () => {
         onDelete={handleDelete}
         actions={[
           {
+            label: '✅ Mark as Completed',
+            type: 'complete',
+            handler: (booking) => handleComplete(booking._id),
+            condition: (booking) => booking.status === 'Confirmed'
+          },
+          {
             label: '📋 View Payment',
             type: 'payment',
             handler: (booking) => handleOpenPaymentVerification(booking),
@@ -371,6 +417,19 @@ const BookingManagement = () => {
               placeholder="e.g., Standard, Deluxe, Premium"
               required
             />
+          </div>
+          <div className="form-group">
+            <label>Time Slot (Session) *</label>
+            <select
+              value={formData.session || ''}
+              onChange={(e) => setFormData({ ...formData, session: e.target.value })}
+              required
+            >
+              <option value="">Select Time Slot</option>
+              <option value="Day">🌅 Day (6AM - 5PM)</option>
+              <option value="Night">🌙 Night (5PM - 10PM)</option>
+              <option value="22hrs">⏰ Whole Day (6AM - 4AM)</option>
+            </select>
           </div>
           <div className="form-group">
             <label>Booking Date *</label>

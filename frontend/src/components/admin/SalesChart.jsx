@@ -50,7 +50,7 @@ const SalesChart = () => {
                 (b.status === 'Confirmed' || b.status === 'Completed')
               );
             })
-            .reduce((sum, b) => sum + (b.downpayment || 0), 0);
+            .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
           const dayBookings = bookings.filter(b => {
             const bookingDate = new Date(b.bookingDate);
@@ -80,7 +80,7 @@ const SalesChart = () => {
                 (b.status === 'Confirmed' || b.status === 'Completed')
               );
             })
-            .reduce((sum, b) => sum + (b.downpayment || 0), 0);
+            .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
           const target = 100000; // Fixed target
           last12Months.push({ month: monthName, sales: monthSales, target: target });

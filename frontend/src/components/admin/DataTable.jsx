@@ -10,6 +10,69 @@ import React from 'react';
 import './DataTable.css';
 
 // ============================================
+// ACTION BUTTONS ROW
+// ============================================
+const ActionButtons = ({ row, onEdit, onDelete, onConfirm, onCancel, actions }) => {
+  // Disable editing if booking is Confirmed, Cancelled, or Completed
+  const isLocked = row.status === 'Confirmed' || row.status === 'Cancelled' || row.status === 'Completed';
+
+  return (
+    <div className="action-buttons-row">
+      {onEdit && !isLocked && (
+        <button 
+          className="btn-action-icon btn-edit" 
+          onClick={() => onEdit(row)}
+          title="Edit"
+        >
+          ✏️
+        </button>
+      )}
+
+      {onDelete && !isLocked && (
+        <button 
+          className="btn-action-icon btn-delete" 
+          onClick={() => onDelete(row._id)}
+          title="Delete"
+        >
+          🗑️
+        </button>
+      )}
+
+      {onCancel && row.status !== 'Cancelled' && !isLocked && (
+        <button 
+          className="btn-action-icon btn-cancel" 
+          onClick={() => onCancel(row._id)}
+          title="Cancel"
+        >
+          ✕
+        </button>
+      )}
+
+      {onConfirm && row.status === 'Pending' && (
+        <button 
+          className="btn-action-text btn-confirm" 
+          onClick={() => onConfirm(row._id)}
+        >
+          ✓ Confirm
+        </button>
+      )}
+
+      {actions.map((action, idx) => (
+        (!action.condition || action.condition(row)) && (
+          <button
+            key={idx}
+            className="btn-action-text btn-custom"
+            onClick={() => action.handler(row)}
+          >
+            {action.emoji || '⚙️'} {action.label}
+          </button>
+        )
+      ))}
+    </div>
+  );
+};;
+
+// ============================================
 // DATA TABLE - COMPONENT RENDER
 // ============================================
 // Props:
@@ -20,11 +83,6 @@ import './DataTable.css';
 //   - onConfirm: Callback function when Confirm button clicked (for Pending status)
 //   - onCancel: Callback function when Cancel button clicked
 //   - actions: Array of custom action button objects
-// Action Buttons:
-//   - Blue Edit: Call onEdit(row) if provided
-//   - Green Confirm: Shows if status='Pending' and onConfirm provided
-//   - Yellow Cancel: Shows if status != 'Cancelled' and onCancel provided
-//   - Red Delete: Call onDelete(row._id) if provided
 const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actions = [] }) => {
   return (
     <div className="data-table-wrapper">
@@ -49,42 +107,19 @@ const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actio
               <tr key={idx}>
                 {columns.map((col) => (
                   <td key={col.key}>
-                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                    {col.render ? col.render(row[col.key], row, idx) : row[col.key]}
                   </td>
                 ))}
                 {(onEdit || onDelete || onConfirm || onCancel || actions.length > 0) && (
-                  <td className="action-buttons">
-                    {onEdit && (
-                      <button className="btn-edit" onClick={() => onEdit(row)}>
-                        Edit
-                      </button>
-                    )}
-                    {onConfirm && row.status === 'Pending' && (
-                      <button className="btn-confirm" onClick={() => onConfirm(row._id)}>
-                        Confirm
-                      </button>
-                    )}
-                    {onCancel && row.status !== 'Cancelled' && (
-                      <button className="btn-cancel" onClick={() => onCancel(row._id)}>
-                        Cancel
-                      </button>
-                    )}
-                    {onDelete && (
-                      <button className="btn-delete" onClick={() => onDelete(row._id)}>
-                        Delete
-                      </button>
-                    )}
-                    {actions.map((action, idx) => (
-                      (!action.condition || action.condition(row)) && (
-                        <button
-                          key={idx}
-                          className={`btn-${action.type}`}
-                          onClick={() => action.handler(row)}
-                        >
-                          {action.label}
-                        </button>
-                      )
-                    ))}
+                  <td className="action-cell">
+                    <ActionButtons 
+                      row={row} 
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      onConfirm={onConfirm}
+                      onCancel={onCancel}
+                      actions={actions}
+                    />
                   </td>
                 )}
               </tr>

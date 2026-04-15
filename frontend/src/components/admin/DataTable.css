@@ -1,7 +1,7 @@
 .data-table-wrapper {
   background: white;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow-x: auto;
   border: 1px solid #E5E7EB;
@@ -10,7 +10,7 @@
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .data-table thead {
@@ -18,20 +18,28 @@
   color: white;
 }
 
+.data-table thead tr {
+  display: table-row;
+}
+
 .data-table th {
-  padding: 15px;
-  text-align: left;
+  padding: 12px 10px;
+  text-align: center !important;
+  vertical-align: middle;
   font-weight: 600;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.5px;
   color: white;
+  display: table-cell;
 }
 
 .data-table td {
-  padding: 15px;
+  padding: 12px 10px;
   border-bottom: 1px solid #E5E7EB;
   color: #1F2937;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .data-table tbody tr {
@@ -52,93 +60,121 @@
   flex-wrap: wrap;
 }
 
-.btn-edit,
-.btn-delete,
-.btn-confirm,
-.btn-cancel,
-.btn-action,
-.btn-info {
-  padding: 5px 10px;
-  border: none;
-  border-radius: 4px;
-  font-size: 11px;
+.action-cell {
+  text-align: center;
+  padding: 12px 10px !important;
+}
+
+/* ============================================ */
+/* ACTION BUTTONS STYLING */
+/* ============================================ */
+
+.action-buttons-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Icon buttons (Edit, Delete, Cancel) */
+.btn-action-icon {
+  padding: 8px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #334155;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: 36px;
+  width: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-action-icon:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  border-color: #94a3b8;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.btn-action-icon:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-action-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.btn-action-icon:disabled:hover {
+  transform: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Text buttons (Confirm, View Payment) */
+.btn-action-text {
+  padding: 8px 14px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #334155;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  height: 28px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 60px;
+  gap: 5px;
 }
 
-.btn-edit {
-  background-color: #2563EB;
-  color: white;
-}
-
-.btn-edit:hover {
-  background-color: #1E40AF;
+.btn-action-text:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  border-color: #94a3b8;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
+.btn-action-text:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Confirm button - Green accent */
 .btn-confirm {
-  background-color: #28a745;
-  color: white;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%) !important;
+  border-color: #86efac !important;
+  color: #15803d !important;
 }
 
 .btn-confirm:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(40, 167, 69, 0.3);
+  background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%) !important;
+  border-color: #4ade80 !important;
 }
 
-.btn-cancel {
-  background-color: #ffc107;
-  color: #212529;
+/* Custom action buttons - Blue accent */
+.btn-custom {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  border-color: #93c5fd !important;
+  color: #1e40af !important;
 }
 
-.btn-cancel:hover {
-  background-color: #e0a800;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(255, 193, 7, 0.3);
+.btn-custom:hover {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%) !important;
+  border-color: #60a5fa !important;
 }
 
-.btn-delete {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-delete:hover {
-  background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
-}
-
-.btn-info {
-  background-color: #17a2b8;
-  color: white;
-}
-
-.btn-info:hover {
-  background-color: #138496;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
-}
-
-.btn-payment {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.btn-payment:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
-}
+/* Action buttons removed - now using dropdown menu */
 
 .no-data {
   text-align: center;
@@ -158,18 +194,19 @@
     padding: 10px;
   }
 
-  .action-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
+  .action-buttons-row {
+    gap: 6px;
   }
 
-  .btn-edit,
-  .btn-delete,
-  .btn-confirm,
-  .btn-cancel,
-  .btn-info {
+  .btn-action-icon {
+    padding: 6px;
+    height: 32px;
+    width: 32px;
+    font-size: 14px;
+  }
+
+  .btn-action-text {
+    padding: 6px 10px;
     font-size: 11px;
-    padding: 5px 8px;
   }
 }

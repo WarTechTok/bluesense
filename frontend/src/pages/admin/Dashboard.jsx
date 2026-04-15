@@ -39,7 +39,7 @@ const Dashboard = () => {
       // Calculate total revenue (all confirmed bookings)
       const totalRevenue = bookings
         .filter(b => b.status === 'Confirmed' || b.status === 'Completed')
-        .reduce((sum, b) => sum + (b.downpayment || 0), 0);
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
       
       // Calculate monthly revenue (current month)
       const currentMonth = new Date().getMonth();
@@ -51,7 +51,7 @@ const Dashboard = () => {
                  bookingDate.getFullYear() === currentYear &&
                  (b.status === 'Confirmed' || b.status === 'Completed');
         })
-        .reduce((sum, b) => sum + (b.downpayment || 0), 0);
+        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
       
       // Fetch rooms
       let rooms = [];
