@@ -4,7 +4,7 @@
 // ============================================
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+// Remove Link import since it's not used
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import './AboutUs.css';
@@ -113,13 +113,6 @@ function AboutUs() {
               We believe that our people are our greatest asset. Their expertise, professionalism, and 
               genuine care create an environment where guests feel valued, welcomed, and truly at home.
             </p>
-          </div>
-
-          {/* CTA Section */}
-          <div className="about-cta">
-            <h2>Ready to Experience Catherine's Oasis?</h2>
-            <p>Book your stay today and create unforgettable memories</p>
-            <Link to="/booking" className="cta-btn">Book Now</Link>
           </div>
 
         </div>

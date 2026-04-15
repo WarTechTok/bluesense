@@ -29,6 +29,7 @@ function Booking() {
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [infoConfirmed, setInfoConfirmed] = useState(false);
+  const [extraGuestWarning, setExtraGuestWarning] = useState('');
   
   // Get preselected data from navigation state
   const preselectedOasis = location.state?.oasis || null;
@@ -145,6 +146,19 @@ function Booking() {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    
+    // Update extra guest warning when guest count changes
+    if (name === 'guestCount') {
+      const maxCapacity = getMaxCapacityForPackage();
+      const guestCount = parseInt(value) || 0;
+      if (guestCount > maxCapacity) {
+        const extraCount = guestCount - maxCapacity;
+        const extraCost = extraCount * 150;
+        setExtraGuestWarning(`⚠️ Extra charge: ${extraCount} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added to your total.`);
+      } else {
+        setExtraGuestWarning('');
+      }
+    }
   };
 
   const validateStep = () => {
@@ -162,21 +176,16 @@ function Booking() {
         newErrors.phone = 'Phone number is required';
       }
 
-      // Guest info validation
+      // Guest info validation - allow exceeding capacity (just warn, don't block)
       if (!formData.guestCount || formData.guestCount < 1) {
         newErrors.guestCount = 'Number of guests is required';
       }
       
-      // Capacity validation
-      const maxCapacity = getMaxCapacityForPackage();
+      // Capacity validation - only check minimum, maximum is allowed with extra charge
       const minCapacity = getMinCapacityForPackage();
       
       if (minCapacity > 0 && formData.guestCount < minCapacity) {
         newErrors.guestCount = `Minimum ${minCapacity} guests required for this package`;
-      }
-      if (formData.guestCount > maxCapacity) {
-        const extraCost = (formData.guestCount - maxCapacity) * 150;
-        newErrors.guestCount = `Maximum ${maxCapacity} guests (${formData.guestCount - maxCapacity} extra @ ₱150/head = ₱${extraCost.toLocaleString()})`;
       }
       
       // Check if info is confirmed
@@ -202,7 +211,7 @@ function Booking() {
         newErrors.paymentType = 'Please select a payment type (downpayment or full payment)';
       }
       // Payment proof required for digital payments
-      if (formData.paymentMethod && !formData.paymentProof) {
+      if (formData.paymentMethod && formData.paymentMethod !== 'cash' && !formData.paymentProof) {
         newErrors.paymentProof = 'Please upload payment proof';
       }
     }
@@ -354,6 +363,7 @@ function Booking() {
             addonsTotal={calculateAddonsTotal()}
             downpayment={downpayment}
             paymentType={formData.paymentType}
+            extraGuestWarning={extraGuestWarning}
           />
           
           <div className="booking-form-wrapper">
@@ -378,6 +388,7 @@ function Booking() {
                     handleChange={handleChange}
                     onConfirm={() => setInfoConfirmed(true)}
                     isConfirmed={infoConfirmed}
+                    extraGuestWarning={extraGuestWarning}
                   />
                   
                   {errors.confirmInfo && <span className="error-message confirm-error">{errors.confirmInfo}</span>}

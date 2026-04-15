@@ -74,15 +74,22 @@ const PACKAGE_CAPACITY = {
 // ============================================
 // HELPER: Generate unique booking reference
 // ============================================
-// Generates reference like: 6879D0
+// Generates reference like: 1, 2, 3, 4, 5 (sequential numeric ID)
 
-const generateBookingReference = () => {
-  const chars = 'ABCDEFHJKLMNPQRSTUVWXYZ0123456789';
-  let reference = '';
-  for (let i = 0; i < 6; i++) {
-    reference += chars.charAt(Math.floor(Math.random() * chars.length));
+const generateBookingReference = async () => {
+  const latestBooking = await Booking.findOne({ bookingReference: { $exists: true } })
+    .sort({ createdAt: -1 })
+    .limit(1);
+  
+  let nextNumber = 1;
+  if (latestBooking && latestBooking.bookingReference) {
+    const currentNumber = parseInt(latestBooking.bookingReference);
+    if (!isNaN(currentNumber)) {
+      nextNumber = currentNumber + 1;
+    }
   }
-  return reference;
+  
+  return String(nextNumber);
 };
 
 // ============================================
@@ -354,7 +361,7 @@ const createBooking = async (req, res) => {
     let bookingReference;
     let isUnique = false;
     while (!isUnique) {
-      bookingReference = generateBookingReference();
+      bookingReference = await generateBookingReference();
       const existingRef = await Booking.findOne({ bookingReference });
       if (!existingRef) {
         isUnique = true;
@@ -420,7 +427,7 @@ const getAllBookings = async (req, res) => {
         
         // Generate unique reference
         while (!isUnique) {
-          bookingReference = generateBookingReference();
+          bookingReference = await generateBookingReference();
           const existingRef = await Booking.findOne({ bookingReference });
           if (!existingRef) {
             isUnique = true;

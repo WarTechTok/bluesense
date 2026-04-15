@@ -477,7 +477,7 @@ const resetPassword = async (req, res) => {
 };
 
 // ============================================
-// GOOGLE LOGIN - Handle Google OAuth callback
+// GOOGLE LOGIN - PRESERVE USER DATA
 // ============================================
 const googleLogin = async (req, res) => {
   try {
@@ -488,6 +488,7 @@ const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
     
     if (!user) {
+      // New user: create with Google data
       const tempPassword = crypto.randomBytes(20).toString('hex');
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
       
@@ -503,8 +504,15 @@ const googleLogin = async (req, res) => {
       await user.save();
       console.log(`✅ New Google user created: ${email}`);
     } else {
-      user.googleId = id;
-      user.googleAvatar = picture;
+      // Existing user: ONLY update Google-specific fields, preserve custom data
+      // Don't overwrite name, phone, address if user already set them
+      if (!user.googleId) {
+        user.googleId = id;
+      }
+      // Only update Google avatar if user doesn't have a custom avatar
+      if (!user.avatar) {
+        user.googleAvatar = picture;
+      }
       user.isEmailVerified = true;
       await user.save();
       console.log(`✅ Existing user updated with Google: ${email}`);
@@ -516,12 +524,16 @@ const googleLogin = async (req, res) => {
       { expiresIn: "7d" }
     );
     
+    // IMPORTANT: Send the user data from DATABASE, not from Google
+    // This preserves the user's custom name, phone, address
     const userData = {
       id: user._id,
-      name: user.name,
+      name: user.name,           // From database (could be custom)
       email: user.email,
       role: user.role,
-      avatar: user.googleAvatar || user.avatar
+      phone: user.phone,         // From database
+      address: user.address,     // From database
+      avatar: user.avatar || user.googleAvatar
     };
     
     const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
@@ -612,12 +624,14 @@ const updateProfile = async (req, res) => {
     // Build update object
     const updateData = {};
     if (name !== undefined && name !== '') updateData.name = name;
-    if (phone !== undefined && phone !== '') updateData.phone = phone;
+    if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
     
     // Handle avatar if uploaded
     if (req.file) {
       updateData.avatar = `/uploads/avatars/${req.file.filename}`;
+      // Clear Google avatar if user uploads custom avatar
+      updateData.googleAvatar = null;
       console.log("Avatar file:", req.file.filename);
     }
     

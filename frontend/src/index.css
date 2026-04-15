@@ -18,3 +18,18 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Add padding to the hero section to account for fixed navbar */
+/* Add padding to the hero section to account for fixed navbar */
+.hero, 
+.oasis-hero, 
+.about-hero, 
+.gallery-hero, 
+.contact-hero,
+.booking-hero,
+.oasis1-hero,
+.oasis2-hero,
+.my-bookings-hero {
+  padding-top: 90px !important;
+  margin-top: 0 !important;
+}

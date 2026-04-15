@@ -19,6 +19,7 @@ function Navbar() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   // Scroll state for glass effect
   const [scrolled, setScrolled] = useState(false);
@@ -108,6 +109,14 @@ function Navbar() {
     }
   }, [showViewModal, showEditModal]);
 
+  // Clear message after 3 seconds
+  useEffect(() => {
+    if (saveMessage) {
+      const timer = setTimeout(() => setSaveMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveMessage]);
+
   const handleLogout = () => {
     setShowLogoutConfirm(true);
     setIsOpen(false);
@@ -147,11 +156,14 @@ function Navbar() {
 
   const handleSaveFromModal = async (updatedData) => {
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setSaveMessage('Please login again');
+      return;
+    }
 
     try {
-      // Phone number from EditProfileModal is already cleaned (just digits)
-      // Send it as-is to the backend
+      console.log('Saving profile data:', updatedData);
+      
       const response = await axios.put(
         "http://localhost:8080/api/auth/profile",
         {
@@ -167,6 +179,8 @@ function Navbar() {
         },
       );
 
+      console.log('API Response:', response.data);
+
       if (response.data.user) {
         // Update localStorage with the response from backend
         const updatedUser = { 
@@ -179,25 +193,22 @@ function Navbar() {
 
         // Close edit modal
         setShowEditModal(false);
+        
+        // Show success message
+        setSaveMessage('Profile updated successfully!');
 
         // Dispatch event for other components
         window.dispatchEvent(
           new CustomEvent("profileUpdated", { detail: updatedUser }),
         );
-
-        // Show success message
-        // You can add a toast notification here if you have one
       }
     } catch (error) {
       console.error("Failed to save profile:", error);
-      throw new Error(
-        error.response?.data?.message ||
-          "Failed to save profile. Please try again."
-      );
+      const errorMsg = error.response?.data?.message || "Failed to save profile. Please try again.";
+      setSaveMessage(errorMsg);
+      throw new Error(errorMsg);
     }
   };
-
-
 
   return (
     <>
@@ -313,7 +324,14 @@ function Navbar() {
         onConfirm={confirmLogout}
       />
 
-      {/* Edit Profile Modal */}
+      {/* Success/Error Message Toast */}
+      {saveMessage && (
+        <div className={`save-toast ${saveMessage.includes('success') ? 'success' : 'error'}`}>
+          {saveMessage}
+        </div>
+      )}
+
+      {/* Edit Profile Modal - Only ONE */}
       <EditProfileModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}

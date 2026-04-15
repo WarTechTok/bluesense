@@ -1,3 +1,8 @@
+// frontend/src/pages/admin/SalesTracking.jsx
+// ============================================
+// SALES TRACKING - Clean design matching theme
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import './ManagementPages.css';
 import * as adminApi from '../../services/admin/adminApi';
@@ -15,7 +20,6 @@ const SalesTracking = () => {
         setLoading(true);
         setError(null);
         
-        // Debug: Check if token exists
         const token = localStorage.getItem('token');
         console.log('🔐 Token exists:', !!token, token ? `(${token.length} chars)` : '');
         
@@ -35,7 +39,31 @@ const SalesTracking = () => {
         }
 
         console.log('✅ Sales data received:', data);
-        setSales(data.sales || []);
+        let salesList = data.sales || [];
+        
+        console.log('📋 Sales before sort:', salesList.map(s => ({ 
+          ref: s.booking?.bookingReference, 
+          name: s.booking?.customerName,
+          amount: s.amount 
+        })));
+        
+        // Sort sales by booking reference in ascending order
+        salesList.sort((a, b) => {
+          const aRef = a.booking?.bookingReference || '0';
+          const bRef = b.booking?.bookingReference || '0';
+          const aId = parseInt(aRef);
+          const bId = parseInt(bRef);
+          console.log(`Comparing: ${aId} vs ${bId}`);
+          return aId - bId;
+        });
+        
+        console.log('📋 Sales after sort:', salesList.map(s => ({ 
+          ref: s.booking?.bookingReference, 
+          name: s.booking?.customerName,
+          amount: s.amount 
+        })));
+        
+        setSales(salesList);
         setTotalSales(data.total || 0);
       } catch (error) {
         console.error('❌ Error fetching sales:', error);
@@ -49,6 +77,14 @@ const SalesTracking = () => {
 
     fetchSales();
   }, [selectedPeriod]);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-PH', {
+      style: 'currency',
+      currency: 'PHP',
+      minimumFractionDigits: 0
+    }).format(amount || 0);
+  };
 
   return (
     <div className="management-page">
@@ -65,64 +101,69 @@ const SalesTracking = () => {
         </select>
       </div>
 
-      <div className="sales-summary">
-        <div className="summary-card">
-          <h3>Total Sales ({selectedPeriod})</h3>
-          <p className="summary-value">₱{totalSales.toLocaleString()}</p>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-title">Total Sales ({selectedPeriod})</div>
+          <div className="stat-value">{formatCurrency(totalSales)}</div>
         </div>
-        <div className="summary-card">
-          <h3>Number of Transactions</h3>
-          <p className="summary-value">{sales.length}</p>
+        <div className="stat-card">
+          <div className="stat-title">Transactions</div>
+          <div className="stat-value">{sales.length}</div>
         </div>
-        <div className="summary-card">
-          <h3>Average Sale</h3>
-          <p className="summary-value">₱{sales.length > 0 ? (totalSales / sales.length).toFixed(2) : 0}</p>
+        <div className="stat-card">
+          <div className="stat-title">Average Sale</div>
+          <div className="stat-value">
+            {sales.length > 0 ? formatCurrency(totalSales / sales.length) : formatCurrency(0)}
+          </div>
         </div>
       </div>
 
       <div className="sales-table-container">
         <h3>Sales Details</h3>
         {error && (
-          <div style={{ color: 'red', padding: '10px', marginBottom: '10px', backgroundColor: '#ffe0e0', borderRadius: '4px' }}>
+          <div className="error-message">
             ❌ Error: {error}
           </div>
         )}
         {loading ? (
-          <p>Loading sales data...</p>
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading sales data...</p>
+          </div>
         ) : (
-          <table className="sales-table">
-            <thead>
-              <tr>
-                <th>Booking ID</th>
-                <th>Guest Name</th>
-                <th>Amount</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.length === 0 ? (
+          <div className="table-responsive">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="4" style={{ textAlign: 'center' }}>No sales data</td>
+                  <th>Booking ID</th>
+                  <th>Guest Name</th>
+                  <th>Amount</th>
+                  <th>Date</th>
                 </tr>
-              ) : (
-                sales.map((sale, idx) => {
-                  // Get booking reference with proper fallback
-                  const bookingRef = sale.booking?.bookingReference || 
-                                    (sale.booking?._id ? sale.booking._id.slice(-6).toUpperCase() : 'N/A');
-                  const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
-                  
-                  return (
-                    <tr key={idx}>
-                      <td>{bookingRef}</td>
-                      <td>{customerName}</td>
-                      <td>₱{(sale.amount || 0).toLocaleString()}</td>
-                      <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sales.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="no-data">No sales data available</td>
+                  </tr>
+                ) : (
+                  sales.map((sale, idx) => {
+                    const bookingRef = sale.booking?.bookingReference || 'N/A';
+                    const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
+                    
+                    return (
+                      <tr key={idx}>
+                        <td className="booking-id">{bookingRef}</td>
+                        <td>{customerName}</td>
+                        <td className="amount">{formatCurrency(sale.amount || 0)}</td>
+                        <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

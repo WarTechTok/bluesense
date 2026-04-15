@@ -1,15 +1,16 @@
+// backend/controllers/reportsController.js
+// ============================================
+// REPORTS CONTROLLER - Generate business analytics reports
+// ============================================
+
 const Reservation = require('../models/Reservation');
 const Sale = require('../models/Sale');
 const Inventory = require('../models/Inventory');
 const Staff = require('../models/Staff');
 
-/**
- * Report Controller
- * Generates various reports for business analytics
- * Admin only: All report generation functions
- * Supports date range filtering for most reports
- */
-
+// ============================================
+// GET RESERVATION REPORT
+// ============================================
 /**
  * GET /api/admin/reports/reservation?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  * Generate reservation report (Admin only)
@@ -36,6 +37,9 @@ exports.getReservationReport = async (req, res) => {
   }
 };
 
+// ============================================
+// GET SALES REPORT
+// ============================================
 /**
  * GET /api/admin/reports/sales?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  * Generate sales report (Admin only)
@@ -55,7 +59,9 @@ exports.getSalesReport = async (req, res) => {
       };
     }
 
-    const sales = await Sale.find(query).populate('reservation').populate('booking');
+    const sales = await Sale.find(query)
+      .populate('reservation')
+      .populate('booking', 'customerName bookingReference totalAmount');
     const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
 
     res.json({ sales, totalSales });
@@ -64,6 +70,9 @@ exports.getSalesReport = async (req, res) => {
   }
 };
 
+// ============================================
+// GET INVENTORY USAGE REPORT
+// ============================================
 /**
  * GET /api/admin/reports/inventory-usage?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  * Generate inventory usage report
@@ -115,6 +124,9 @@ exports.getInventoryUsageReport = async (req, res) => {
   }
 };
 
+// ============================================
+// GET STAFF ACTIVITY REPORT
+// ============================================
 /**
  * GET /api/admin/reports/staff-activity
  * Generate staff activity report (Admin only)
@@ -148,6 +160,9 @@ exports.getStaffActivityReport = async (req, res) => {
   }
 };
 
+// ============================================
+// EXPORT REPORT AS JSON
+// ============================================
 /**
  * GET /api/admin/reports/export?reportType=TYPE&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
  * Export report data as JSON (Admin only)

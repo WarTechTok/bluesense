@@ -6,27 +6,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import EditProfileModal from './EditProfileModal';
 import './styles/PCView.css';
 
 function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile, onLogout }) {
   const [showMainDropdown, setShowMainDropdown] = useState(false);
   const [showViewDropdown, setShowViewDropdown] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [avatarError, setAvatarError] = useState({});
 
   const mainDropdownRef = useRef(null);
-
-  useEffect(() => {
-    if (showEditModal) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [showEditModal]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -100,7 +87,7 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
               className="view-dropdown-edit-btn"
               onClick={() => {
                 setShowViewDropdown(false);
-                setShowEditModal(true);
+                onEditProfile(); // Just call onEditProfile to open modal in Navbar
               }}
             >
               Edit Profile
@@ -129,9 +116,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
       />
     );
   };
-
-  // Debug: log the onEditProfile function
-  console.log('onEditProfile in PCView:', onEditProfile);
 
   return (
     <div className="nav-right desktop-only">
@@ -196,24 +180,6 @@ function PCView({ userData, userRole, getAvatarSrc, onViewProfile, onEditProfile
           </div>
 
           {showViewDropdown && <ViewProfileDropdown />}
-
-          <EditProfileModal
-            isOpen={showEditModal}
-            onClose={() => {
-              console.log('Closing edit modal');
-              setShowEditModal(false);
-            }}
-            userData={userData}
-            getAvatarSrc={getAvatarSrc}
-            onSave={(data) => {
-              console.log('EditProfileModal onSave called with:', data);
-              if (onEditProfile) {
-                onEditProfile(data);
-              } else {
-                console.error('onEditProfile is undefined!');
-              }
-            }}
-          />
         </>
       ) : (
         <div className="auth-buttons">

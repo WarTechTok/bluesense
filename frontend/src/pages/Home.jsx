@@ -21,7 +21,7 @@ import "./Home.css";
 // src/pages/Home.jsx
 // ============================================
 // HERO CAROUSEL DATA
-// ================+===========================
+// ============================================
 
 const heroImages = [
   {
@@ -390,8 +390,8 @@ function Home() {
             Choose your preferred oasis and package, then complete your
             reservation
           </p>
-          <Link to="/booking" className="cta-btn">
-            Book Now
+          <Link to="/oasis-1" className="cta-btn">
+            View Packages
           </Link>
         </div>
       </section>

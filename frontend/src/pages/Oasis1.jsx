@@ -4,7 +4,6 @@
 // ============================================
 
 import React from 'react';
-import { Link } from 'react-router-dom';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import PackageCard from '../components/home/PackageCard';
@@ -122,15 +121,6 @@ function Oasis1() {
               <p>Comprehensive packages that include meals, decorations, and entertainment</p>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* ===== CTA SECTION ===== */}
-      <section className="oasis1-cta-section">
-        <div className="container">
-          <h2 className="cta-title">Ready to Book Your Stay at Oasis 1?</h2>
-          <p className="cta-text">Choose your package and complete your reservation</p>
-          <Link to="/booking" className="cta-btn" state={{ oasis: 'Oasis 1' }}>Book Now</Link>
         </div>
       </section>
 

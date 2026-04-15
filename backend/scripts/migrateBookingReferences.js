@@ -1,6 +1,6 @@
 // backend/scripts/migrateBookingReferences.js
 // ============================================
-// MIGRATION SCRIPT - Add bookingReference to existing bookings
+// MIGRATION SCRIPT - Convert all bookings to sequential numeric IDs
 // ============================================
 
 require('dotenv').config();
@@ -10,29 +10,19 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 
-// Generate unique booking reference
-const generateBookingReference = () => {
-  const chars = 'ABCDEFHJKLMNPQRSTUVWXYZ0123456789';
-  let reference = '';
-  for (let i = 0; i < 6; i++) {
-    reference += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return reference;
-};
-
 const migrateBookingReferences = async () => {
   try {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB');
-    console.log(`📊 Database: ${mongoose.connection.name}`);
+    console.log('[OK] Connected to MongoDB');
+    console.log('Database:', mongoose.connection.name);
 
-    // Find all bookings without bookingReference
-    const bookingsWithoutRef = await Booking.find({ bookingReference: { $exists: false } });
-    console.log(`📅 Found ${bookingsWithoutRef.length} bookings without reference`);
+    // Get all bookings sorted by creation date
+    const allBookings = await Booking.find().sort({ createdAt: 1 });
+    console.log('Found', allBookings.length, 'total bookings');
 
-    if (bookingsWithoutRef.length === 0) {
-      console.log('✅ All bookings already have references!');
+    if (allBookings.length === 0) {
+      console.log('No bookings found');
       await mongoose.connection.close();
       return;
     }
@@ -40,42 +30,34 @@ const migrateBookingReferences = async () => {
     let updated = 0;
     let failed = 0;
 
-    for (const booking of bookingsWithoutRef) {
+    // Assign sequential numeric IDs based on creation order
+    for (let i = 0; i < allBookings.length; i++) {
       try {
-        let bookingReference;
-        let isUnique = false;
-        
-        // Generate unique reference
-        while (!isUnique) {
-          bookingReference = generateBookingReference();
-          const existingRef = await Booking.findOne({ bookingReference });
-          if (!existingRef) {
-            isUnique = true;
-          }
-        }
+        const newId = String(i + 1);
+        const oldId = allBookings[i].bookingReference;
 
         // Update booking
         await Booking.findByIdAndUpdate(
-          booking._id,
-          { bookingReference },
+          allBookings[i]._id,
+          { bookingReference: newId },
           { new: true }
         );
 
         updated++;
-        console.log(`✅ Updated: ${booking.customerName} → ${bookingReference}`);
+        console.log('Booking', i + 1 + ':', allBookings[i].customerName, '| Old:', oldId, '-> New:', newId);
       } catch (error) {
         failed++;
-        console.error(`❌ Failed to update ${booking._id}:`, error.message);
+        console.error('Failed to update booking', i + 1 + ':', error.message);
       }
     }
 
-    console.log(`\n📊 Migration Complete!`);
-    console.log(`✅ Updated: ${updated}`);
-    console.log(`❌ Failed: ${failed}`);
+    console.log('Migration Complete!');
+    console.log('Updated:', updated);
+    console.log('Failed:', failed);
 
     await mongoose.connection.close();
   } catch (error) {
-    console.error('❌ Migration error:', error);
+    console.error('Migration error:', error);
     process.exit(1);
   }
 };

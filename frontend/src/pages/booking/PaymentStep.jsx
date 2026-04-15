@@ -12,7 +12,6 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
   const handlePaymentProof = (file) => {
     handleChange({ target: { name: 'paymentProof', value: file } });
     
-    // Create preview URL
     if (file) {
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
@@ -38,7 +37,6 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
     { id: 'gotyme', name: 'GoTyme', description: 'Scan QR code to pay' },
   ];
 
-  // QR code images - replace with your actual QR code images
   const getQrCode = (method) => {
     const qrCodes = {
       gcash: '/images/qr/gcash-qr.jpg',
@@ -48,6 +46,9 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
     };
     return qrCodes[method];
   };
+
+  // Debug log to see what values are being passed
+  console.log('PaymentStep received:', { totalPrice, downpayment, selectedSession });
 
   return (
     <div className="payment-step">
@@ -75,31 +76,11 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
         ))}
       </div>
       
-      <div className="payment-summary-card">
-        {formData.paymentType === 'fullpayment' ? (
-          <div className="payment-summary-row highlight">
-            <span>Total Amount to Pay</span>
-            <span className="downpayment-highlight">₱{totalPrice.toLocaleString()}</span>
-          </div>
-        ) : (
-          <>
-            <div className="payment-summary-row">
-              <span>Total Amount</span>
-              <span>₱{totalPrice.toLocaleString()}</span>
-            </div>
-            <div className="payment-summary-row highlight">
-              <span>Downpayment Required (30%)</span>
-              <span className="downpayment-highlight">₱{downpayment.toLocaleString()}</span>
-            </div>
-          </>
-        )}
-      </div>
-
       {/* Payment Type Selection */}
       <div className="payment-type-section">
         <h4 className="section-subtitle">Select Payment Type</h4>
         <div className="payment-type-options">
-          <label className="payment-type-card">
+          <label className={`payment-type-card ${formData.paymentType === 'downpayment' ? 'selected' : ''}`}>
             <input
               type="radio"
               name="paymentType"
@@ -109,11 +90,11 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
             />
             <div className="payment-type-info">
               <div className="payment-type-name">Downpayment</div>
-              <div className="payment-type-desc">Pay 30% now, balance upon arrival</div>
+              <div className="payment-type-desc">Pay the remaining balance upon arrival</div>
               <div className="payment-type-amount">₱{downpayment.toLocaleString()}</div>
             </div>
           </label>
-          <label className="payment-type-card">
+          <label className={`payment-type-card ${formData.paymentType === 'fullpayment' ? 'selected' : ''}`}>
             <input
               type="radio"
               name="paymentType"
@@ -129,12 +110,32 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
           </label>
         </div>
       </div>
+
+      <div className="payment-summary-card">
+        {formData.paymentType === 'fullpayment' ? (
+          <div className="payment-summary-row highlight">
+            <span>Total Amount to Pay</span>
+            <span className="downpayment-highlight">₱{totalPrice.toLocaleString()}</span>
+          </div>
+        ) : (
+          <>
+            <div className="payment-summary-row">
+              <span>Total Amount</span>
+              <span>₱{totalPrice.toLocaleString()}</span>
+            </div>
+            <div className="payment-summary-row highlight">
+              <span>Downpayment Required</span>
+              <span className="downpayment-highlight">₱{downpayment.toLocaleString()}</span>
+            </div>
+          </>
+        )}
+      </div>
       
       <div className="payment-info-note">
         {formData.paymentType === 'fullpayment' ? (
           <span>You are paying the full amount. No additional payment is needed upon arrival.</span>
         ) : (
-          <span>You are paying 30% downpayment. The remaining 70% will be due upon arrival.</span>
+          <span>You are paying the downpayment. The remaining balance will be due upon arrival.</span>
         )}
       </div>
 
@@ -185,7 +186,6 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
               />
             </div>
             
-            {/* Image Preview */}
             {previewUrl && (
               <div className="image-preview-container">
                 <div className="image-preview-header">

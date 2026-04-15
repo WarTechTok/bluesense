@@ -4,10 +4,8 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed }) => {
-  const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     fullName: formData.fullName || '',
     email: formData.email || '',
@@ -63,10 +61,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
       phone: formData.phone || ''
     });
   }, [formData.fullName, formData.email, formData.phone]);
-
-  const handleEditProfile = () => {
-    navigate('/profile');
-  };
 
   return (
     <div className="step-card">
@@ -150,15 +144,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
           {errors?.guestCount && <span className="error-message">{errors.guestCount}</span>}
         </div>
       </div>
-      
-      {/* Edit Profile Button */}
-      <button 
-        type="button" 
-        className="edit-profile-btn"
-        onClick={handleEditProfile}
-      >
-        <i className="fas fa-edit"></i> Update Profile
-      </button>
       
       {/* Confirm Button */}
       <div className="confirm-section">
