@@ -13,7 +13,7 @@ const StaffSchema = new mongoose.Schema({
     required: true, 
     unique: true,
     index: true
-  }, // Auto-generated sequential ID (STF-0001, STF-0002, etc.)
+  }, // Auto-generated sequential ID (STF-0001, ADM-001, etc.)
   name: { type: String, required: true }, // Staff member's full name
   email: { type: String, required: true, unique: true }, // Unique email for login
   role: { 
@@ -24,7 +24,19 @@ const StaffSchema = new mongoose.Schema({
   position: {
     type: String,
     enum: ['Receptionist', 'Housekeeper', 'Manager', 'Maintenance', 'Chef', 'Other'],
-    default: 'Housekeeper' // Job position for staff members
+    default: 'Housekeeper' // Job position for staff members (not used for admins)
+  },
+  permissions: {
+    type: Object,
+    default: null // Admin permissions: { dashboard, staffManagement, rooms, etc. }
+  },
+  address: {
+    type: String,
+    default: null // Staff member's address
+  },
+  profilePicture: {
+    type: String,
+    default: null // URL/path to staff member's profile picture
   },
   status: { 
     type: String, 

@@ -28,7 +28,7 @@
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   width: 100%;
-  max-width: 550px;
+  max-width: 650px;
   max-height: 90vh;
   animation: slideIn 0.3s ease;
   display: flex;
@@ -36,7 +36,6 @@
   margin: 0 auto;
   padding: 0;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 @keyframes slideIn {
@@ -93,56 +92,70 @@
   box-sizing: border-box;
   width: 100%;
   overflow-y: auto;
-  max-height: calc(90vh - 160px);
+  min-height: 0;
+  max-height: calc(90vh - 150px);
 }
 
 .modal-footer {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  padding: 20px 25px;
-  border-top: 1px solid #E5E7EB;
-  flex-shrink: 0;
-  background-color: #F9FAFB;
+  display: flex !important;
+  gap: 12px !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  padding: 20px 25px !important;
+  border-top: 1px solid #E5E7EB !important;
+  background-color: #F9FAFB !important;
+  flex-shrink: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  min-height: 62px !important;
 }
 
 .btn-cancel-modal,
 .btn-submit {
-  padding: 11px 24px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
+  padding: 10px 24px !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  white-space: nowrap !important;
+  min-width: 100px !important;
+  height: auto !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .btn-cancel-modal {
-  background-color: #F3F4F6;
-  color: #1F2937;
-  min-width: 100px;
+  background-color: #F3F4F6 !important;
+  color: #1F2937 !important;
+  border: 1px solid #D1D5DB !important;
 }
 
 .btn-cancel-modal:hover {
-  background-color: #E5E7EB;
+  background-color: #E5E7EB !important;
+  border-color: #9CA3AF !important;
 }
 
 .btn-submit {
-  background: #2563EB;
-  color: white;
-  min-width: 100px;
-  border: none;
+  background: #2563EB !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2) !important;
 }
 
 .btn-submit:hover {
-  background: #1E40AF;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #1E40AF !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
 }
 
 .btn-submit:active {
-  transform: translateY(0);
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2) !important;
 }
 
 /* Modal Form Styling */
@@ -224,7 +237,7 @@
 .form.landscape {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -237,8 +250,8 @@
   grid-column: 1 / -1;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
+/* Responsive Design - Only on very small screens */
+@media (max-width: 480px) {
   .form.landscape {
     grid-template-columns: 1fr;
   }

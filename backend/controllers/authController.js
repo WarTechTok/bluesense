@@ -355,6 +355,64 @@ const login = async (req, res) => {
 };
 
 // ============================================
+// STAFF LOGIN - staff authentication with status check
+// ============================================
+// Authenticates staff members created in the Staff Management system
+// Checks if status is "Active" before allowing login
+// Disabled accounts cannot login
+const staffLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Require the Staff model for this endpoint
+    const Staff = require('../models/Staff');
+
+    // Find staff member by email
+    const staff = await Staff.findOne({ email: email.toLowerCase() });
+    if (!staff) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Check if account is disabled
+    if (staff.status === 'Disabled') {
+      return res.status(403).json({ 
+        message: "Account is disabled. Please contact your administrator.",
+        accountDisabled: true
+      });
+    }
+
+    // Compare password
+    const isMatch = await bcrypt.compare(password, staff.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: staff._id, email: staff.email, role: staff.role, staffId: staff.staffId },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      token,
+      staff: {
+        id: staff._id,
+        staffId: staff.staffId,
+        name: staff.name,
+        email: staff.email,
+        role: staff.role,
+        position: staff.position,
+        status: staff.status
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ============================================
 // REGISTER STAFF - admin only
 // ============================================
 const registerStaff = async (req, res) => {
@@ -702,6 +760,7 @@ const changePassword = async (req, res) => {
 module.exports = {
   register,
   login,
+  staffLogin,
   verifyEmail,
   resendVerificationEmail,
   registerStaff,

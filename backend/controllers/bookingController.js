@@ -94,24 +94,28 @@ const PACKAGE_CAPACITY = {
 // ============================================
 // HELPER: Generate unique booking reference
 // ============================================
-// Generates reference like: 1, 2, 3, 4, 5 (sequential numeric ID)
+// Generates reference like: A1B2C3, X9Y8Z7, etc. (6-character random alphanumeric)
 
 const generateBookingReference = async () => {
-  const latestBooking = await Booking.findOne({
-    bookingReference: { $exists: true },
-  })
-    .sort({ createdAt: -1 })
-    .limit(1);
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let isUnique = false;
+  let reference;
 
-  let nextNumber = 1;
-  if (latestBooking && latestBooking.bookingReference) {
-    const currentNumber = parseInt(latestBooking.bookingReference);
-    if (!isNaN(currentNumber)) {
-      nextNumber = currentNumber + 1;
+  while (!isUnique) {
+    // Generate random 6-character alphanumeric code
+    reference = '';
+    for (let i = 0; i < 6; i++) {
+      reference += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    
+    // Check if reference is unique
+    const existingRef = await Booking.findOne({ bookingReference: reference });
+    if (!existingRef) {
+      isUnique = true;
     }
   }
 
-  return String(nextNumber);
+  return reference;
 };
 
 // ============================================
@@ -562,6 +566,9 @@ const updateBookingStatus = async (req, res) => {
         const sale = new Sale({
           booking: id,
           amount: booking.totalAmount,
+          bookingNumber: booking.bookingNumber,
+          bookingReference: booking.bookingReference,
+          location: booking.oasis,
         });
         await sale.save();
         console.log(`✅ Sale record created for booking ${id}`);
@@ -789,6 +796,9 @@ const verifyPayment = async (req, res) => {
         const sale = new Sale({
           booking: id,
           amount: booking.totalAmount,
+          bookingNumber: booking.bookingNumber,
+          bookingReference: booking.bookingReference,
+          location: booking.oasis,
         });
         await sale.save();
         console.log(`✅ Sale record created for booking ${id}`);

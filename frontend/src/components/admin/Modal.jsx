@@ -36,12 +36,12 @@ const Modal = ({ isOpen, title, onClose, children, onSubmit }) => {
         <div className="modal-body">
           {children}
         </div>
-        {onSubmit && (
+        {onSubmit ? (
           <div className="modal-footer">
-            <button className="btn-cancel-modal" onClick={onClose}>Cancel</button>
-            <button className="btn-submit" onClick={onSubmit}>Submit</button>
+            <button type="button" className="btn-cancel-modal" onClick={onClose}>Cancel</button>
+            <button type="button" className="btn-submit" onClick={onSubmit}>Save</button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

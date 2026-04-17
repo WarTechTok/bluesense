@@ -57,7 +57,7 @@ const StaffLayout = ({ children }) => {
       {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h1>Staff Portal</h1>
+          <h1>Staff Dashboard</h1>
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {sidebarOpen ? '✕' : '☰'}
           </button>

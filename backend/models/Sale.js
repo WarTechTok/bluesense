@@ -10,6 +10,9 @@ const SaleSchema = new mongoose.Schema({
   reservation: { type: mongoose.Schema.Types.ObjectId, ref: 'Reservation' }, // Link to reservation (legacy)
   booking: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' }, // Link to event booking
   amount: { type: Number, required: true }, // Sale amount (room price or total booking amount)
+  bookingNumber: { type: Number }, // Sequential booking number (1, 2, 3...)
+  bookingReference: { type: String }, // Booking reference code (e.g., A1B2C3)
+  location: { type: String }, // Location/Oasis (e.g., Oasis 1, Oasis 2)
   date: { type: Date, default: Date.now } // Transaction date/time
 });
 

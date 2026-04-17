@@ -79,6 +79,13 @@ const bookingSchema = new mongoose.Schema({
     sparse: true
   },
   
+  // Sequential booking number (1, 2, 3, 4, 5...)
+  bookingNumber: {
+    type: Number,
+    unique: true,
+    sparse: true
+  },
+  
   // Status
   status: {
     type: String,

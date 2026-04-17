@@ -165,7 +165,8 @@ exports.confirmReservation = async (req, res) => {
     // Create sale record for revenue tracking
     const sale = new Sale({
       reservation: reservation._id,
-      amount: reservation.room.price
+      amount: reservation.room.price,
+      location: reservation.room.roomNumber || reservation.room.name, // Room number or name as location
     });
     await sale.save();
 

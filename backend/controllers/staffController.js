@@ -38,14 +38,18 @@ exports.getStaffById = async (req, res) => {
 /**
  * POST /api/admin/staff
  * Create a new staff account (Admin only)
- * Body: { name, email, role, password }
+ * Body: { name, email, role, password, position, address }
  * Password is hashed with bcryptjs before storage
  * Default status: Active
  * Validation: name and email required, password min 6 chars
  */
 exports.createStaffAccount = async (req, res) => {
   try {
-    const { name, email, role, password } = req.body;
+    const { name, email, role, password, position, address, permissions } = req.body;
+
+    console.log('📝 Creating staff account - File info:');
+    console.log('  File received:', req.file ? `Yes - ${req.file.filename}` : 'No');
+    if (req.file) console.log('  File details:', { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size, path: req.file.path });
 
     // ============================================
     // BACKEND VALIDATION
@@ -83,32 +87,64 @@ exports.createStaffAccount = async (req, res) => {
     // ============================================
     // GENERATE SEQUENTIAL STAFF ID
     // ============================================
-    // Get last staff record ordered by creation date
-    const lastStaff = await Staff.findOne().sort({ createdAt: -1 });
+    // Get last staff record with same role
+    const lastStaffWithRole = await Staff.findOne({ role: role }).sort({ createdAt: -1 });
     
-    // Extract sequence number from last staffId or start at 0
-    const lastSequence = lastStaff ? parseInt(lastStaff.staffId.slice(4)) : 0;
+    // Extract sequence number from lastStaffId or start at 0
+    const lastSequence = lastStaffWithRole ? parseInt(lastStaffWithRole.staffId.slice(4)) : 0;
     const newSequence = lastSequence + 1;
     
-    // Generate new staffId (STF-0001, STF-0002, etc.)
-    const newStaffId = `STF-${String(newSequence).padStart(4, '0')}`;
+    // Generate new staffId with role prefix (ADM-001 or STF-001)
+    const rolePrefix = role === 'admin' ? 'ADM' : 'STF';
+    const newStaffId = `${rolePrefix}-${String(newSequence).padStart(3, '0')}`;
 
     // Hash password with bcryptjs (salt rounds: 10)
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Parse permissions if admin
+    let staffPermissions = null;
+    if (role === 'admin' && permissions) {
+      try {
+        staffPermissions = typeof permissions === 'string' ? JSON.parse(permissions) : permissions;
+      } catch (e) {
+        console.error('Error parsing permissions:', e);
+      }
+    }
 
     const staff = new Staff({
       staffId: newStaffId,  // Auto-generated sequential ID
       name: name.trim(),
       email: email.toLowerCase().trim(),
       role: role || 'Staff',
+      position: role === 'admin' ? null : (position || 'Housekeeper'),
+      address: address || null,
+      permissions: staffPermissions,
       password: hashedPassword,
-      status: 'Active'
+      status: 'Active',
+      profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
     });
 
     await staff.save();
+    console.log('✅ Staff created successfully:', staff.staffId);
+    
     // Don't return password in response
-    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, status: staff.status });
+    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
   } catch (error) {
+    console.error('❌ Error creating staff:', error.message);e === 'admin' ? null : (position || 'Housekeeper'),
+      address: address || null,
+      permissions: staffPermissions,
+      password: hashedPassword,
+      status: 'Active',
+      profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
+    });
+
+    await staff.save();
+    console.log('✅ Staff created successfully:', staff.staffId);
+    
+    // Don't return password in response
+    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
+  } catch (error) {
+    console.error('❌ Error creating staff:', error.message);
     res.status(400).json({ error: error.message });
   }
 };
@@ -121,7 +157,11 @@ exports.createStaffAccount = async (req, res) => {
  */
 exports.updateStaff = async (req, res) => {
   try {
-    const { name, email, role } = req.body;
+    const { name, email, role, position, address, permissions } = req.body;
+
+    console.log('📝 Updating staff account - File info:');
+    console.log('  File received:', req.file ? `Yes - ${req.file.filename}` : 'No');
+    if (req.file) console.log('  File details:', { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size, path: req.file.path });
 
     // ============================================
     // BACKEND VALIDATION
@@ -155,18 +195,33 @@ exports.updateStaff = async (req, res) => {
       }
     }
 
-    const updateData = { name, email, role };
-    if (email) updateData.email = email.toLowerCase().trim();
+    const updateData = {};
+    
     if (name) updateData.name = name.trim();
+    if (email) updateData.email = email.toLowerCase().trim();
     if (role) updateData.role = role.trim();
-
-    // Remove undefined values
-    Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
+    if (position) updateData.position = position;
+    if (address) updateData.address = address;
+    
+    // Handle permissions for admin role
+    if (permissions) {
+      try {
+        updateData.permissions = typeof permissions === 'string' ? JSON.parse(permissions) : permissions;
+      } catch (e) {
+        console.error('Error parsing permissions:', e);
+      }
+    }
+    
+    // Handle file upload
+    if (req.file) {
+      updateData.profilePicture = `/uploads/staff-avatars/${req.file.filename}`;
+    }
 
     const staff = await Staff.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
     if (!staff) return res.status(404).json({ error: 'Staff not found' });
     res.json(staff);
   } catch (error) {
+    console.error('Staff update error:', error);
     res.status(400).json({ error: error.message });
   }
 };

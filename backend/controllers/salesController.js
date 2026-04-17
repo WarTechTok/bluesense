@@ -9,14 +9,29 @@ const Sale = require('../models/Sale');
 /**
  * GET /api/admin/sales
  * Get all sales transactions (Admin only)
- * Includes booking or reservation details
+ * Includes booking or reservation details, reference code, and location
  */
 exports.getAllSales = async (req, res) => {
   try {
     const sales = await Sale.find()
-      .populate('booking')
-      .populate('reservation');
-    res.json(sales);
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('reservation', 'room guestName')
+      .sort({ date: -1 });
+    
+    // Format sales with reference code and location
+    const formattedSales = sales.map(sale => ({
+      _id: sale._id,
+      amount: sale.amount,
+      date: sale.date,
+      bookingNumber: sale.bookingNumber || sale.booking?.bookingNumber || 'N/A',
+      referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
+      location: sale.location || sale.booking?.oasis || 'N/A',
+      type: sale.booking ? 'Booking' : 'Reservation',
+      booking: sale.booking,
+      reservation: sale.reservation,
+    }));
+    
+    res.json(formattedSales);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -26,7 +41,7 @@ exports.getAllSales = async (req, res) => {
  * GET /api/admin/sales/daily?date=YYYY-MM-DD
  * Get sales for a specific day
  * Query: date (format: YYYY-MM-DD)
- * Returns: sales array and total for the day
+ * Returns: sales array, reference codes, locations, and total for the day
  */
 exports.getDailySales = async (req, res) => {
   try {
@@ -38,11 +53,25 @@ exports.getDailySales = async (req, res) => {
     const dailySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
     })
-      .populate('booking')
-      .populate('reservation');
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('reservation', 'room guestName')
+      .sort({ date: -1 });
 
-    const total = dailySales.reduce((sum, sale) => sum + sale.amount, 0);
-    res.json({ sales: dailySales, total });
+    // Format sales with reference code and location
+    const formattedSales = dailySales.map(sale => ({
+      _id: sale._id,
+      amount: sale.amount,
+      date: sale.date,
+      bookingNumber: sale.bookingNumber || sale.booking?.bookingNumber || 'N/A',
+      referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
+      location: sale.location || sale.booking?.oasis || 'N/A',
+      type: sale.booking ? 'Booking' : 'Reservation',
+      booking: sale.booking,
+      reservation: sale.reservation,
+    }));
+
+    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    res.json({ sales: formattedSales, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -51,7 +80,7 @@ exports.getDailySales = async (req, res) => {
 /**
  * GET /api/admin/sales/weekly
  * Get sales for the current week (Sunday to current day)
- * Returns: sales array and total for the week
+ * Returns: sales array with reference codes, locations, and total for the week
  */
 exports.getWeeklySales = async (req, res) => {
   try {
@@ -62,11 +91,25 @@ exports.getWeeklySales = async (req, res) => {
     const weeklySales = await Sale.find({
       date: { $gte: startOfWeek }
     })
-      .populate('booking')
-      .populate('reservation');
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('reservation', 'room guestName')
+      .sort({ date: -1 });
 
-    const total = weeklySales.reduce((sum, sale) => sum + sale.amount, 0);
-    res.json({ sales: weeklySales, total });
+    // Format sales with reference code and location
+    const formattedSales = weeklySales.map(sale => ({
+      _id: sale._id,
+      amount: sale.amount,
+      date: sale.date,
+      bookingNumber: sale.bookingNumber || sale.booking?.bookingNumber || 'N/A',
+      referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
+      location: sale.location || sale.booking?.oasis || 'N/A',
+      type: sale.booking ? 'Booking' : 'Reservation',
+      booking: sale.booking,
+      reservation: sale.reservation,
+    }));
+
+    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    res.json({ sales: formattedSales, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -76,7 +119,7 @@ exports.getWeeklySales = async (req, res) => {
  * GET /api/admin/sales/monthly?month=0&year=2026
  * Get sales for a specific month
  * Query: month (0-11, where 0=January), year (e.g., 2026)
- * Returns: sales array and total for the month
+ * Returns: sales array with reference codes, locations, and total for the month
  */
 exports.getMonthlySales = async (req, res) => {
   try {
@@ -87,11 +130,25 @@ exports.getMonthlySales = async (req, res) => {
     const monthlySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
     })
-      .populate('booking')
-      .populate('reservation');
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('reservation', 'room guestName')
+      .sort({ date: -1 });
 
-    const total = monthlySales.reduce((sum, sale) => sum + sale.amount, 0);
-    res.json({ sales: monthlySales, total });
+    // Format sales with reference code and location
+    const formattedSales = monthlySales.map(sale => ({
+      _id: sale._id,
+      amount: sale.amount,
+      date: sale.date,
+      bookingNumber: sale.bookingNumber || sale.booking?.bookingNumber || 'N/A',
+      referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
+      location: sale.location || sale.booking?.oasis || 'N/A',
+      type: sale.booking ? 'Booking' : 'Reservation',
+      booking: sale.booking,
+      reservation: sale.reservation,
+    }));
+
+    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    res.json({ sales: formattedSales, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

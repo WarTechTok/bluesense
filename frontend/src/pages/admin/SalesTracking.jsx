@@ -42,23 +42,22 @@ const SalesTracking = () => {
         let salesList = data.sales || [];
         
         console.log('📋 Sales before sort:', salesList.map(s => ({ 
-          ref: s.booking?.bookingReference, 
+          ref: s.referenceCode, 
+          location: s.location,
           name: s.booking?.customerName,
           amount: s.amount 
         })));
         
-        // Sort sales by booking reference in ascending order
+        // Sort sales by booking number in ascending order (1, 2, 3, 4, 5...)
         salesList.sort((a, b) => {
-          const aRef = a.booking?.bookingReference || '0';
-          const bRef = b.booking?.bookingReference || '0';
-          const aId = parseInt(aRef);
-          const bId = parseInt(bRef);
-          console.log(`Comparing: ${aId} vs ${bId}`);
-          return aId - bId;
+          const aNum = a.bookingNumber === 'N/A' ? Infinity : a.bookingNumber;
+          const bNum = b.bookingNumber === 'N/A' ? Infinity : b.bookingNumber;
+          return aNum - bNum;
         });
         
         console.log('📋 Sales after sort:', salesList.map(s => ({ 
-          ref: s.booking?.bookingReference, 
+          ref: s.referenceCode, 
+          location: s.location,
           name: s.booking?.customerName,
           amount: s.amount 
         })));
@@ -136,6 +135,8 @@ const SalesTracking = () => {
               <thead>
                 <tr>
                   <th>Booking ID</th>
+                  <th>Reference Code</th>
+                  <th>Location</th>
                   <th>Guest Name</th>
                   <th>Amount</th>
                   <th>Date</th>
@@ -144,16 +145,20 @@ const SalesTracking = () => {
               <tbody>
                 {sales.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="no-data">No sales data available</td>
+                    <td colSpan="6" className="no-data">No sales data available</td>
                   </tr>
                 ) : (
                   sales.map((sale, idx) => {
-                    const bookingRef = sale.booking?.bookingReference || 'N/A';
+                    const bookingId = sale.bookingNumber || 'N/A';
+                    const referenceCode = sale.referenceCode || 'N/A';
+                    const location = sale.location || 'N/A';
                     const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
                     
                     return (
                       <tr key={idx}>
-                        <td className="booking-id">{bookingRef}</td>
+                        <td className="booking-id">{bookingId}</td>
+                        <td className="reference-code">{referenceCode}</td>
+                        <td className="location">{location}</td>
                         <td>{customerName}</td>
                         <td className="amount">{formatCurrency(sale.amount || 0)}</td>
                         <td>{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
