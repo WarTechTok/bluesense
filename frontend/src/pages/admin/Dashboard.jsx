@@ -16,8 +16,10 @@ const Dashboard = () => {
     availableRooms: 0,
     maintainanceRooms: 0,
     activeStaff: 0,
-    monthlyRevenue: 0,
     totalRevenue: 0,
+    monthlyRevenue: 0,
+    totalExpenses: 0,
+    monthlyExpenses: 0,
     lowStockItems: 0
   });
   const [loading, setLoading] = useState(true);
@@ -36,22 +38,8 @@ const Dashboard = () => {
       const completedBookings = bookings.filter(b => b.status === 'Completed').length;
       const cancelledBookings = bookings.filter(b => b.status === 'Cancelled').length;
       
-      // Calculate total revenue (all confirmed bookings)
-      const totalRevenue = bookings
-        .filter(b => b.status === 'Confirmed' || b.status === 'Completed')
-        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-      
-      // Calculate monthly revenue (current month)
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
-      const monthlyRevenue = bookings
-        .filter(b => {
-          const bookingDate = new Date(b.bookingDate);
-          return bookingDate.getMonth() === currentMonth && 
-                 bookingDate.getFullYear() === currentYear &&
-                 (b.status === 'Confirmed' || b.status === 'Completed');
-        })
-        .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+      // Fetch dashboard stats (includes revenue and expenses)
+      const dashboardStats = await adminApi.getDashboardStats();
       
       // Fetch rooms
       let rooms = [];
@@ -83,9 +71,11 @@ const Dashboard = () => {
         availableRooms,
         maintainanceRooms,
         activeStaff,
-        monthlyRevenue,
-        totalRevenue,
-        lowStockItems: 0
+        totalRevenue: dashboardStats.totalRevenue || 0,
+        monthlyRevenue: dashboardStats.monthlyRevenue || 0,
+        totalExpenses: dashboardStats.totalExpenses || 0,
+        monthlyExpenses: dashboardStats.monthlyExpenses || 0,
+        lowStockItems: dashboardStats.lowStockItems || 0
       });
       
     } catch (error) {
@@ -123,8 +113,8 @@ const Dashboard = () => {
         <div className="stats-grid">
           <StatCard title="Total Revenue" value={`₱${stats.totalRevenue.toLocaleString()}`} icon="💰" />
           <StatCard title="Monthly Revenue" value={`₱${stats.monthlyRevenue.toLocaleString()}`} icon="📈" />
-          <StatCard title="Total Bookings" value={stats.totalReservations} icon="📅" />
-          <StatCard title="Active Staff" value={stats.activeStaff} icon="👥" />
+          <StatCard title="Total Expenses" value={`₱${stats.totalExpenses.toLocaleString()}`} icon="💸" color="#ef4444" />
+          <StatCard title="Monthly Expenses" value={`₱${stats.monthlyExpenses.toLocaleString()}`} icon="📊" color="#f59e0b" />
         </div>
       </div>
 

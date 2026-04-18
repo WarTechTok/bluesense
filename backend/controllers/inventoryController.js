@@ -37,12 +37,12 @@ exports.getInventoryById = async (req, res) => {
 /**
  * POST /api/admin/inventory
  * Create a new inventory item (Admin only)
- * Body: { item, quantity, unit, lowStockAlert }
+ * Body: { item, quantity, unit, lowStockAlert, arrivalDate, expirationDate }
  * Validation: quantity and lowStockAlert cannot be negative
  */
 exports.createInventoryItem = async (req, res) => {
   try {
-    const { item, quantity, unit, lowStockAlert } = req.body;
+    const { item, quantity, unit, lowStockAlert, price, arrivalDate, expirationDate } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -79,7 +79,16 @@ exports.createInventoryItem = async (req, res) => {
     if (parsedLowStockAlert < 0) {
       return res.status(400).json({ error: 'Low Stock Alert cannot be negative' });
     }
-
+    if (price === undefined || price === null || price === '') {
+      return res.status(400).json({ error: 'Price is required' });
+    }
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice)) {
+      return res.status(400).json({ error: 'Price must be a valid number' });
+    }
+    if (parsedPrice < 0) {
+      return res.status(400).json({ error: 'Price cannot be negative' });
+    }
     // ============================================
     // GENERATE SEQUENTIAL ITEM ID
     // ============================================
@@ -98,7 +107,10 @@ exports.createInventoryItem = async (req, res) => {
       item: item.trim(), 
       quantity: parsedQuantity, 
       unit: unit.trim(), 
-      lowStockAlert: parsedLowStockAlert 
+      lowStockAlert: parsedLowStockAlert,
+      price: parsedPrice,
+      arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
+      expirationDate: expirationDate ? new Date(expirationDate) : null
     });
     await newItem.save();
     res.status(201).json(newItem);

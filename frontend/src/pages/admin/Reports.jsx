@@ -21,26 +21,40 @@ const Reports = () => {
       setLoading(true);
       let data;
 
+      // Auto-set dates if not already set
+      let queryStartDate = startDate;
+      let queryEndDate = endDate;
+
+      if (reportType !== "staff" && (!startDate || !endDate)) {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const startDateStr = firstDayOfMonth.toISOString().split("T")[0];
+        const endDateStr = today.toISOString().split("T")[0];
+        
+        queryStartDate = startDateStr;
+        queryEndDate = endDateStr;
+        setStartDate(startDateStr);
+        setEndDate(endDateStr);
+      }
+
       if (reportType === "sales") {
-        const result = await adminApi.getSalesReport(startDate, endDate);
+        const result = await adminApi.getSalesReport(queryStartDate, queryEndDate);
         console.log("Sales Report Result:", result);
         data = { sales: result.sales || [], totalSales: result.totalSales };
 
         if (data.sales && Array.isArray(data.sales)) {
           data.sales.sort((a, b) => {
-            const aRef = a.booking?.bookingReference || "0";
-            const bRef = b.booking?.bookingReference || "0";
-            const aId = parseInt(aRef);
-            const bId = parseInt(bRef);
-            return aId - bId;
+            const aNum = a.booking?.bookingNumber || 0;
+            const bNum = b.booking?.bookingNumber || 0;
+            return aNum - bNum;
           });
         }
       } else if (reportType === "booking") {
         data = await adminApi.getAllBookings();
 
-        if (startDate && endDate) {
-          const start = new Date(startDate);
-          const end = new Date(endDate);
+        if (queryStartDate && queryEndDate) {
+          const start = new Date(queryStartDate);
+          const end = new Date(queryEndDate);
           data = data.filter((booking) => {
             const bookingDate = new Date(booking.bookingDate);
             return bookingDate >= start && bookingDate <= end;
@@ -49,17 +63,13 @@ const Reports = () => {
 
         if (Array.isArray(data)) {
           data.sort((a, b) => {
-            const aRef = a.bookingReference || "0";
-            const bRef = b.bookingReference || "0";
-            const aId = parseInt(aRef);
-            const bId = parseInt(bRef);
-            return aId - bId;
+            const aNum = a.bookingNumber || 0;
+            const bNum = b.bookingNumber || 0;
+            return aNum - bNum;
           });
         }
       } else if (reportType === "inventory") {
-        data = await adminApi.getInventoryUsageReport(startDate, endDate);
-      } else if (reportType === "staff") {
-        data = await adminApi.getStaffActivityReport();
+        data = await adminApi.getInventoryUsageReport(queryStartDate, queryEndDate);
       }
 
       setReportData(data);
@@ -90,7 +100,8 @@ const Reports = () => {
       filename = `sales-report-${new Date().toISOString().split("T")[0]}.xlsx`;
 
       exportData = exportData.map((row) => ({
-        "Booking ID": row.booking?.bookingReference || "N/A",
+        "Booking ID": row.booking?.bookingNumber || "N/A",
+        "Booking Reference": row.booking?.bookingReference || "N/A",
         "Guest Name": row.booking?.customerName || row.customerName || "N/A",
         Amount: row.amount || 0,
         Date: row.date ? new Date(row.date).toLocaleDateString() : "N/A",
@@ -101,7 +112,8 @@ const Reports = () => {
       filename = `booking-report-${new Date().toISOString().split("T")[0]}.xlsx`;
 
       exportData = exportData.map((row) => ({
-        "Booking ID": row.bookingReference || "N/A",
+        "Booking ID": row.bookingNumber || "N/A",
+        "Booking Reference": row.bookingReference || "N/A",
         "Guest Name": row.customerName || "N/A",
         "Contact No.": row.customerContact || "N/A",
         "Pool/Villa Name": row.oasis || "N/A",
@@ -109,9 +121,6 @@ const Reports = () => {
         "Payment Status": row.paymentStatus || "Pending",
         "Booking Date": row.createdAt
           ? new Date(row.createdAt).toLocaleDateString()
-          : "N/A",
-        "Reservation Date": row.bookingDate
-          ? new Date(row.bookingDate).toLocaleDateString()
           : "N/A",
         "Time Slot": row.session || "N/A",
         "No. of Guests": row.pax || 0,
@@ -134,17 +143,6 @@ const Reports = () => {
         "Item Name": row.item || row.name || "N/A",
         "Total Used": row.totalUsed || 0,
         "Current Stock": row.currentStock || 0,
-      }));
-    } else if (reportType === "staff") {
-      exportData = reportData || [];
-      sheetName = "Staff Activity Report";
-      filename = `staff-report-${new Date().toISOString().split("T")[0]}.xlsx`;
-
-      exportData = exportData.map((row) => ({
-        "Staff Name": row.name || "N/A",
-        Role: row.role || "Staff",
-        Status: row.status || "Active",
-        Activity: row.activityCount || 0,
       }));
     }
 
@@ -196,7 +194,6 @@ const Reports = () => {
               <option value="booking">Booking Report</option>
               <option value="sales">Sales Report</option>
               <option value="inventory">Inventory Usage Report</option>
-              <option value="staff">Staff Activity Report</option>
             </select>
           </div>
 
@@ -291,13 +288,13 @@ const Reports = () => {
                   {reportType === "booking" && (
                     <>
                       <th>Booking ID</th>
+                      <th>Booking Reference</th>
                       <th>Guest Name</th>
                       <th>Contact No.</th>
                       <th>Pool/Villa Name</th>
                       <th>Amount</th>
                       <th>Payment Status</th>
                       <th>Booking Date</th>
-                      <th>Reservation Date</th>
                       <th>Time Slot</th>
                       <th>No. of Guests</th>
                       <th>Total Paid</th>
@@ -308,6 +305,7 @@ const Reports = () => {
                   {reportType === "sales" && (
                     <>
                       <th>Booking ID</th>
+                      <th>Booking Reference</th>
                       <th>Guest Name</th>
                       <th>Amount</th>
                       <th>Date</th>
@@ -320,14 +318,6 @@ const Reports = () => {
                       <th>Current Stock</th>
                     </>
                   )}
-                  {reportType === "staff" && (
-                    <>
-                      <th>Staff Name</th>
-                      <th>Role</th>
-                      <th>Status</th>
-                      <th>Activity</th>
-                    </>
-                  )}
                 </tr>
               </thead>
               <tbody>
@@ -335,7 +325,7 @@ const Reports = () => {
                 (Array.isArray(reportData) && reportData.length === 0) ||
                 (reportData.sales && reportData.sales.length === 0) ? (
                   <tr>
-                    <td colSpan="13" className="no-data">
+                    <td colSpan={reportType === "booking" ? "13" : reportType === "sales" ? "5" : "3"} className="no-data">
                       No data available
                     </td>
                   </tr>
@@ -344,6 +334,9 @@ const Reports = () => {
                     <tr key={idx}>
                       {reportType === "booking" && (
                         <>
+                          <td>
+                            <strong>{row.bookingNumber || "N/A"}</strong>
+                          </td>
                           <td>
                             <strong>{row.bookingReference || "N/A"}</strong>
                           </td>
@@ -363,11 +356,6 @@ const Reports = () => {
                           <td>
                             {row.createdAt
                               ? new Date(row.createdAt).toLocaleDateString()
-                              : "N/A"}
-                          </td>
-                          <td>
-                            {row.bookingDate
-                              ? new Date(row.bookingDate).toLocaleDateString()
                               : "N/A"}
                           </td>
                           <td>{row.session || "N/A"}</td>
@@ -400,6 +388,11 @@ const Reports = () => {
                         <>
                           <td>
                             <strong>
+                              {row.booking?.bookingNumber || "N/A"}
+                            </strong>
+                          </td>
+                          <td>
+                            <strong>
                               {row.booking?.bookingReference || "N/A"}
                             </strong>
                           </td>
@@ -426,20 +419,6 @@ const Reports = () => {
                           <td>{row.item || row.name || "N/A"}</td>
                           <td>{row.totalUsed || 0}</td>
                           <td>{row.currentStock || 0}</td>
-                        </>
-                      )}
-                      {reportType === "staff" && (
-                        <>
-                          <td>{row.name || "N/A"}</td>
-                          <td>{row.role || "Staff"}</td>
-                          <td>
-                            <span
-                              className={`status-badge ${row.status === "active" ? "status-active" : "status-inactive"}`}
-                            >
-                              {row.status || "Active"}
-                            </span>
-                          </td>
-                          <td>{row.activityCount || 0}</td>
                         </>
                       )}
                     </tr>

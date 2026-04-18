@@ -61,7 +61,7 @@ exports.getSalesReport = async (req, res) => {
 
     const sales = await Sale.find(query)
       .populate('reservation')
-      .populate('booking', 'customerName bookingReference totalAmount');
+      .populate('booking', 'bookingNumber bookingReference customerName totalAmount');
     const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
 
     res.json({ sales, totalSales });

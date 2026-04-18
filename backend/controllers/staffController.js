@@ -130,20 +130,6 @@ exports.createStaffAccount = async (req, res) => {
     // Don't return password in response
     res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
   } catch (error) {
-    console.error('❌ Error creating staff:', error.message);e === 'admin' ? null : (position || 'Housekeeper'),
-      address: address || null,
-      permissions: staffPermissions,
-      password: hashedPassword,
-      status: 'Active',
-      profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
-    });
-
-    await staff.save();
-    console.log('✅ Staff created successfully:', staff.staffId);
-    
-    // Don't return password in response
-    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
-  } catch (error) {
     console.error('❌ Error creating staff:', error.message);
     res.status(400).json({ error: error.message });
   }

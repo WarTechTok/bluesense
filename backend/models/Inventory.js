@@ -17,6 +17,9 @@ const InventorySchema = new mongoose.Schema({
   quantity: { type: Number, required: true }, // Current stock quantity
   unit: { type: String }, // Unit of measurement (e.g., "Liters", "Units", "Boxes")
   lowStockAlert: { type: Number, default: 5 }, // Threshold for low stock warnings
+  price: { type: Number, default: 0 }, // Price per unit of the item
+  arrivalDate: { type: Date }, // Date when item arrived/was received
+  expirationDate: { type: Date }, // Date when item expires (optional)
   usageRecords: [{ // Array of usage logs for tracking consumption
     date: { type: Date }, // When the item was used
     usedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Staff' }, // Staff member who used it

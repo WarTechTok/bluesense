@@ -8,7 +8,7 @@
 
 /**
  * Validate Inventory Item
- * @param {Object} formData - { item, quantity, unit, lowStockAlert }
+ * @param {Object} formData - { item, quantity, unit, lowStockAlert, price, arrivalDate, expirationDate }
  * @returns {Object} - { isValid: boolean, error: string }
  */
 export const validateInventoryItem = (formData) => {
@@ -47,6 +47,37 @@ export const validateInventoryItem = (formData) => {
   }
   if (lowStockAlert < 0) {
     return { isValid: false, error: '❌ Low Stock Alert cannot be negative' };
+  }
+
+  // Price validation
+  if (formData.price === '' || formData.price === null) {
+    return { isValid: false, error: '❌ Price is required' };
+  }
+  const price = parseFloat(formData.price);
+  if (isNaN(price)) {
+    return { isValid: false, error: '❌ Price must be a valid number' };
+  }
+  if (price < 0) {
+    return { isValid: false, error: '❌ Price cannot be negative' };
+  }
+
+  // Arrival Date validation (optional but if provided, must be valid)
+  if (formData.arrivalDate && new Date(formData.arrivalDate) instanceof Date && isNaN(new Date(formData.arrivalDate))) {
+    return { isValid: false, error: '❌ Arrival Date must be a valid date' };
+  }
+
+  // Expiration Date validation (optional but if provided, must be valid and after arrival date if both exist)
+  if (formData.expirationDate) {
+    const expDate = new Date(formData.expirationDate);
+    if (!(expDate instanceof Date) || isNaN(expDate)) {
+      return { isValid: false, error: '❌ Expiration Date must be a valid date' };
+    }
+    if (formData.arrivalDate) {
+      const arrivalDate = new Date(formData.arrivalDate);
+      if (expDate < arrivalDate) {
+        return { isValid: false, error: '❌ Expiration Date must be after Arrival Date' };
+      }
+    }
   }
 
   return { isValid: true, error: null };

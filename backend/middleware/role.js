@@ -21,7 +21,13 @@ exports.authenticate = (req, res, next) => {
     // Extract token from Authorization header (format: "Bearer TOKEN")
     const authHeader = req.headers.authorization;
     
+    console.log(`🔐 Auth Check for ${req.method} ${req.path}:`, {
+      hasAuthHeader: !!authHeader,
+      headerValue: authHeader?.substring(0, 30) + '...' || 'NONE'
+    });
+    
     if (!authHeader) {
+      console.error(`❌ AUTH FAILED: No authorization header provided for ${req.method} ${req.path}`);
       return res.status(401).json({ error: 'No authorization header provided' });
     }
     
