@@ -112,7 +112,7 @@ exports.createStaffAccount = async (req, res) => {
     }
 
     const staff = new Staff({
-      staffId: newStaffId,  // Auto-generated sequential ID
+      staffId: newStaffId,
       name: name.trim(),
       email: email.toLowerCase().trim(),
       role: role || 'Staff',
@@ -128,21 +128,18 @@ exports.createStaffAccount = async (req, res) => {
     console.log('✅ Staff created successfully:', staff.staffId);
     
     // Don't return password in response
-    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
-  } catch (error) {
-    console.error('❌ Error creating staff:', error.message);e === 'admin' ? null : (position || 'Housekeeper'),
-      address: address || null,
-      permissions: staffPermissions,
-      password: hashedPassword,
-      status: 'Active',
-      profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
+    res.status(201).json({ 
+      _id: staff._id, 
+      staffId: staff.staffId, 
+      name: staff.name, 
+      email: staff.email, 
+      role: staff.role, 
+      position: staff.position, 
+      address: staff.address, 
+      status: staff.status, 
+      profilePicture: staff.profilePicture, 
+      permissions: staff.permissions 
     });
-
-    await staff.save();
-    console.log('✅ Staff created successfully:', staff.staffId);
-    
-    // Don't return password in response
-    res.status(201).json({ _id: staff._id, staffId: staff.staffId, name: staff.name, email: staff.email, role: staff.role, position: staff.position, address: staff.address, status: staff.status, profilePicture: staff.profilePicture, permissions: staff.permissions });
   } catch (error) {
     console.error('❌ Error creating staff:', error.message);
     res.status(400).json({ error: error.message });

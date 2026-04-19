@@ -1,0 +1,651 @@
+/* ============================================================
+   PoolMonitoring.css — Catherine's Oasis
+   White/blue theme, card-based, aesthetic pool monitoring
+   ============================================================ */
+
+.pm-wrapper {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 32px;
+  box-shadow: 0 2px 16px rgba(2, 132, 199, 0.06);
+}
+
+/* ── Live badge ── */
+.pm-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0284c7;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 40px;
+  letter-spacing: 0.02em;
+}
+
+.pm-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #0284c7;
+  animation: pm-pulse 1.5s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pm-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.4); }
+}
+
+/* ============================================================
+   OASIS SELECTOR
+   ============================================================ */
+
+.pm-selector-header {
+  padding: 32px 32px 20px;
+  text-align: center;
+}
+
+.pm-selector-title-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.pm-selector-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+}
+
+.pm-selector-sub {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Oasis selector cards */
+.pm-oasis-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 0 32px 32px;
+}
+
+.pm-oasis-card {
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  transition: all 0.22s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pm-oasis-card:hover {
+  border-color: #0284c7;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(2, 132, 199, 0.14);
+}
+
+.pm-oasis-card-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+  background: #e0f2fe;
+}
+
+.pm-oasis-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.pm-oasis-card:hover .pm-oasis-card-img {
+  transform: scale(1.05);
+}
+
+.pm-oasis-card-img-fallback {
+  display: none;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  background: #e0f2fe;
+}
+
+.pm-oasis-card-overlay {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.pm-oasis-card-badge {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  color: #0284c7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 40px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid rgba(2, 132, 199, 0.2);
+}
+
+.pm-oasis-card-body {
+  padding: 18px 20px 20px;
+}
+
+.pm-oasis-card-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.pm-oasis-card-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.pm-oasis-card-cta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #0284c7;
+  font-size: 0.83rem;
+  font-weight: 600;
+}
+
+/* ============================================================
+   MONITORING HEADER
+   ============================================================ */
+
+.pm-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pm-header-left { display: flex; flex-direction: column; gap: 6px; }
+
+.pm-oasis-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 40px;
+  padding: 4px 12px 4px 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0284c7;
+  width: fit-content;
+}
+
+.pm-oasis-tag-img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #bae6fd;
+}
+
+.pm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.pm-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pm-switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 40px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pm-switch-btn:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+/* ── Pool image hero strip ── */
+.pm-pool-hero {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  margin: 0 24px 20px;
+  border-radius: 16px;
+  background: #e0f2fe;
+}
+
+.pm-pool-hero-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pm-pool-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+  display: flex;
+  align-items: flex-end;
+  padding: 16px 20px;
+}
+
+.pm-overall-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid;
+  border-radius: 14px;
+  padding: 10px 16px;
+}
+
+.pm-status-icon {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.pm-status-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.pm-status-text {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ── Loading ── */
+.pm-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.pm-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: pm-spin 0.7s linear infinite;
+}
+
+@keyframes pm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   READING CARDS
+   ============================================================ */
+
+.pm-readings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  padding: 0 24px 20px;
+}
+
+.pm-reading-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  transition: box-shadow 0.2s;
+}
+
+.pm-reading-card:hover {
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.08);
+}
+
+.pm-reading-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pm-reading-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.pm-reading-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.pm-reading-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.1;
+}
+
+.pm-reading-value--sm {
+  font-size: 1.15rem;
+}
+
+.pm-reading-range {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.pm-reading-status-dot {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   HISTORY TOGGLE BUTTON
+   ============================================================ */
+
+.pm-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 48px);
+  margin: 0 24px 0;
+  padding: 12px 18px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  color: #475569;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.pm-history-toggle:hover,
+.pm-history-toggle.active {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+/* ============================================================
+   HISTORY / CHART SECTION
+   ============================================================ */
+
+.pm-history {
+  padding: 20px 24px 24px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 16px;
+}
+
+.pm-history-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pm-filter-group,
+.pm-chart-type-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pm-filter-btn,
+.pm-chart-type-btn {
+  padding: 6px 14px;
+  border-radius: 40px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pm-filter-btn:hover,
+.pm-chart-type-btn:hover {
+  border-color: #0284c7;
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.pm-filter-btn.active {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: white;
+}
+
+/* pm-chart-type-btn active is set inline (color per chart type) */
+
+/* No data state */
+.pm-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px dashed #e2e8f0;
+}
+
+/* Chart */
+.pm-chart-wrap {
+  display: flex;
+  gap: 0;
+  height: 200px;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  padding: 20px 16px 36px 50px;
+  position: relative;
+}
+
+.pm-y-axis {
+  position: absolute;
+  left: 0;
+  top: 20px;
+  bottom: 36px;
+  width: 46px;
+}
+
+.pm-y-label {
+  position: absolute;
+  right: 8px;
+  transform: translateY(50%);
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.pm-chart-area {
+  flex: 1;
+  position: relative;
+  height: 100%;
+}
+
+.pm-grid-lines { position: absolute; inset: 0; }
+
+.pm-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.pm-line-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: calc(100% - 24px);
+}
+
+.pm-data-points {
+  position: absolute;
+  inset: 0;
+  height: calc(100% - 24px);
+}
+
+.pm-data-point {
+  position: absolute;
+  transform: translate(-50%, 50%);
+}
+
+.pm-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.pm-data-point:hover .pm-dot {
+  transform: scale(1.6);
+}
+
+.pm-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  white-space: nowrap;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.pm-tooltip strong { font-weight: 700; }
+.pm-tooltip span { opacity: 0.7; }
+
+.pm-data-point:hover .pm-tooltip {
+  display: flex;
+}
+
+.pm-x-axis {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 24px;
+}
+
+.pm-x-label {
+  position: absolute;
+  bottom: 0;
+  transform: translateX(-50%);
+  font-size: 0.65rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 900px) {
+  .pm-readings-grid { grid-template-columns: repeat(2, 1fr); }
+  .pm-oasis-cards { grid-template-columns: 1fr; gap: 14px; }
+}
+
+@media (max-width: 640px) {
+  .pm-selector-header { padding: 24px 20px 16px; }
+  .pm-oasis-cards { padding: 0 20px 24px; }
+  .pm-header { padding: 18px 18px 12px; }
+  .pm-pool-hero { margin: 0 16px 16px; height: 130px; }
+  .pm-readings-grid { padding: 0 16px 16px; grid-template-columns: repeat(2, 1fr); }
+  .pm-history-toggle { width: calc(100% - 32px); margin: 0 16px; }
+  .pm-history { padding: 16px 16px 20px; }
+  .pm-history-controls { flex-direction: column; align-items: flex-start; }
+  .pm-reading-value { font-size: 1.3rem; }
+}
+
+@media (max-width: 400px) {
+  .pm-readings-grid { grid-template-columns: 1fr; }
+}
