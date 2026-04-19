@@ -1,5 +1,5 @@
 // src/components/admin/PoolMonitoring.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { getLatestReading, getHistory } from "../../services/api";
 import "./PoolMonitoring.css";
 
@@ -33,19 +33,15 @@ const PoolMonitoring = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedChart, setSelectedChart] = useState("ph");
 
-  useEffect(() => {
+  // FIXED: Wrap fetchPoolReadings in useCallback to prevent infinite re-renders
+  const fetchPoolReadings = useCallback(async () => {
     if (!selectedOasis) return;
-    fetchPoolReadings();
-    const interval = setInterval(fetchPoolReadings, 30000);
-    return () => clearInterval(interval);
-  }, [selectedOasis]);
-
-  const fetchPoolReadings = async () => {
+    
     setPoolLoading(true);
     try {
       const [latest, history] = await Promise.all([
-        getLatestReading(),
-        getHistory(),
+        getLatestReading(selectedOasis),
+        getHistory(selectedOasis),
       ]);
       setLatestReading(latest);
       setHistoryData(history);
@@ -54,7 +50,15 @@ const PoolMonitoring = () => {
     } finally {
       setPoolLoading(false);
     }
-  };
+  }, [selectedOasis]); // Re-create when selectedOasis changes
+
+  // FIXED: Add fetchPoolReadings to dependency array
+  useEffect(() => {
+    if (!selectedOasis) return;
+    fetchPoolReadings();
+    const interval = setInterval(fetchPoolReadings, 30000);
+    return () => clearInterval(interval);
+  }, [selectedOasis, fetchPoolReadings]); // ← Added fetchPoolReadings
 
   const getFilteredHistory = () => {
     const today = new Date();
@@ -394,6 +398,11 @@ const PoolMonitoring = () => {
         </div>
       )}
 
+      {/* Display which oasis is being monitored */}
+      <div className="pm-oasis-info" style={{ textAlign: "center", marginTop: "8px", fontSize: "12px", color: "#64748b" }}>
+        Currently monitoring: <strong>{activeOasis?.label}</strong>
+      </div>
+
       {/* History toggle */}
       <button
         className={`pm-history-toggle ${showHistory ? "active" : ""}`}
@@ -450,7 +459,7 @@ const PoolMonitoring = () => {
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
               </svg>
-              <p>No readings found for this period</p>
+              <p>No readings found for {activeOasis?.label} during this period</p>
             </div>
           ) : (
             <div className="pm-chart-wrap">

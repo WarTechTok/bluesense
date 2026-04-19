@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getHistory } from "../../services/api";
 
-export function useHistoryData(dateFilter, refreshTrigger = 0) {
+export function useHistoryData(dateFilter, refreshTrigger = 0, oasis = "oasis1") {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
@@ -49,7 +49,8 @@ export function useHistoryData(dateFilter, refreshTrigger = 0) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const rawData = await getHistory();
+        // Fetch history with oasis filter
+        const rawData = await getHistory(oasis);
 
         if (!mounted) return;
 
@@ -72,7 +73,7 @@ export function useHistoryData(dateFilter, refreshTrigger = 0) {
         setData(filtered);
         setLoading(false);
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error fetching history for", oasis, ":", error);
         if (mounted) setLoading(false);
       }
     };
@@ -81,7 +82,7 @@ export function useHistoryData(dateFilter, refreshTrigger = 0) {
     return () => {
       mounted = false;
     };
-  }, [dateFilter, refreshTrigger]);
+  }, [dateFilter, refreshTrigger, oasis]); // Added oasis to dependencies
 
   // ✅ Stable reference — prevents chart re-renders
   const stableData = useMemo(() => data, [data]);

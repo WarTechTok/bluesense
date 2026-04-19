@@ -209,7 +209,6 @@ const createBooking = async (req, res) => {
     }
 
     // Parse booking date correctly as local date (not UTC)
-    // bookingDate comes as "YYYY-MM-DD" from frontend
     let selectedDate;
     if (typeof bookingDate === "string") {
       const [year, month, day] = bookingDate.split("-");
@@ -235,10 +234,8 @@ const createBooking = async (req, res) => {
     // 1. CHECK PACKAGE CAPACITY
     // ============================================
 
-    // 1. CHECK PACKAGE CAPACITY - Allow extra guests up to max
     const packageLimit = PACKAGE_CAPACITY[oasis]?.[packageName];
     if (packageLimit) {
-      // Handle both old format (number) and new format (object)
       const maxAllowed =
         typeof packageLimit === "object" ? packageLimit.max : packageLimit;
       const baseCapacity =
@@ -251,7 +248,6 @@ const createBooking = async (req, res) => {
         });
       }
 
-      // Log extra guests if any (for debugging)
       if (pax > baseCapacity) {
         const extraGuests = pax - baseCapacity;
         console.log(
@@ -289,7 +285,6 @@ const createBooking = async (req, res) => {
       status: { $in: ["Pending", "Confirmed"] },
     });
 
-    // 3a. Check if customer already booked this date
     const customerExistingBooking = existingBookings.find(
       (b) => b.customerEmail === customerEmail,
     );
@@ -302,7 +297,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 3b. Check total bookings per day limit
     if (existingBookings.length >= OASIS_CONFIG[oasis].maxBookingsPerDay) {
       return res.status(400).json({
         success: false,
@@ -310,7 +304,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 3c. Check total pax per day limit
     const totalPaxForDay = existingBookings.reduce((sum, b) => sum + b.pax, 0);
     if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
       return res.status(400).json({
@@ -323,8 +316,6 @@ const createBooking = async (req, res) => {
     // 4. CHECK SESSION-SPECIFIC AVAILABILITY
     // ============================================
 
-    // IMPORTANT: Sessions are shared across ALL packages for an oasis
-    // If a session is booked for any package, that session is unavailable
     console.log(`🔍 Checking if ${session} is available on ${bookingDate}`);
     console.log(
       `   Date range: ${start.toISOString()} to ${end.toISOString()}`,
@@ -388,7 +379,6 @@ const createBooking = async (req, res) => {
     // 7. CHECK DATE ADVANCE LIMITS
     // ============================================
 
-    // 7a. Max 3 months advance
     const maxAdvanceDate = new Date();
     maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
 
@@ -399,7 +389,6 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // 7b. Min 1 day advance
     const minAdvanceDate = new Date();
     minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
     minAdvanceDate.setHours(0, 0, 0, 0);
@@ -415,9 +404,9 @@ const createBooking = async (req, res) => {
     // CREATE BOOKING - ALL CHECKS PASSED
     // ============================================
 
-    // Auto-mark as paid if payment method is Cash
-    const paymentStatusForBooking =
-      paymentMethod === "Cash" ? "Paid" : "Pending";
+    // FIXED: All payments start as Pending - no auto-confirmation
+    // Staff must verify payment proof before confirming
+    const paymentStatusForBooking = "Pending";
 
     // Generate unique booking reference
     let bookingReference;
@@ -455,10 +444,7 @@ const createBooking = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message:
-        paymentMethod === "Cash"
-          ? "Booking submitted successfully. Payment marked as paid."
-          : "Booking submitted successfully. Please complete your downpayment and upload proof.",
+      message: "Booking submitted successfully. Please wait for staff to verify your payment and confirm your booking.",
       booking: newBooking,
     });
   } catch (error) {
@@ -667,7 +653,7 @@ const deleteBooking = async (req, res) => {
 
 const getBookedDatesWithSessions = async (req, res) => {
   try {
-    const { oasis, package: packageName } = req.query;
+    const { oasis, package: packageName, email } = req.query;
 
     if (!oasis) {
       return res.status(400).json({
@@ -676,7 +662,6 @@ const getBookedDatesWithSessions = async (req, res) => {
       });
     }
 
-    // Helper to convert date to YYYY-MM-DD using local date (not UTC/ISO)
     const getLocalDateString = (date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -684,23 +669,20 @@ const getBookedDatesWithSessions = async (req, res) => {
       return `${year}-${month}-${day}`;
     };
 
-    // Fetch CONFIRMED bookings for this OASIS across ALL packages (payment verified)
-    // Sessions are shared across packages - if Day is booked on any package, it's booked
+    // Fetch ALL bookings for this OASIS (Confirmed AND Pending)
+    // This ensures users can see their pending bookings as already booked
     const bookings = await Booking.find({
       oasis,
-      status: "Confirmed",
-      paymentStatus: "Paid",
+      status: { $in: ["Confirmed", "Pending"] },
     }).lean();
 
-    console.log(
-      `📅 Found ${bookings.length} confirmed bookings for ${oasis} (across ALL packages)`,
-    );
+    console.log(`📅 Found ${bookings.length} bookings for ${oasis} (Confirmed + Pending)`);
 
     // Group bookings by date and session
     const bookedDatesMap = {};
 
     bookings.forEach((booking) => {
-      const dateStr = getLocalDateString(booking.bookingDate); // Use local date, not UTC
+      const dateStr = getLocalDateString(booking.bookingDate);
 
       if (!bookedDatesMap[dateStr]) {
         bookedDatesMap[dateStr] = {
@@ -708,22 +690,27 @@ const getBookedDatesWithSessions = async (req, res) => {
           Day: { booked: false, count: 0, names: [] },
           Night: { booked: false, count: 0, names: [] },
           "22hrs": { booked: false, count: 0, names: [] },
+          userHasBooking: false,
+          userBookingSession: null,
         };
       }
 
-      // Make sure session is valid before accessing
-      const session = booking.session || "Day"; // Default to Day if not set
+      const session = booking.session || "Day";
       if (bookedDatesMap[dateStr][session]) {
         const sessionInfo = bookedDatesMap[dateStr][session];
         sessionInfo.count += 1;
         sessionInfo.names.push(booking.customerName);
-        console.log(
-          `  📍 ${dateStr} ${session}: +1 booking (total: ${sessionInfo.count})`,
-        );
+        
+        // Check if this booking belongs to the current user
+        if (email && booking.customerEmail === email) {
+          bookedDatesMap[dateStr].userHasBooking = true;
+          bookedDatesMap[dateStr].userBookingSession = session;
+          console.log(`✅ User ${email} has booking on ${dateStr} for ${session} session`);
+        }
       }
     });
 
-    // Process each date to determine availability
+    // Process each date to determine availability for new bookings
     Object.keys(bookedDatesMap).forEach((dateStr) => {
       const dayInfo = bookedDatesMap[dateStr];
       const sessionConfig = OASIS_CONFIG[oasis]?.sessions;
@@ -733,18 +720,14 @@ const getBookedDatesWithSessions = async (req, res) => {
         return;
       }
 
-      // Mark as booked if ANY booking exists (not just when threshold reached)
-      // This shows even a single booking on the calendar
       if (dayInfo["22hrs"].count > 0) {
         dayInfo["22hrs"].booked = true;
         dayInfo.Day.booked = true;
         dayInfo.Night.booked = true;
       } else {
-        // Even 1 booking marks the session as booked
         if (dayInfo.Day.count > 0) {
           dayInfo.Day.booked = true;
         }
-
         if (dayInfo.Night.count > 0) {
           dayInfo.Night.booked = true;
         }
@@ -879,6 +862,94 @@ const verifyPayment = async (req, res) => {
   }
 };
 
+// ============================================
+// CANCEL BOOKING - Customer cancels their booking
+// ============================================
+
+const cancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason, isEmergency } = req.body;
+    const proofFile = req.file;
+    
+    const booking = await Booking.findById(id);
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found. Please refresh and try again."
+      });
+    }
+    
+    // Check if booking belongs to this user
+    if (booking.customerEmail !== req.user.email) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only cancel your own bookings."
+      });
+    }
+    
+    // Check if booking can be cancelled
+    if (booking.status === 'Cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: "This booking has already been cancelled."
+      });
+    }
+    
+    if (booking.status === 'Completed') {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot cancel a completed booking."
+      });
+    }
+    
+    // Update booking
+    booking.status = 'Cancelled';
+    booking.cancellationReason = isEmergency === 'true' ? 'emergency' : 'user_cancelled';
+    booking.cancellationNote = reason || 'User requested cancellation';
+    booking.cancelledAt = new Date();
+    booking.cancelledBy = req.user.email;
+    
+    if (isEmergency === 'true') {
+      booking.refundRequested = true;
+      booking.refundStatus = 'pending';
+      booking.refundReason = reason;
+      if (proofFile) {
+        booking.refundProof = `/uploads/refund-proofs/${proofFile.filename}`;
+      }
+    }
+    
+    await booking.save();
+    
+    // Delete associated sale record if exists
+    const existingSale = await Sale.findOne({ booking: id });
+    if (existingSale) {
+      await Sale.findOneAndDelete({ booking: id });
+    }
+    
+    let message = "";
+    if (isEmergency === 'true') {
+      message = "✅ Your cancellation has been submitted successfully. Your refund request is now pending review. Our team will get back to you within 3-5 business days.";
+    } else {
+      message = "✅ Your booking has been cancelled. Please note that the downpayment is non-refundable.";
+    }
+    
+    res.json({
+      success: true,
+      message: message,
+      booking
+    });
+    
+  } catch (error) {
+    console.error("Cancel booking error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong. Please try again later."
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getAllBookings,
@@ -889,4 +960,5 @@ module.exports = {
   deleteBooking,
   getBookedDatesWithSessions,
   verifyPayment,
+  cancelBooking
 };

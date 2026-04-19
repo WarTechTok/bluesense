@@ -105,6 +105,60 @@ const bookingSchema = new mongoose.Schema({
   paymentVerifiedAt: {
     type: Date,
     default: null
+  },
+  
+  // ============================================
+  // CANCELLATION & REFUND FIELDS (NEW)
+  // ============================================
+  
+  // Cancellation details
+  cancellationReason: {
+    type: String,
+    enum: ['user_cancelled', 'emergency', 'admin_cancelled'],
+    default: null
+  },
+  cancellationNote: {
+    type: String,
+    default: ''
+  },
+  cancelledAt: {
+    type: Date,
+    default: null
+  },
+  cancelledBy: {
+    type: String,
+    default: null
+  },
+  
+  // Refund details
+  refundRequested: {
+    type: Boolean,
+    default: false
+  },
+  refundStatus: {
+    type: String,
+    enum: ['none', 'pending', 'approved', 'rejected'],
+    default: 'none'
+  },
+  refundReason: {
+    type: String,
+    default: ''
+  },
+  refundProof: {
+    type: String,  // URL to uploaded proof image
+    default: null
+  },
+  refundReviewedAt: {
+    type: Date,
+    default: null
+  },
+  refundReviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
+  },
+  refundAdminNotes: {
+    type: String,
+    default: ''
   }
   
 }, { timestamps: true });

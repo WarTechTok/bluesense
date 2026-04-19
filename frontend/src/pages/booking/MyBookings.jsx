@@ -3,60 +3,70 @@
 // MY BOOKINGS - Shows logged-in user's bookings
 // ============================================
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Navbar from '../../components/navbar/Navbar';
-import './MyBookings.css';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import Navbar from "../../components/navbar/Navbar";
+import "./MyBookings.css";
 
 const MyBookings = () => {
+  const [proofFile, setProofFile] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
+  const proofInputRef = useRef(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [isEmergency, setIsEmergency] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+
     if (!token) {
-      navigate('/login?redirect=/my-bookings');
+      navigate("/login?redirect=/my-bookings");
       return;
     }
-    
+
     if (user.email) {
       fetchBookings(user.email);
     } else {
-      setError('User email not found. Please login again.');
+      setError("User email not found. Please login again.");
       setLoading(false);
     }
   }, [navigate]);
 
   const fetchBookings = async (customerEmail) => {
     setLoading(true);
-    setError('');
-    
+    setError("");
+
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8080/api/bookings/customer/${customerEmail}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `http://localhost:8080/api/bookings/customer/${customerEmail}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to fetch bookings');
+        throw new Error("Failed to fetch bookings");
       }
 
       const data = await response.json();
       setBookings(data);
-      
+
       if (data.length === 0) {
-        setError('No bookings found for your account');
+        setError("No bookings found for your account");
       }
     } catch (err) {
-      setError(err.message || 'Error fetching bookings');
+      setError(err.message || "Error fetching bookings");
       setBookings([]);
     } finally {
       setLoading(false);
@@ -73,11 +83,111 @@ const MyBookings = () => {
     setSelectedBooking(null);
   };
 
+  const handleCancelClick = (booking) => {
+    setSelectedBooking(booking);
+    setCancelReason("");
+    setIsEmergency(false);
+    setProofFile(null);
+    setProofPreview(null);
+    setShowCancelModal(true);
+    setShowModal(false);
+  };
+
+  const handleProofChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProofFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProofPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeProof = () => {
+    setProofFile(null);
+    setProofPreview(null);
+    if (proofInputRef.current) {
+      proofInputRef.current.value = "";
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert("Please provide a reason for cancellation");
+      return;
+    }
+
+    if (isEmergency && !proofFile) {
+      alert("Please upload proof for your emergency refund request");
+      return;
+    }
+
+    setCancelling(true);
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+      formData.append("reason", cancelReason);
+      formData.append("isEmergency", isEmergency ? "true" : "false");
+      if (proofFile) {
+        formData.append("proof", proofFile);
+      }
+
+      const response = await fetch(
+        `http://localhost:8080/api/bookings/${selectedBooking._id}/cancel`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Show success message based on cancellation type
+        if (isEmergency) {
+          alert(
+            "✅ Cancellation Submitted!\n\nYour refund request will be reviewed within 3-5 business days.",
+          );
+        } else {
+          alert(
+            "✅ Booking Cancelled!\n\nPlease note that the downpayment is non-refundable.",
+          );
+        }
+
+        setShowCancelModal(false);
+        // Reset form
+        setCancelReason("");
+        setIsEmergency(false);
+        setProofFile(null);
+        setProofPreview(null);
+        // Refresh bookings
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        fetchBookings(user.email);
+      } else {
+        alert(data.message || "Failed to cancel booking");
+      }
+    } catch (error) {
+      console.error("Cancel error:", error);
+      alert(
+        "Unable to cancel booking. Please check your connection and try again.",
+      );
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
@@ -91,23 +201,27 @@ const MyBookings = () => {
 
   const getBalance = (booking) => {
     if (!booking) return 0;
-    if (booking.paymentType === 'fullpayment') return 0;
+    if (booking.paymentType === "fullpayment") return 0;
     return (booking.totalAmount || 0) - (booking.downpayment || 0);
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Pending':
-        return '#f59e0b';
-      case 'Confirmed':
-        return '#10b981';
-      case 'Cancelled':
-        return '#ef4444';
-      case 'Completed':
-        return '#0284c7';
+      case "Pending":
+        return "#f59e0b";
+      case "Confirmed":
+        return "#10b981";
+      case "Cancelled":
+        return "#ef4444";
+      case "Completed":
+        return "#0284c7";
       default:
-        return '#64748b';
+        return "#64748b";
     }
+  };
+
+  const canCancel = (booking) => {
+    return booking.status === "Pending" || booking.status === "Confirmed";
   };
 
   return (
@@ -141,9 +255,11 @@ const MyBookings = () => {
                         <h3>{booking.oasis}</h3>
                         <p className="package-name">{booking.package}</p>
                       </div>
-                      <span 
+                      <span
                         className="status-badge"
-                        style={{ backgroundColor: getStatusColor(booking.status) }}
+                        style={{
+                          backgroundColor: getStatusColor(booking.status),
+                        }}
                       >
                         {booking.status}
                       </span>
@@ -152,35 +268,60 @@ const MyBookings = () => {
                     <div className="booking-card-body">
                       <div className="info-row">
                         <span className="label">Date:</span>
-                        <span className="value">{formatDate(booking.bookingDate)}</span>
+                        <span className="value">
+                          {formatDate(booking.bookingDate)}
+                        </span>
                       </div>
                       <div className="info-row">
                         <span className="label">Guests:</span>
                         <span className="value">{booking.pax} persons</span>
                       </div>
                       <div className="info-row">
-                        <span className="label">{booking.paymentType === 'fullpayment' ? 'Total Amount' : 'Down Payment'}:</span>
-                        <span className="value">₱{(booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}</span>
+                        <span className="label">
+                          {booking.paymentType === "fullpayment"
+                            ? "Total Amount"
+                            : "Down Payment"}
+                          :
+                        </span>
+                        <span className="value">
+                          ₱
+                          {(booking.paymentType === "fullpayment"
+                            ? booking.totalAmount
+                            : booking.downpayment
+                          )?.toLocaleString()}
+                        </span>
                       </div>
                       <div className="info-row">
                         <span className="label">Payment Status:</span>
-                        <span className="value">{booking.paymentStatus || 'Pending'}</span>
+                        <span className="value">
+                          {booking.paymentStatus || "Pending"}
+                        </span>
                       </div>
                       {getBalance(booking) > 0 && (
                         <div className="info-row balance-row">
                           <span className="label">Balance Due:</span>
-                          <span className="value balance-due">{formatCurrency(getBalance(booking))}</span>
+                          <span className="value balance-due">
+                            {formatCurrency(getBalance(booking))}
+                          </span>
                         </div>
                       )}
                     </div>
 
                     <div className="booking-card-footer">
-                      <button 
+                      <button
                         className="btn-view"
                         onClick={() => handleViewDetails(booking)}
                       >
                         View Details
                       </button>
+                      {canCancel(booking) && (
+                        <button
+                          className="btn-cancel"
+                          onClick={() => handleCancelClick(booking)}
+                        >
+                          Cancel Booking
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -191,10 +332,7 @@ const MyBookings = () => {
               <div className="empty-state">
                 <i className="fas fa-calendar-alt"></i>
                 <p>No bookings found.</p>
-                <button 
-                  className="btn-book-now"
-                  onClick={() => navigate('/')}
-                >
+                <button className="btn-book-now" onClick={() => navigate("/")}>
                   Book Your First Stay
                 </button>
               </div>
@@ -209,7 +347,9 @@ const MyBookings = () => {
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Booking Details</h3>
-              <button className="modal-close" onClick={handleCloseModal}>✕</button>
+              <button className="modal-close" onClick={handleCloseModal}>
+                ✕
+              </button>
             </div>
 
             <div className="modal-body">
@@ -219,15 +359,21 @@ const MyBookings = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="label">Full Name</span>
-                    <span className="value">{selectedBooking.customerName}</span>
+                    <span className="value">
+                      {selectedBooking.customerName}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Email Address</span>
-                    <span className="value">{selectedBooking.customerEmail}</span>
+                    <span className="value">
+                      {selectedBooking.customerEmail}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Contact Number</span>
-                    <span className="value">{selectedBooking.customerContact}</span>
+                    <span className="value">
+                      {selectedBooking.customerContact}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -238,7 +384,18 @@ const MyBookings = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="label">Booking Reference</span>
-                    <span className="value" style={{ fontWeight: 'bold', fontSize: '1.1em', color: '#00a8e8' }}>{selectedBooking.bookingReference || selectedBooking._id?.slice(-6).toUpperCase() || 'N/A'}</span>
+                    <span
+                      className="value"
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "1.1em",
+                        color: "#00a8e8",
+                      }}
+                    >
+                      {selectedBooking.bookingReference ||
+                        selectedBooking._id?.slice(-6).toUpperCase() ||
+                        "N/A"}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Venue</span>
@@ -250,7 +407,9 @@ const MyBookings = () => {
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Date</span>
-                    <span className="value">{formatDate(selectedBooking.bookingDate)}</span>
+                    <span className="value">
+                      {formatDate(selectedBooking.bookingDate)}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Number of Guests</span>
@@ -264,31 +423,55 @@ const MyBookings = () => {
                 <h4>Payment Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">{selectedBooking.paymentType === 'fullpayment' ? 'Total Amount' : 'Down Payment'}</span>
-                    <span className="value">₱{(selectedBooking.paymentType === 'fullpayment' ? selectedBooking.totalAmount : selectedBooking.downpayment)?.toLocaleString()}</span>
+                    <span className="label">
+                      {selectedBooking.paymentType === "fullpayment"
+                        ? "Total Amount"
+                        : "Down Payment"}
+                    </span>
+                    <span className="value">
+                      ₱
+                      {(selectedBooking.paymentType === "fullpayment"
+                        ? selectedBooking.totalAmount
+                        : selectedBooking.downpayment
+                      )?.toLocaleString()}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Method</span>
-                    <span className="value">{selectedBooking.paymentMethod || 'Cash'}</span>
+                    <span className="value">
+                      {selectedBooking.paymentMethod || "Cash"}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Type</span>
-                    <span className="value">{selectedBooking.paymentType === 'fullpayment' ? '✓ Full Payment' : 'Downpayment (30%)'}</span>
+                    <span className="value">
+                      {selectedBooking.paymentType === "fullpayment"
+                        ? "✓ Full Payment"
+                        : "Downpayment (30%)"}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Status</span>
-                    <span className="value">{selectedBooking.paymentStatus || 'Pending'}</span>
+                    <span className="value">
+                      {selectedBooking.paymentStatus || "Pending"}
+                    </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Status</span>
-                    <span className="value" style={{ color: getStatusColor(selectedBooking.status) }}>
+                    <span
+                      className="value"
+                      style={{ color: getStatusColor(selectedBooking.status) }}
+                    >
                       {selectedBooking.status}
                     </span>
                   </div>
                   {getBalance(selectedBooking) > 0 && (
                     <div className="detail-item">
                       <span className="label">Balance Due</span>
-                      <span className="value" style={{ fontWeight: 'bold', color: '#f59e0b' }}>
+                      <span
+                        className="value"
+                        style={{ fontWeight: "bold", color: "#f59e0b" }}
+                      >
                         {formatCurrency(getBalance(selectedBooking))}
                       </span>
                     </div>
@@ -300,14 +483,159 @@ const MyBookings = () => {
               {selectedBooking.specialRequests && (
                 <div className="detail-section">
                   <h4>Special Requests</h4>
-                  <p className="special-request">{selectedBooking.specialRequests}</p>
+                  <p className="special-request">
+                    {selectedBooking.specialRequests}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && selectedBooking && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowCancelModal(false)}
+        >
+          <div
+            className="modal-container cancel-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h3>Cancel Booking</h3>
+              <button
+                className="modal-close"
+                onClick={() => setShowCancelModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="warning-box">
+                <i className="fas fa-exclamation-triangle"></i>
+                <p>
+                  <strong>⚠️ Important Notice:</strong> Downpayment is{" "}
+                  <strong>NON-REFUNDABLE</strong> for regular cancellations.
+                </p>
+              </div>
+
+              <div className="cancel-options">
+                <label className="cancel-option">
+                  <input
+                    type="radio"
+                    name="cancelType"
+                    checked={!isEmergency}
+                    onChange={() => setIsEmergency(false)}
+                  />
+                  <div>
+                    <strong>Regular Cancellation</strong>
+                    <p>
+                      Downpayment is non-refundable. No refund will be issued.
+                    </p>
+                  </div>
+                </label>
+
+                <label className="cancel-option">
+                  <input
+                    type="radio"
+                    name="cancelType"
+                    checked={isEmergency}
+                    onChange={() => setIsEmergency(true)}
+                  />
+                  <div>
+                    <strong>
+                      Emergency Cancellation (with Refund Request)
+                    </strong>
+                    <p>
+                      For emergencies like fire, flood, medical emergencies.
+                      Refund will be reviewed.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="form-group">
+                <label>Reason for cancellation:</label>
+                <textarea
+                  rows="3"
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder={
+                    isEmergency
+                      ? "Please describe the emergency situation..."
+                      : "Please tell us why you're cancelling..."
+                  }
+                  className="cancel-reason-input"
+                />
+              </div>
+
+              {/* File Upload for Proof - Only show for Emergency */}
+              {isEmergency && (
+                <div className="form-group proof-upload">
+                  <label>Upload Proof (Required for Refund Request):</label>
+                  <p className="proof-help-text">
+                    Please upload a photo of the emergency situation (fire,
+                    flood, medical certificate, etc.)
+                  </p>
+
+                  {/* Hidden file input */}
+                  <input
+                    type="file"
+                    ref={proofInputRef}
+                    onChange={handleProofChange}
+                    accept="image/jpeg,image/png,image/jpg,image/gif"
+                    className="proof-file-input-hidden"
+                    id="proof-file-input"
+                  />
+
+                  {/* Icon button to trigger file upload */}
+                  <label
+                    htmlFor="proof-file-input"
+                    className="proof-upload-btn"
+                  >
+                    <i className="fas fa-camera"></i>
+                    <span>{proofFile ? "Change Photo" : "Upload Photo"}</span>
+                  </label>
+
+                  {proofFile && (
+                    <div className="proof-file-name">
+                      <i className="fas fa-image"></i>
+                      <span>{proofFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={removeProof}
+                        className="remove-proof-icon"
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  )}
+
+                  {proofPreview && (
+                    <div className="proof-preview-mini">
+                      <img src={proofPreview} alt="Proof preview" />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             <div className="modal-footer">
-              <button className="btn-close-modal" onClick={handleCloseModal}>
-                Close
+              <button
+                className="btn-secondary"
+                onClick={() => setShowCancelModal(false)}
+              >
+                Go Back
+              </button>
+              <button
+                className="btn-danger"
+                onClick={handleConfirmCancel}
+                disabled={cancelling || (isEmergency && !proofFile)}
+              >
+                {cancelling ? "Processing..." : "Confirm Cancellation"}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 /* src/pages/booking/MyBookings.css */
 /* ============================================ */
-/* MY BOOKINGS - Consistent with Home page design */
+/* MY BOOKINGS - Minimalist Design */
 /* ============================================ */
 
 .my-bookings-page {
@@ -165,14 +165,157 @@
 .booking-card-footer {
   padding: 16px 20px 20px;
   border-top: 1px solid #e2e8f0;
+  display: flex;
+  gap: 12px;
 }
 
+/* ============================================ */
+/* MINIMALIST BUTTON STYLES */
+/* ============================================ */
+
+/* View Details Button - Outlined Minimal */
 .btn-view {
-  width: 100%;
-  padding: 10px;
+  flex: 1;
   background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 8px 12px;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-view:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+/* Cancel Button - Minimal Outline */
+.btn-cancel {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #fee2e2;
+  padding: 10px 12px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-cancel:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Modal Cancel Button */
+.btn-cancel-modal {
+  background: transparent;
+  border: 1px solid #fee2e2;
+  padding: 10px 20px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-cancel-modal:hover {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+
+/* Close Modal Button */
+.btn-close-modal {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-close-modal:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Danger Button (Confirm Cancellation) */
+.btn-danger {
+  background: #ef4444;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.btn-danger:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Secondary Button (Go Back) */
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 10px 24px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+.btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+/* Book Now Button */
+.btn-book-now {
+  padding: 10px 28px;
   background: #0284c7;
   color: white;
+  border: none;
   border-radius: 40px;
   font-size: 0.85rem;
   font-weight: 500;
@@ -180,8 +323,8 @@
   transition: all 0.3s ease;
 }
 
-.btn-view:hover {
-  color: white;
+.btn-book-now:hover {
+  background: #0369a1;
   transform: translateY(-2px);
 }
 
@@ -206,26 +349,8 @@
   margin: 0 0 20px;
 }
 
-.btn-book-now {
-  padding: 10px 28px;
-  background: #0284c7;
-  color: white;
-  border: none;
-  border-radius: 40px;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-book-now:hover {
-  background: #0369a1;
-  transform: translateY(-2px);
-}
-
-
 /* ============================================ */
-/* MODAL STYLES - Consistent with Home page */
+/* MODAL STYLES */
 /* ============================================ */
 
 .modal-overlay {
@@ -294,6 +419,18 @@
   flex: 1;
 }
 
+
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: white;
+}
+
+/* Detail Sections */
 .detail-section {
   margin-bottom: 24px;
 }
@@ -344,27 +481,291 @@
   border: 1px solid #e2e8f0;
 }
 
-.modal-footer {
-  display: none;
+/* Cancel Modal Styles */
+.cancel-modal {
+  max-width: 500px;
 }
 
-.btn-close-modal {
-  padding: 10px 28px;
-  background: #0284c7;
-  color: white;
-  border: none;
-  border-radius: 40px;
-  font-size: 0.85rem;
-  font-weight: 500;
+.warning-box {
+  background: #fef3c7;
+  border: 1px solid #fde047;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.warning-box i {
+  color: #f59e0b;
+  font-size: 20px;
+}
+
+.warning-box p {
+  margin: 0;
+  color: #92400e;
+  font-size: 14px;
+}
+
+.cancel-options {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.cancel-option {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.btn-close-modal:hover {
-  background: #0369a1;
-  transform: translateY(-2px);
+.cancel-option:hover {
+  border-color: #ef4444;
+  background: #fef2f2;
 }
 
+.cancel-option input[type="radio"] {
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.cancel-option div {
+  flex: 1;
+}
+
+.cancel-option strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #1e293b;
+}
+
+.cancel-option p {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.cancel-reason-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.cancel-reason-input:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+/* Proof Upload */
+.proof-upload {
+  margin-top: 8px;
+}
+
+.proof-help-text {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 4px 0 10px;
+}
+
+.proof-file-input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: white;
+  cursor: pointer;
+}
+
+.proof-file-input:hover {
+  border-color: #0284c7;
+}
+
+.proof-preview {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.proof-preview img {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 6px;
+  margin-bottom: 6px;
+}
+
+.remove-proof-btn {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================ */
+/* MINIMALIST FILE UPLOAD BUTTON */
+/* ============================================ */
+
+.proof-upload {
+  margin-top: 16px;
+}
+
+.proof-help-text {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 4px 0 12px;
+}
+
+/* Hidden file input */
+.proof-file-input-hidden {
+  display: none;
+}
+
+/* Icon button for upload */
+.proof-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 40px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.proof-upload-btn:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+.proof-upload-btn i {
+  font-size: 0.85rem;
+}
+
+/* File name display */
+.proof-file-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #f8fafc;
+  border-radius: 40px;
+  font-size: 0.7rem;
+  color: #1e293b;
+  margin-top: 10px;
+}
+
+.proof-file-name i {
+  color: #10b981;
+  font-size: 0.7rem;
+}
+
+.remove-proof-icon {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.remove-proof-icon:hover {
+  background: #fee2e2;
+}
+
+/* Mini preview */
+.proof-preview-mini {
+  margin-top: 10px;
+  display: inline-block;
+}
+
+.proof-preview-mini img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.proof-preview-mini img:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.remove-proof-btn:hover {
+  background: #fecaca;
+}
+
+.btn-primary, .btn-danger {
+  background: #0284c7;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary:hover, .btn-danger:hover:not(:disabled) {
+  background: #0369a1;
+  transform: translateY(-1px);
+}
+
+.btn-view {
+  flex: 1;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-view:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+
+/* Animations */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -395,6 +796,14 @@
     gap: 20px;
   }
   
+  .booking-card-footer {
+    flex-direction: column;
+  }
+  
+  .btn-view, .btn-cancel {
+    width: 100%;
+  }
+  
   .detail-grid {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -414,5 +823,15 @@
   
   .modal-footer {
     padding: 12px 20px;
+    flex-direction: column;
+  }
+  
+  .btn-cancel-modal, .btn-close-modal, .btn-danger, .btn-secondary {
+    width: 100%;
+    margin: 4px 0;
+  }
+  
+  .cancel-option {
+    flex-direction: column;
   }
 }

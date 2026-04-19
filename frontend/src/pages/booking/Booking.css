@@ -313,7 +313,19 @@
 /* ============================================ */
 
 .form-group {
+  position: relative;
   margin-bottom: 20px;
+}
+
+.form-group i {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+  z-index: 1;
+  pointer-events: none;
 }
 
 .form-group label {
@@ -337,6 +349,13 @@
   border-radius: 12px;
   font-size: 0.9rem;
   transition: all 0.3s ease;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding-left: 40px !important;
+  padding-right: 14px !important;
 }
 
 .form-group input:focus,
@@ -2033,6 +2052,29 @@
   transform: none;
   opacity: 0.6;
 }
+
+/* Disabled date styling */
+.react-calendar__tile:disabled,
+.react-calendar__tile.disabled-date {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.react-calendar__tile:disabled:hover,
+.react-calendar__tile.disabled-date:hover {
+  background-color: #f3f4f6;
+  cursor: not-allowed;
+}
+
+/* Optional: Style for today's date even when disabled */
+.react-calendar__tile--now.disabled-date {
+  background-color: #e5e7eb;
+  color: #9ca3af;
+}
+
+
 
 /* Responsive */
 @media (max-width: 640px) {

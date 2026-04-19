@@ -10,6 +10,18 @@ import SessionSelector from '../../components/booking/SessionSelector';
 function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage, onSessionSelect, selectedSession }) {
   const [bookedSessions, setBookedSessions] = useState({});
 
+  // Get logged-in user email
+  const loggedInUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const currentUserEmail = loggedInUser.email || '';
+
+  // Helper function to get tomorrow's date (disables today and past dates)
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow;
+  };
+
   // Fetch booked sessions for selected date
   useEffect(() => {
     if (!formData.reservationDate || !selectedOasis || !selectedPackage) {
@@ -20,11 +32,16 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
     const fetchBookedSessions = async () => {
       try {
         const backendUrl = "http://localhost:8080";
-        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}`;
+        // FIXED: Add email parameter to the URL
+        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}&email=${encodeURIComponent(currentUserEmail)}`;
+        
+        console.log('📅 Fetching booked sessions from:', url);
         
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
+          console.log('📅 Booked dates response:', data);
+          
           if (data.success && data.bookedDates) {
             const dateStr = formData.reservationDate;
             const dateBookings = data.bookedDates[dateStr] || {};
@@ -35,6 +52,12 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
             if (dateBookings.Night?.booked) bookedSessionData.Night = true;
             if (dateBookings['22hrs']?.booked) bookedSessionData['22hrs'] = true;
             
+            // Also track if user has a booking on this date
+            if (dateBookings.userHasBooking) {
+              bookedSessionData.userHasBooking = true;
+            }
+            
+            console.log('📅 Booked sessions for this date:', bookedSessionData);
             setBookedSessions(bookedSessionData);
           }
         }
@@ -44,7 +67,7 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
     };
 
     fetchBookedSessions();
-  }, [formData.reservationDate, selectedOasis, selectedPackage]);
+  }, [formData.reservationDate, selectedOasis, selectedPackage, currentUserEmail]); // ← Added currentUserEmail to dependencies
   
   const handleDateChange = (date) => {
     // Fix timezone issue - use local date instead of UTC
@@ -97,6 +120,7 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
             onDateChange={handleDateChange}
             oasis={selectedOasis}
             packageName={selectedPackage}
+            minDate={getTomorrowDate()}
           />
           {errors.reservationDate && (
             <span className="error-message">{errors.reservationDate}</span>

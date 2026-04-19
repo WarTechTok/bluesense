@@ -5,30 +5,54 @@
 
 const Readings = require("../models/reading.js");
 
+// Store current oasis in memory (can be changed by admin)
+let currentOasis = "oasis1"; // Default to oasis1
+
 // ============================================
 // Add new reading from ESP32
 // ============================================
 const addReading = async (req, res) => {
     try {
-        const newReading = new Readings(req.body);
+        const { oasis, ph, turbidity, temperature, status } = req.body;
+        
+        // Validate oasis is provided
+        if (!oasis) {
+            return res.status(400).json({ error: "oasis field is required (oasis1 or oasis2)" });
+        }
+        
+        const newReading = new Readings({
+            oasis,
+            ph,
+            turbidity,
+            temperature,
+            status
+        });
+        
         await newReading.save();
-        res.status(200).json({ message: "Reading saved successfully" });
+        res.status(200).json({ message: "Reading saved successfully", oasis });
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 };
 
 // ============================================
-// Get latest reading - FIXED: handle empty collection
+// Get latest reading for specific oasis
 // ============================================
 const getLatest = async (req, res) => {
     try {
-        const latest = await Readings.findOne().sort({ timestamp: -1 });
+        const { oasis } = req.query;
         
-        // Kung walang data, mag-send ng default response
+        const filter = {};
+        if (oasis) {
+            filter.oasis = oasis;
+        }
+        
+        const latest = await Readings.findOne(filter).sort({ timestamp: -1 });
+        
         if (!latest) {
             return res.status(200).json({
                 message: "No readings yet",
+                oasis: oasis || "unknown",
                 ph: 0,
                 temperature: 0,
                 turbidity: "No Data",
@@ -48,11 +72,18 @@ const getLatest = async (req, res) => {
 };
 
 // ============================================
-// Get all readings history - NO LIMIT
+// Get history for specific oasis
 // ============================================
 const getHistory = async (req, res) => {
     try {
-        const history = await Readings.find().sort({ timestamp: -1 });
+        const { oasis } = req.query;
+        
+        const filter = {};
+        if (oasis) {
+            filter.oasis = oasis;
+        }
+        
+        const history = await Readings.find(filter).sort({ timestamp: -1 });
         res.json(history || []);
     } catch (error) {
         console.error("Error in getHistory:", error);
@@ -60,4 +91,45 @@ const getHistory = async (req, res) => {
     }
 };
 
-module.exports = { addReading, getLatest, getHistory };
+// ============================================
+// NEW: Set which oasis the ESP32 should monitor
+// ============================================
+const setCurrentOasis = (req, res) => {
+    try {
+        const { oasis } = req.body;
+        
+        if (oasis !== 'oasis1' && oasis !== 'oasis2') {
+            return res.status(400).json({ error: "Invalid oasis. Must be 'oasis1' or 'oasis2'" });
+        }
+        
+        currentOasis = oasis;
+        console.log(`📡 ESP32 should now monitor: ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`);
+        
+        res.json({ 
+            success: true, 
+            oasis: currentOasis,
+            message: `ESP32 will now monitor ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ============================================
+// NEW: Get current oasis the ESP32 should monitor
+// ============================================
+const getCurrentOasis = (req, res) => {
+    try {
+        res.json({ oasis: currentOasis });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { 
+    addReading, 
+    getLatest, 
+    getHistory,
+    setCurrentOasis,
+    getCurrentOasis
+};

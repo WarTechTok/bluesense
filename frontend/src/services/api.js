@@ -4,7 +4,7 @@
 // ============================================
 
 // OPTION 1: Home WiFi
-//const API_BASE_URL = "http://192.168.100.224:8080";
+const API_BASE_URL = "http://192.168.100.170:8080";
 
 //const API_BASE_URL = "http://192.168.100.236:8080";
 
@@ -18,7 +18,7 @@
 // const API_BASE_URL = "http://[SCHOOL-IP-HERE]:8080";
 
 // OPTION 4: Laptop (LOCAL - for testing)
-const API_BASE_URL = "http://localhost:8080";
+//const API_BASE_URL = "http://localhost:8080";
 
 // ============================================
 // AUTHENTICATION API CALLS
@@ -114,16 +114,44 @@ export async function updateProfile(formData) {
 }
 
 // ============================================
-// SENSOR DATA API CALLS
+// SENSOR DATA API CALLS (with oasis filtering)
 // ============================================
 
-export async function getLatestReading() {
-  const res = await fetch(`${API_BASE_URL}/api/readings/latest`);
+export async function getLatestReading(oasis) {
+  const url = oasis 
+    ? `${API_BASE_URL}/api/readings/latest?oasis=${oasis}`
+    : `${API_BASE_URL}/api/readings/latest`;
+  const res = await fetch(url);
   return res.json();
 }
 
-export async function getHistory() {
-  const res = await fetch(`${API_BASE_URL}/api/readings/history`);
+export async function getHistory(oasis) {
+  const url = oasis 
+    ? `${API_BASE_URL}/api/readings/history?oasis=${oasis}`
+    : `${API_BASE_URL}/api/readings/history`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+// ============================================
+// ESP32 CONTROL API CALLS
+// ============================================
+
+// Set which oasis the ESP32 should monitor
+export async function setCurrentOasis(oasis) {
+  const res = await fetch(`${API_BASE_URL}/api/readings/set-oasis`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ oasis }),
+  });
+  return res.json();
+}
+
+// Get current oasis the ESP32 is monitoring
+export async function getCurrentOasis() {
+  const res = await fetch(`${API_BASE_URL}/api/readings/current-oasis`);
   return res.json();
 }
 
@@ -214,6 +242,182 @@ export async function updatePaymentStatus(id, paymentStatus) {
 export async function deleteBooking(id) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// ============================================
+// CANCELLATION & REFUND API CALLS
+// ============================================
+
+// Cancel booking (customer)
+export async function cancelBooking(id, reason, isEmergency, proofFile) {
+  const token = localStorage.getItem('token');
+  
+  const formData = new FormData();
+  formData.append('reason', reason);
+  formData.append('isEmergency', isEmergency ? 'true' : 'false');
+  if (proofFile) {
+    formData.append('proof', proofFile);
+  }
+  
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.message || 'Cancellation failed');
+  }
+  
+  return data;
+}
+
+// Get refund requests (admin only)
+export async function getRefundRequests() {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/refund-requests`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// Update refund status (admin only)
+export async function updateRefundStatus(id, refundStatus, adminNotes) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/refund-status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ refundStatus, adminNotes }),
+  });
+  return res.json();
+}
+
+// ============================================
+// STAFF MANAGEMENT API CALLS (Admin only)
+// ============================================
+
+// Get all staff members
+export async function getAllStaff() {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// Create staff account
+export async function createStaff(staffData) {
+  const token = localStorage.getItem('token');
+  const isFormData = staffData instanceof FormData;
+  
+  const headers = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  headers['Authorization'] = `Bearer ${token}`;
+  
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff`, {
+    method: 'POST',
+    headers,
+    body: isFormData ? staffData : JSON.stringify(staffData),
+  });
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create staff');
+  }
+  
+  return data;
+}
+
+// Update staff member
+export async function updateStaff(id, staffData) {
+  const token = localStorage.getItem('token');
+  const isFormData = staffData instanceof FormData;
+  
+  const headers = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+  headers['Authorization'] = `Bearer ${token}`;
+  
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}`, {
+    method: 'PUT',
+    headers,
+    body: isFormData ? staffData : JSON.stringify(staffData),
+  });
+  
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update staff');
+  }
+  
+  return data;
+}
+
+// Disable staff account
+export async function disableStaff(id) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}/disable`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// Activate staff account
+export async function activateStaff(id) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}/activate`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  return res.json();
+}
+
+// Reset staff password
+export async function resetStaffPassword(id, newPassword) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}/reset-password`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({ newPassword }),
+  });
+  return res.json();
+}
+
+// Delete staff account
+export async function deleteStaff(id) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/admin/staff/${id}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`

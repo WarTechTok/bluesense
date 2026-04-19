@@ -9,6 +9,8 @@ import Navbar from '../../components/navbar/Navbar';
 import Footer from '../../components/footer/Footer';
 import { createBooking } from '../../services/api';
 import BookingSuccessModal from '../../components/modals/BookingSuccessModal';
+import PendingBookingModal from '../../components/modals/PendingBookingModal';
+import LimitReachedModal from '../../components/modals/LimitReachedModal';
 import StepIndicator from './StepIndicator';
 import BookingSummary from './BookingSummary';
 import GuestInfoStep from './GuestInfoStep';
@@ -26,6 +28,8 @@ function Booking() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [infoConfirmed, setInfoConfirmed] = useState(false);
@@ -267,6 +271,12 @@ function Booking() {
     window.scrollTo(0, 0);
   };
 
+  const handleViewBookings = () => {
+    setShowPendingModal(false);
+    setShowLimitModal(false);
+    navigate('/my-bookings');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep()) return;
@@ -337,7 +347,16 @@ function Booking() {
       console.error('❌ Booking error:', error);
       const errorMsg = error?.response?.data?.message || error?.message || 'Failed to submit booking. Please try again.';
       console.error('Error details:', error?.response?.data);
-      alert(errorMsg);
+      
+      // Check for different error types
+      if (errorMsg.includes('pending booking') || errorMsg.includes('complete your payment first')) {
+        setShowPendingModal(true);
+      } else if (errorMsg.includes('2 upcoming bookings') || errorMsg.includes('booking limit')) {
+        setShowLimitModal(true);
+      } else if (!errorMsg.includes('already have a booking on this date')) {
+        // Don't show alert for duplicate booking - calendar prevents it
+        alert(errorMsg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -505,6 +524,16 @@ function Booking() {
         isOpen={showSuccessModal} 
         onClose={() => setShowSuccessModal(false)} 
         bookingDetails={bookingDetails} 
+      />
+      <PendingBookingModal
+        isOpen={showPendingModal}
+        onClose={() => setShowPendingModal(false)}
+        onViewBookings={handleViewBookings}
+      />
+      <LimitReachedModal
+        isOpen={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        onViewBookings={handleViewBookings}
       />
     </div>
   );

@@ -17,13 +17,16 @@ const {
   updatePaymentStatus,
   deleteBooking,
   getBookedDatesWithSessions,
-  verifyPayment
+  verifyPayment,
+  cancelBooking
 } = require("../controllers/bookingController");
 const { verifyToken, isStaff } = require("../middleware/auth");
 
 // ============================================
 // MULTER FILE UPLOAD CONFIGURATION
 // ============================================
+
+// Payment Proof Upload
 const paymentProofDir = path.join(__dirname, '../uploads/payment-proofs');
 if (!fs.existsSync(paymentProofDir)) {
   fs.mkdirSync(paymentProofDir, { recursive: true });
@@ -32,6 +35,22 @@ if (!fs.existsSync(paymentProofDir)) {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, paymentProofDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+// Refund Proof Upload
+const refundProofDir = path.join(__dirname, '../uploads/refund-proofs');
+if (!fs.existsSync(refundProofDir)) {
+  fs.mkdirSync(refundProofDir, { recursive: true });
+}
+
+const refundStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, refundProofDir);
   },
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.originalname}`;
@@ -53,6 +72,12 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: fileFilter
+});
+
+const refundUpload = multer({
+  storage: refundStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: fileFilter
 });
@@ -95,5 +120,10 @@ router.patch("/:id/verify", verifyToken, isStaff, verifyPayment);
 
 // DELETE /api/bookings/:id - magdelete (admin only)
 router.delete("/:id", verifyToken, isStaff, deleteBooking);
+
+// ============================================
+// CUSTOMER CANCELLATION ROUTE (with file upload)
+// ============================================
+router.post("/:id/cancel", verifyToken, refundUpload.single('proof'), cancelBooking);
 
 module.exports = router;

@@ -1,64 +1,72 @@
 // frontend/src/components/booking/DiagonalCalendar.jsx
-import React, { useState, useEffect } from 'react';
-import './DiagonalCalendar.css';
+import React, { useState, useEffect } from "react";
+import "./DiagonalCalendar.css";
 
 function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedDates, setBookedDates] = useState({});
   const [loading, setLoading] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showOwnBookingModal, setShowOwnBookingModal] = useState(false);
 
   // Helper to convert date to YYYY-MM-DD using local date (not UTC/ISO)
   const getLocalDateString = (date) => {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   };
+
+  // Get logged-in user email
+  const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const currentUserEmail = loggedInUser.email || "";
 
   useEffect(() => {
     const fetchBookedDates = async () => {
       if (!oasis || !packageName) {
-        console.log('⚠️ Missing oasis or packageName for booked dates');
+        console.log("⚠️ Missing oasis or packageName for booked dates");
         return;
       }
-      
+
       setLoading(true);
       try {
         const backendUrl = "http://localhost:8080";
-        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(oasis)}&package=${encodeURIComponent(packageName)}`;
-        
-        console.log('📅 Fetching booked dates from:', url);
-        
+        // ← Add email parameter to the URL
+        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(oasis)}&package=${encodeURIComponent(packageName)}&email=${encodeURIComponent(currentUserEmail)}`;
+
+        console.log("📅 Fetching booked dates from:", url);
+
         const response = await fetch(url, {
-          method: 'GET',
+          method: "GET",
           headers: {
-            'Content-Type': 'application/json',
-          }
+            "Content-Type": "application/json",
+          },
         });
-        
+
         if (!response.ok) {
-          throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+          throw new Error(
+            `Server returned ${response.status}: ${response.statusText}`,
+          );
         }
-        
+
         const data = await response.json();
-        console.log('📅 Booked dates response:', data);
-        
+        console.log("📅 Booked dates response:", data);
+
         if (data.success && data.bookedDates) {
-          console.log('✅ Booked dates loaded:', data.bookedDates);
+          console.log("✅ Booked dates loaded:", data.bookedDates);
           setBookedDates(data.bookedDates);
         } else {
-          console.warn('⚠️ Invalid response format:', data);
+          console.warn("⚠️ Invalid response format:", data);
         }
       } catch (error) {
-        console.error('❌ Error fetching booked dates:', error);
-        // Don't break the calendar - just log the error
+        console.error("❌ Error fetching booked dates:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchBookedDates();
-  }, [oasis, packageName]);
+  }, [oasis, packageName, currentUserEmail]); // ← Add currentUserEmail to dependencies
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -70,9 +78,13 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
 
   const handlePrevMonth = () => {
     const today = new Date();
-    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1);
-    // Don't go back before today
-    if (prev >= today) {
+    today.setHours(0, 0, 0, 0);
+    const prev = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() - 1,
+    );
+    const firstDayOfPrev = new Date(prev.getFullYear(), prev.getMonth(), 1);
+    if (firstDayOfPrev >= today) {
       setCurrentMonth(prev);
     }
   };
@@ -80,52 +92,82 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   const handleNextMonth = () => {
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
-    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1);
+    const next = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+    );
     if (next <= maxDate) {
       setCurrentMonth(next);
     }
   };
 
   const handleDateClick = (day) => {
-    const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Only allow clicking dates that are today or in the future
-    if (clickedDate >= today) {
-      // Check max advance (3 months)
-      const maxDate = new Date();
-      maxDate.setMonth(maxDate.getMonth() + 3);
-      if (clickedDate <= maxDate) {
-        onDateChange(clickedDate);
+  const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  if (clickedDate >= tomorrow) {
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    if (clickedDate <= maxDate) {
+      const dateStr = getLocalDateString(clickedDate);
+      const status = bookedDates[dateStr];
+      
+      // ← Check if user already has a booking on this date
+      if (status && status.userHasBooking === true) {
+        setShowOwnBookingModal(true);
+        return; // Don't select the date
       }
+      
+      // Check if date is fully booked (Day and Night both booked by others)
+      if (status && status.Day?.booked && status.Night?.booked) {
+        setShowDuplicateModal(true);
+        return; // Don't select the date
+      }
+      
+      // Only select date if available
+      onDateChange(clickedDate);
     }
-  };
+  }
+};
 
   const getDateStatus = (day) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateStr = getLocalDateString(date); // Use local date, not UTC
+    const date = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day,
+    );
+    const dateStr = getLocalDateString(date);
     const status = bookedDates[dateStr] || null;
-    
-    // Log when a booked date is found
+
     if (status) {
-      console.log(`📍 ${dateStr}: Day=${status.Day.booked ? '❌ Booked' : '✅ Available'}, Night=${status.Night.booked ? '❌ Booked' : '✅ Available'}`);
+      console.log(
+        `📍 ${dateStr}: Day=${status.Day?.booked ? "❌ Booked" : "✅ Available"}, Night=${status.Night?.booked ? "❌ Booked" : "✅ Available"}`,
+      );
     }
-    
+
     return status;
   };
 
   const isDateDisabled = (day) => {
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const date = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day,
+    );
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    if (date < today) return true;
-    
+
+    // Disable today and past dates
+    if (date <= today) return true;
+
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
     if (date > maxDate) return true;
-    
+
     return false;
   };
 
@@ -141,7 +183,10 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   const daysInMonth = getDaysInMonth(currentMonth);
   const firstDayOfMonth = getFirstDayOfMonth(currentMonth);
   const days = [];
-  const monthName = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthName = currentMonth.toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 
   // Add empty cells for days before month starts
   for (let i = 0; i < firstDayOfMonth; i++) {
@@ -153,51 +198,73 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
     const status = getDateStatus(day);
     const disabled = isDateDisabled(day);
     const selected = isDateSelected(day);
-    const hasBooked = status && (status.Day.booked || status.Night.booked || status['22hrs']?.booked);
-    
+    const hasBooked =
+      status &&
+      (status.Day?.booked || status.Night?.booked || status["22hrs"]?.booked);
+
     days.push(
       <div
         key={day}
-        className={`calendar-day ${disabled ? 'disabled' : ''} ${selected ? 'selected' : ''} ${hasBooked ? 'has-booked' : ''}`}
+        className={`calendar-day ${disabled ? "disabled" : ""} ${selected ? "selected" : ""} ${hasBooked ? "has-booked" : ""}`}
         onClick={() => !disabled && handleDateClick(day)}
       >
         <div className="day-number">{day}</div>
-        
+
         {status && (
-          <svg className="diagonal-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            {/* Subtle diagonal line - very faint */}
-            <line x1="0" y1="0" x2="100" y2="100" stroke="#e8e8e8" strokeWidth="1" opacity="0.4" />
-            
-            {/* Day session (left) - same size, color changes when booked */}
-            <circle 
-              cx="25" 
-              cy="50" 
+          <svg
+            className="diagonal-svg"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="100"
+              y2="100"
+              stroke="#e8e8e8"
+              strokeWidth="1"
+              opacity="0.4"
+            />
+
+            <circle
+              cx="25"
+              cy="50"
               r="7"
-              className={`session-indicator ${status.Day.booked ? 'booked' : 'available'}`}
-              fill={status.Day.booked ? '#dc2626' : '#10b981'}
+              className={`session-indicator ${status.Day?.booked ? "booked" : "available"}`}
+              fill={status.Day?.booked ? "#dc2626" : "#10b981"}
               opacity="1"
             />
-            
-            {/* Night session (right) - same size, color changes when booked */}
-            <circle 
-              cx="75" 
-              cy="50" 
+
+            <circle
+              cx="75"
+              cy="50"
               r="7"
-              className={`session-indicator ${status.Night.booked ? 'booked' : 'available'}`}
-              fill={status.Night.booked ? '#dc2626' : '#10b981'}
+              className={`session-indicator ${status.Night?.booked ? "booked" : "available"}`}
+              fill={status.Night?.booked ? "#dc2626" : "#10b981"}
               opacity="1"
             />
           </svg>
         )}
-        
+
         {!status && !disabled && (
-          <svg className="diagonal-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="0" y1="0" x2="100" y2="100" stroke="#e0e0e0" strokeWidth="1" />
+          <svg
+            className="diagonal-svg"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="100"
+              y2="100"
+              stroke="#e0e0e0"
+              strokeWidth="1"
+            />
             <circle cx="25" cy="50" r="6" fill="#10b981" />
             <circle cx="75" cy="50" r="6" fill="#10b981" />
           </svg>
         )}
-      </div>
+      </div>,
     );
   }
 
@@ -225,8 +292,12 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
       </div>
 
       <div className="legend">
-        <span><span className="legend-mark available"></span> Available</span>
-        <span><span className="legend-mark booked"></span> Booked</span>
+        <span>
+          <span className="legend-mark available"></span> Available
+        </span>
+        <span>
+          <span className="legend-mark booked"></span> Booked
+        </span>
       </div>
 
       <div className="weekday-headers">
@@ -241,7 +312,221 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
 
       <div className="calendar-grid">{days}</div>
 
-      {loading && <div className="calendar-loading">Loading availability...</div>}
+      {loading && (
+        <div className="calendar-loading">Loading availability...</div>
+      )}
+
+      {/* Date Fully Booked Modal */}
+      {showDuplicateModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          onClick={() => setShowDuplicateModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              width: "90%",
+              maxWidth: "400px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "24px", textAlign: "center" }}>
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  background: "#fee2e2",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                }}
+              >
+                <i
+                  className="fas fa-calendar-times"
+                  style={{ color: "#dc2626", fontSize: "28px" }}
+                ></i>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: "22px",
+                  fontWeight: "600",
+                  marginBottom: "12px",
+                  color: "#1e293b",
+                }}
+              >
+                Date Fully Booked
+              </h2>
+
+              <p
+                style={{
+                  color: "#475569",
+                  marginBottom: "8px",
+                  lineHeight: "1.5",
+                }}
+              >
+                This date is already fully booked.
+              </p>
+
+              <p
+                style={{
+                  color: "#475569",
+                  marginBottom: "16px",
+                  lineHeight: "1.5",
+                }}
+              >
+                Please choose another date for your reservation.
+              </p>
+            </div>
+
+            <div
+              style={{
+                padding: "16px 24px 24px",
+                display: "flex",
+                justifyContent: "center",
+                borderTop: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                onClick={() => setShowDuplicateModal(false)}
+                style={{
+                  padding: "10px 24px",
+                  background: "#0284c7",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  color: "white",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                }}
+              >
+                <i className="fas fa-check"></i> OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* You Already Have a Booking Modal */}
+      {showOwnBookingModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+          onClick={() => setShowOwnBookingModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "16px",
+              width: "90%",
+              maxWidth: "400px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "24px", textAlign: "center" }}>
+              <div
+                style={{
+                  width: "60px",
+                  height: "60px",
+                  background: "#fef3c7",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 16px",
+                }}
+              >
+                <i
+                  className="fas fa-clock"
+                  style={{ color: "#f59e0b", fontSize: "28px" }}
+                ></i>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: "22px",
+                  fontWeight: "600",
+                  marginBottom: "12px",
+                  color: "#1e293b",
+                }}
+              >
+                You Already Have a Booking
+              </h2>
+
+              <p
+                style={{
+                  color: "#475569",
+                  marginBottom: "8px",
+                  lineHeight: "1.5",
+                }}
+              >
+                You already have a booking on this date.
+              </p>
+
+              <p
+                style={{
+                  color: "#475569",
+                  marginBottom: "16px",
+                  lineHeight: "1.5",
+                }}
+              >
+                Please choose another date for your new reservation.
+              </p>
+            </div>
+
+            <div
+              style={{
+                padding: "16px 24px 24px",
+                display: "flex",
+                justifyContent: "center",
+                borderTop: "1px solid #e2e8f0",
+              }}
+            >
+              <button
+                onClick={() => setShowOwnBookingModal(false)}
+                style={{
+                  padding: "10px 24px",
+                  background: "#0284c7",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  color: "white",
+                  fontWeight: "500",
+                  fontSize: "14px",
+                }}
+              >
+                <i className="fas fa-check"></i> OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

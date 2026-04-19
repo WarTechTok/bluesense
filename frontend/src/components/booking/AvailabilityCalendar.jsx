@@ -1,8 +1,9 @@
 // frontend/src/components/booking/AvailabilityCalendar.jsx
+
 import React from 'react';
 import DiagonalCalendar from './DiagonalCalendar';
 
-function AvailabilityCalendar({ selectedDate, onDateChange, oasis, packageName }) {
+function AvailabilityCalendar({ selectedDate, onDateChange, oasis, packageName, minDate }) {
   return (
     <div className="availability-calendar">
       <DiagonalCalendar
@@ -10,6 +11,7 @@ function AvailabilityCalendar({ selectedDate, onDateChange, oasis, packageName }
         onDateChange={onDateChange}
         oasis={oasis}
         packageName={packageName}
+        minDate={minDate}  // ← Pass minDate to DiagonalCalendar
       />
     </div>
   );
