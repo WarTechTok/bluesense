@@ -98,8 +98,12 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                 <span>{booking.paymentType === 'fullpayment' ? 'Full Payment' : 'Down Payment (30%)'}</span>
               </div>
               <div className="info-item">
-                <label>Amount:</label>
-                <span className="amount">₱{(booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}</span>
+                <label>{booking.paymentStatus === 'Partial' ? 'Remaining Balance' : 'Amount'}:</label>
+                <span className="amount">
+                  ₱{booking.paymentStatus === 'Partial' 
+                    ? (booking.totalAmount - booking.downpayment)?.toLocaleString()
+                    : (booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}
+                </span>
               </div>
               <div className="info-item">
                 <label>Payment Status:</label>
@@ -107,6 +111,18 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                   {booking.paymentStatus}
                 </span>
               </div>
+              {booking.paymentStatus === 'Partial' && (
+                <>
+                  <div className="info-item">
+                    <label>Initial Payment:</label>
+                    <span className="amount">₱{booking.downpayment?.toLocaleString()}</span>
+                  </div>
+                  <div className="info-item">
+                    <label>Total Amount:</label>
+                    <span className="amount">₱{booking.totalAmount?.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -153,7 +169,7 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
             onClick={handleVerifyClick}
             disabled={isVerifying || booking.paymentStatus === 'Paid'}
           >
-            {isVerifying ? 'Verifying...' : 'Verify & Confirm'}
+            {isVerifying ? 'Verifying...' : booking.paymentStatus === 'Partial' ? 'Verify Final Payment' : 'Verify & Confirm'}
           </button>
         </div>
       </div>

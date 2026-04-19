@@ -8,7 +8,9 @@ const Reservation = require('../models/Reservation');
 const Staff = require('../models/Staff');
 const Sale = require('../models/Sale');
 const Inventory = require('../models/Inventory');
+const Booking = require('../models/Booking');
 const InspectionRecord = require('../models/InspectionRecord');
+const Maintenance = require('../models/Maintenance');
 
 /**
  * Dashboard Controller
@@ -28,13 +30,65 @@ exports.getDashboardStats = async (req, res) => {
     const maintainanceRooms = await Room.countDocuments({ status: 'Maintenance' });
     const activeStaff = await Staff.countDocuments({ status: 'Active' });
 
-    // Calculate monthly revenue (from current month start to now)
+    // Calculate total revenue (from bookings - confirmed and completed)
+    const allBookings = await Booking.find({
+      status: { $in: ['Confirmed', 'Completed'] }
+    });
+
+    console.log('📊 All Bookings (Confirmed/Completed):', allBookings.length);
+    console.log('Bookings:', allBookings.map(b => ({
+      id: b._id,
+      status: b.status,
+      totalAmount: b.totalAmount,
+      bookingDate: b.bookingDate,
+      createdAt: b.createdAt
+    })));
+
+    const allBookingsRevenue = allBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+    // Calculate monthly revenue (from current month bookings)
     const currentMonth = new Date();
     currentMonth.setDate(1);
-    const monthlyRevenue = await Sale.aggregate([
+    currentMonth.setHours(0, 0, 0, 0);
+    
+    console.log('📅 Current Month Start:', currentMonth);
+
+    const monthlyBookings = await Booking.find({
+      bookingDate: { $gte: currentMonth },
+      status: { $in: ['Confirmed', 'Completed'] }
+    });
+
+    console.log('📊 Monthly Bookings:', monthlyBookings.length);
+    console.log('Monthly Bookings:', monthlyBookings.map(b => ({
+      id: b._id,
+      status: b.status,
+      totalAmount: b.totalAmount,
+      bookingDate: b.bookingDate
+    })));
+
+    const monthlyBookingsRevenue = monthlyBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+    // Calculate monthly expenses (from completed maintenance in current month)
+    const monthlyExpenses = await Maintenance.aggregate([
       {
         $match: {
-          date: { $gte: currentMonth }
+          completedDate: { $gte: currentMonth },
+          status: 'Completed'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    // Calculate total expenses (all completed maintenance)
+    const allExpenses = await Maintenance.aggregate([
+      {
+        $match: {
+          status: 'Completed'
         }
       },
       {
@@ -55,10 +109,14 @@ exports.getDashboardStats = async (req, res) => {
       availableRooms,
       maintainanceRooms,
       activeStaff,
-      monthlyRevenue: monthlyRevenue[0]?.total || 0,
+      totalRevenue: allBookingsRevenue,
+      monthlyRevenue: monthlyBookingsRevenue,
+      totalExpenses: allExpenses[0]?.total || 0,
+      monthlyExpenses: monthlyExpenses[0]?.total || 0,
       lowStockItems: lowStockItems.length
     });
   } catch (error) {
+    console.error('❌ Dashboard Error:', error);
     res.status(500).json({ error: error.message });
   }
 };

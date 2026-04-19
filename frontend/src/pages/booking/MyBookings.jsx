@@ -81,6 +81,20 @@ const MyBookings = () => {
     });
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const getBalance = (booking) => {
+    if (!booking) return 0;
+    if (booking.paymentType === 'fullpayment') return 0;
+    return (booking.totalAmount || 0) - (booking.downpayment || 0);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending':
@@ -152,6 +166,12 @@ const MyBookings = () => {
                         <span className="label">Payment Status:</span>
                         <span className="value">{booking.paymentStatus || 'Pending'}</span>
                       </div>
+                      {getBalance(booking) > 0 && (
+                        <div className="info-row balance-row">
+                          <span className="label">Balance Due:</span>
+                          <span className="value balance-due">{formatCurrency(getBalance(booking))}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="booking-card-footer">
@@ -265,6 +285,14 @@ const MyBookings = () => {
                       {selectedBooking.status}
                     </span>
                   </div>
+                  {getBalance(selectedBooking) > 0 && (
+                    <div className="detail-item">
+                      <span className="label">Balance Due</span>
+                      <span className="value" style={{ fontWeight: 'bold', color: '#f59e0b' }}>
+                        {formatCurrency(getBalance(selectedBooking))}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

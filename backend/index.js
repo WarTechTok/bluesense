@@ -26,6 +26,7 @@ const inventoryRoutes = require("./routes/inventory.js");
 const staffRoutes = require("./routes/staff.js");
 const salesRoutes = require("./routes/sales.js");
 const reportRoutes = require("./routes/reports.js");
+const maintenanceRoutes = require("./routes/maintenance.js");
 
 const app = express();
 
@@ -110,6 +111,7 @@ app.use("/api/admin/inventory", inventoryRoutes);
 app.use("/api/admin/staff", staffRoutes);
 app.use("/api/admin/sales", salesRoutes);
 app.use("/api/admin/reports", reportRoutes);
+app.use("/api/admin/maintenance", maintenanceRoutes);
 
 // ============================================
 // DATABASE CONNECTION - KEEP YOUR VERSION!

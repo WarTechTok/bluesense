@@ -575,6 +575,14 @@ const updateBookingStatus = async (req, res) => {
       }
     }
 
+    // Delete sale record if booking is cancelled
+    if (status === "Cancelled") {
+      const deletedSale = await Sale.findOneAndDelete({ booking: id });
+      if (deletedSale) {
+        console.log(`🗑️ Sale record deleted for cancelled booking ${id}`);
+      }
+    }
+
     res.json({
       message: `Booking ${status}`,
       booking,
@@ -776,11 +784,26 @@ const verifyPayment = async (req, res) => {
       });
     }
 
+    // Determine payment status based on payment type and current status
+    // If payment status is already "Partial", verify the remaining balance and set to "Paid"
+    // Otherwise, determine based on payment type
+    let paymentStatus;
+    let isRemainingPayment = false;
+
+    if (booking.paymentStatus === 'Partial') {
+      // Guest is paying the remaining balance
+      paymentStatus = 'Paid';
+      isRemainingPayment = true;
+    } else {
+      // Initial payment verification
+      paymentStatus = booking.paymentType === 'fullpayment' ? 'Paid' : 'Partial';
+    }
+
     // Update booking - mark payment as verified and booking as confirmed
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
       {
-        paymentStatus: "Paid",
+        paymentStatus: paymentStatus,
         status: "Confirmed",
         paymentVerifiedBy: userId,
         paymentVerifiedAt: new Date(),
@@ -813,11 +836,11 @@ const verifyPayment = async (req, res) => {
     try {
       await sendEmail({
         to: booking.customerEmail,
-        subject: "Booking Confirmation - Catherine's Oasis",
+        subject: isRemainingPayment ? "Final Payment Confirmed - Catherine's Oasis" : "Booking Confirmation - Catherine's Oasis",
         html: `
-          <h2>Booking Confirmed!</h2>
+          <h2>${isRemainingPayment ? 'Payment Complete!' : 'Booking Confirmed!'}</h2>
           <p>Dear ${booking.customerName},</p>
-          <p>Your payment has been verified and your booking is now confirmed.</p>
+          <p>${isRemainingPayment ? 'Your final payment has been verified and your booking is now fully paid.' : 'Your payment has been verified and your booking is now confirmed.'}</p>
           
           <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px;">
             <h3>Booking Details:</h3>
@@ -825,7 +848,9 @@ const verifyPayment = async (req, res) => {
             <p><strong>Package:</strong> ${booking.package}</p>
             <p><strong>Booking Date:</strong> ${new Date(booking.bookingDate).toLocaleDateString()}</p>
             <p><strong>Number of Guests:</strong> ${booking.pax}</p>
-            <p><strong>Amount Paid:</strong> ₱${booking.downpayment.toLocaleString()}</p>
+            ${isRemainingPayment ? `<p><strong>Final Payment Verified:</strong> ✓</p><p><strong>Total Paid:</strong> ₱${booking.totalAmount.toLocaleString()}</p>` : `<p><strong>Amount Paid:</strong> ₱${booking.downpayment.toLocaleString()}</p>
+            ${booking.paymentType === 'downpayment' ? `<p><strong>Remaining Balance:</strong> ₱${(booking.totalAmount - booking.downpayment).toLocaleString()} (payable on-site)</p>` : ''}`}
+            <p><strong>Payment Status:</strong> ${paymentStatus}</p>
             <p><strong>Status:</strong> Confirmed</p>
           </div>
           

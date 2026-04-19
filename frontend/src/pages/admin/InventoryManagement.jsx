@@ -15,7 +15,10 @@ const InventoryManagement = () => {
     item: '',
     quantity: '',
     unit: '',
-    lowStockAlert: 5
+    lowStockAlert: 5,
+    price: '',
+    arrivalDate: '',
+    expirationDate: ''
   });
   const [usageData, setUsageData] = useState({
     quantityUsed: '',
@@ -55,7 +58,10 @@ const InventoryManagement = () => {
         item: '',
         quantity: '',
         unit: '',
-        lowStockAlert: 5
+        lowStockAlert: 5,
+        price: '',
+        arrivalDate: '',
+        expirationDate: ''
       });
     }
     setIsModalOpen(true);
@@ -131,7 +137,22 @@ const InventoryManagement = () => {
     { key: 'item', label: 'Item Name' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'unit', label: 'Unit' },
+    {
+      key: 'price',
+      label: 'Price',
+      render: (value) => `₱${parseFloat(value || 0).toFixed(2)}`
+    },
     { key: 'lowStockAlert', label: 'Low Stock Alert' },
+    {
+      key: 'arrivalDate',
+      label: 'Arrival Date',
+      render: (value) => value ? new Date(value).toLocaleDateString() : 'N/A'
+    },
+    {
+      key: 'expirationDate',
+      label: 'Expiration Date',
+      render: (value) => value ? new Date(value).toLocaleDateString() : 'N/A'
+    },
     {
       key: 'quantity',
       label: 'Status',
@@ -171,103 +192,144 @@ const InventoryManagement = () => {
         actions={actions}
       />
 
-      <Modal
-        isOpen={isModalOpen}
-        title={editingItem ? 'Edit Inventory Item' : 'Add New Inventory Item'}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
-      >
-        <form className="form landscape">
-          {!editingItem && (
-            <div className="form-group">
-              <label>Item ID</label>
-              <input
-                type="text"
-                value="ITM-Auto"
-                disabled
-                style={{ backgroundColor: '#f0f0f0' }}
-              />
-              <small>Auto-generated upon save</small>
-            </div>
-          )}
-          {editingItem && (
-            <div className="form-group">
-              <label>Item ID</label>
-              <input
-                type="text"
-                value={editingItem.itemId || 'N/A'}
-                disabled
-                style={{ backgroundColor: '#f0f0f0' }}
-              />
-            </div>
-          )}
-          <div className="form-group">
-            <label>Item Name *</label>
-            <input
-              type="text"
-              value={formData.item}
-              onChange={(e) => setFormData({ ...formData, item: e.target.value })}
-              required
-            />
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <div className="modal-header">
+            <h3>{editingItem ? '✎ Edit Item' : '➕ Add New Item'}</h3>
+            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
           </div>
-          <div className="form-group">
-            <label>Quantity *</label>
-            <input
-              type="number"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              required
-            />
+          <div className="modal-body">
+            <form className="form landscape">
+              {!editingItem && (
+                <div className="form-group">
+                  <label>Item ID</label>
+                  <input
+                    type="text"
+                    value="ITM-Auto"
+                    disabled
+                    style={{ backgroundColor: '#f0f0f0' }}
+                  />
+                  <small>Auto-generated upon save</small>
+                </div>
+              )}
+              {editingItem && (
+                <div className="form-group">
+                  <label>Item ID</label>
+                  <input
+                    type="text"
+                    value={editingItem.itemId || 'N/A'}
+                    disabled
+                    style={{ backgroundColor: '#f0f0f0' }}
+                  />
+                </div>
+              )}
+              <div className="form-group">
+                <label>Item Name *</label>
+                <input
+                  type="text"
+                  value={formData.item}
+                  onChange={(e) => setFormData({ ...formData, item: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Quantity *</label>
+                <input
+                  type="number"
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Unit</label>
+                <input
+                  type="text"
+                  value={formData.unit}
+                  onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
+                  placeholder="e.g., Liters, Units, Boxes"
+                />
+              </div>
+              <div className="form-group">
+                <label>Price Per Unit *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  required
+                  placeholder="e.g., 150.00"
+                />
+              </div>
+              <div className="form-group">
+                <label>Low Stock Alert</label>
+                <input
+                  type="number"
+                  value={formData.lowStockAlert}
+                  onChange={(e) => setFormData({ ...formData, lowStockAlert: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Arrival Date</label>
+                <input
+                  type="date"
+                  value={formData.arrivalDate}
+                  onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label>Expiration Date</label>
+                <input
+                  type="date"
+                  value={formData.expirationDate}
+                  onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
+                />
+              </div>
+            </form>
           </div>
-          <div className="form-group">
-            <label>Unit</label>
-            <input
-              type="text"
-              value={formData.unit}
-              onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
-              placeholder="e.g., Liters, Units, Boxes"
-            />
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmit}>{editingItem ? 'Update' : 'Create'} Item</button>
           </div>
-          <div className="form-group">
-            <label>Low Stock Alert</label>
-            <input
-              type="number"
-              value={formData.lowStockAlert}
-              onChange={(e) => setFormData({ ...formData, lowStockAlert: e.target.value })}
-            />
-          </div>
-        </form>
-      </Modal>
+        </Modal>
+      )}
 
-      <Modal
-        isOpen={isUsageModalOpen}
-        title="Record Usage"
-        onClose={() => setIsUsageModalOpen(false)}
-        onSubmit={handleSubmitUsage}
-      >
-        <form className="form">
-          <div className="form-group">
-            <label>Item: {editingItem?.item}</label>
+      {isUsageModalOpen && (
+        <Modal onClose={() => setIsUsageModalOpen(false)}>
+          <div className="modal-header">
+            <h3>📊 Record Usage</h3>
+            <button className="modal-close" onClick={() => setIsUsageModalOpen(false)}>✕</button>
           </div>
-          <div className="form-group">
-            <label>Quantity Used *</label>
-            <input
-              type="number"
-              value={usageData.quantityUsed}
-              onChange={(e) => setUsageData({ ...usageData, quantityUsed: e.target.value })}
-              required
-            />
+          <div className="modal-body">
+            <form className="form">
+              <div className="form-group">
+                <label>Item: {editingItem?.item}</label>
+              </div>
+              <div className="form-group">
+                <label>Quantity Used *</label>
+                <input
+                  type="number"
+                  value={usageData.quantityUsed}
+                  onChange={(e) => setUsageData({ ...usageData, quantityUsed: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Used By (Staff ID)</label>
+                <input
+                  type="text"
+                  value={usageData.usedBy}
+                  onChange={(e) => setUsageData({ ...usageData, usedBy: e.target.value })}
+                />
+              </div>
+            </form>
           </div>
-          <div className="form-group">
-            <label>Used By (Staff ID)</label>
-            <input
-              type="text"
-              value={usageData.usedBy}
-              onChange={(e) => setUsageData({ ...usageData, usedBy: e.target.value })}
-            />
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setIsUsageModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmitUsage}>Record Usage</button>
           </div>
-        </form>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 };

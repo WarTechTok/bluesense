@@ -181,11 +181,15 @@ const BookingManagement = () => {
 
   const handleVerifyPayment = async (bookingId) => {
     try {
+      const booking = bookings.find(b => b._id === bookingId);
       await adminApi.verifyPayment(bookingId);
       fetchBookings();
+      const message = booking.paymentStatus === 'Partial' 
+        ? 'Final payment verified successfully! Full payment completed and customer notified via email.'
+        : 'Payment verified successfully! Booking confirmed and customer notified via email.';
       showConfirmationModal(
         'Success',
-        'Payment verified successfully! Booking confirmed and customer notified via email.',
+        message,
         null,
         'OK'
       );
@@ -254,6 +258,20 @@ const BookingManagement = () => {
     }
   };
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-PH", {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
+  const getBalance = (booking) => {
+    if (!booking) return 0;
+    if (booking.paymentType === 'fullpayment') return 0;
+    return (booking.totalAmount || 0) - (booking.downpayment || 0);
+  };
+
   const getSessionDisplay = (session) => {
     if (!session) return 'N/A';
     const sessionMap = {
@@ -296,6 +314,14 @@ const BookingManagement = () => {
       key: 'status', 
       label: 'Status', 
       render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> 
+    },
+    { 
+      key: 'balance', 
+      label: 'Balance Due', 
+      render: (value, row) => {
+        const balance = getBalance(row);
+        return balance > 0 ? formatCurrency(balance) : '—';
+      }
     },
   ];
 
@@ -358,17 +384,18 @@ const BookingManagement = () => {
             label: '📋 View Payment',
             type: 'payment',
             handler: (booking) => handleOpenPaymentVerification(booking),
-            condition: (booking) => booking.paymentStatus === 'Pending' || booking.paymentStatus === 'Rejected'
+            condition: (booking) => booking.paymentStatus === 'Pending' || booking.paymentStatus === 'Rejected' || booking.paymentStatus === 'Partial'
           }
         ]}
       />
 
-      <Modal
-        isOpen={isModalOpen}
-        title={editingBooking ? 'Edit Booking' : 'Add New Booking'}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
-      >
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <div className="modal-header">
+            <h3>{editingBooking ? '✎ Edit Booking' : '➕ Add New Booking'}</h3>
+            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+          </div>
+          <div className="modal-body" style={{ maxHeight: '600px', overflowY: 'auto' }}>
         <form className="form landscape">
           <div className="form-group">
             <label>Customer Name *</label>
@@ -529,7 +556,13 @@ const BookingManagement = () => {
             </select>
           </div>
         </form>
-      </Modal>
+          </div>
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmit}>{editingBooking ? 'Update' : 'Create'} Booking</button>
+          </div>
+        </Modal>
+      )}
 
       <ConfirmationModal
         isOpen={confirmationModal.isOpen}

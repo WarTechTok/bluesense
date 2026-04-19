@@ -47,8 +47,16 @@ const apiClient = axios.create({
 // Add token to all requests
 apiClient.interceptors.request.use((config) => {
   const token = getAuthToken();
+  console.log(`📡 API Request: ${config.method.toUpperCase()} ${config.url}`, {
+    hasToken: !!token,
+    tokenLength: token?.length || 0
+  });
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+    console.log(`✅ Token added to request header`);
+  } else {
+    console.warn(`⚠️  No token found in localStorage!`);
   }
   
   // Handle FormData - don't set Content-Type, let the browser set it with boundary
@@ -211,6 +219,29 @@ export const deleteRoom = async (id) => {
     return res.data;
   } catch (error) {
     console.error('Error deleting room:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// UPLOAD ROOM IMAGE
+// ============================================
+// Params: imageFile - File object from input
+// Returns: {imagePath: "/path/to/uploaded/image.jpg"}
+// Requires: Admin role
+export const uploadRoomImage = async (imageFile) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    
+    const res = await apiClient.post('/rooms/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return res.data;
+  } catch (error) {
+    console.error('Error uploading room image:', error);
     throw error;
   }
 };
@@ -834,6 +865,150 @@ export const getSalesReport = async (startDate, endDate) => {
     return res.data;
   } catch (error) {
     console.error('Error fetching sales report:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// MAINTENANCE MANAGEMENT API ENDPOINTS
+// ============================================
+// GET /maintenance - Get all maintenance records
+// POST /maintenance - Create maintenance record
+// PUT /maintenance/:id - Update maintenance record
+// DELETE /maintenance/:id - Delete maintenance record
+// GET /maintenance/stats/summary - Get maintenance statistics
+// GET /maintenance/category/breakdown - Get expense breakdown
+
+// ============================================
+// GET ALL MAINTENANCE RECORDS
+// ============================================
+// Returns: Array of all maintenance records
+// Query params: status, priority, category, room, dateFrom, dateTo
+// Requires: Admin role
+export const getAllMaintenance = async (filters = {}) => {
+  try {
+    const res = await apiClient.get('/maintenance', { params: filters });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching maintenance records:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// GET MAINTENANCE BY ID
+// ============================================
+// Params: id - Maintenance MongoDB _id
+// Returns: Single maintenance record with full details
+// Requires: Admin role
+export const getMaintenanceById = async (id) => {
+  try {
+    const res = await apiClient.get(`/maintenance/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching maintenance record:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// CREATE MAINTENANCE RECORD
+// ============================================
+// Params: maintenanceData - {title, description, amount, category, priority, etc.}
+// Returns: Newly created maintenance record
+// Requires: Admin role
+export const createMaintenance = async (maintenanceData) => {
+  try {
+    const res = await apiClient.post('/maintenance', maintenanceData);
+    return res.data;
+  } catch (error) {
+    console.error('Error creating maintenance record:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// UPDATE MAINTENANCE RECORD
+// ============================================
+// Params: id - Maintenance MongoDB _id, maintenanceData - fields to update
+// Returns: Updated maintenance record
+// Requires: Admin role
+export const updateMaintenance = async (id, maintenanceData) => {
+  try {
+    const res = await apiClient.put(`/maintenance/${id}`, maintenanceData);
+    return res.data;
+  } catch (error) {
+    console.error('Error updating maintenance record:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// DELETE MAINTENANCE RECORD
+// ============================================
+// Params: id - Maintenance MongoDB _id
+// Returns: Deleted maintenance record
+// Requires: Admin role
+export const deleteMaintenance = async (id) => {
+  try {
+    const res = await apiClient.delete(`/maintenance/${id}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error deleting maintenance record:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// GET MAINTENANCE STATISTICS
+// ============================================
+// Returns: Total expenses, by category, by status, monthly expenses, pending payments
+// Query params: dateFrom, dateTo - Date range filtering
+// Requires: Admin role
+export const getMaintenanceStats = async (dateFrom = null, dateTo = null) => {
+  try {
+    const params = {};
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    const res = await apiClient.get('/maintenance/stats/summary', { params });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching maintenance stats:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// GET EXPENSE BREAKDOWN BY CATEGORY
+// ============================================
+// Returns: Expense breakdown with category totals and averages
+// Query params: dateFrom, dateTo - Date range filtering
+// Requires: Admin role
+export const getExpenseBreakdown = async (dateFrom = null, dateTo = null) => {
+  try {
+    const params = {};
+    if (dateFrom) params.dateFrom = dateFrom;
+    if (dateTo) params.dateTo = dateTo;
+    const res = await apiClient.get('/maintenance/category/breakdown', { params });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching expense breakdown:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// MARK MAINTENANCE AS COMPLETE
+// ============================================
+// Params: id - Maintenance MongoDB _id, completedDate, notes
+// Returns: Updated maintenance record with status 'Completed'
+// Requires: Admin role
+export const markMaintenanceComplete = async (id, completedData = {}) => {
+  try {
+    const res = await apiClient.put(`/maintenance/${id}/mark-complete`, completedData);
+    return res.data;
+  } catch (error) {
+    console.error('Error marking maintenance complete:', error);
     throw error;
   }
 };

@@ -379,162 +379,178 @@ const StaffManagement = () => {
         actions={actions}
       />
 
-      <Modal
-        isOpen={isModalOpen}
-        title={editingStaff ? 'Edit User' : 'Add New User'}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleSubmit}
-      >
-        <form className="form landscape">
-          <div className="form-group">
-            <label>User ID</label>
-            <input
-              type="text"
-              value={editingStaff ? (editingStaff.staffId || 'N/A') : (() => {
-                const rolePrefix = formData.role === 'admin' ? 'ADM' : 'STF';
-                const countWithRole = staff.filter(s => s.role === formData.role).length + 1;
-                return `${rolePrefix}-${String(countWithRole).padStart(3, '0')}`;
-              })()}
-              disabled
-              style={{ backgroundColor: '#f0f0f0' }}
-            />
+      {isModalOpen && (
+        <Modal onClose={() => setIsModalOpen(false)}>
+          <div className="modal-header">
+            <h3>{editingStaff ? '✎ Edit User' : '➕ Add New User'}</h3>
+            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
           </div>
-          <div className="form-group">
-            <label>Full Name *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="Enter full name"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Email *</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Enter email"
-              required
-            />
-          </div>
-          <div className="form-group">
-            <label>Role *</label>
-            <select
-              value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              required
-            >
-              <option value="staff">Staff</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          
-          {formData.role === 'staff' ? (
-            <div className="form-group">
-              <label>Position *</label>
-              <select
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                required
-              >
-                <option value="">Select Position</option>
-                <option value="Housekeeper">Housekeeper</option>
-                <option value="Receptionist">Receptionist</option>
-              </select>
-            </div>
-          ) : (
-            <div className="form-group full-width">
-              <label>Permissions</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[
-                  { key: 'dashboard', label: 'Dashboard' },
-                  { key: 'staffManagement', label: 'Staff Management' },
-                  { key: 'rooms', label: 'Rooms' },
-                  { key: 'reservations', label: 'Reservations' },
-                  { key: 'inventory', label: 'Inventory' },
-                  { key: 'sales', label: 'Sales' },
-                  { key: 'reports', label: 'Reports' }
-                ].map(perm => (
-                  <label key={perm.key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <div className="modal-body" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+            <form className="form landscape">
+              <div className="form-group">
+                <label>User ID</label>
+                <input
+                  type="text"
+                  value={editingStaff ? (editingStaff.staffId || 'N/A') : (() => {
+                    const rolePrefix = formData.role === 'admin' ? 'ADM' : 'STF';
+                    const countWithRole = staff.filter(s => s.role === formData.role).length + 1;
+                    return `${rolePrefix}-${String(countWithRole).padStart(3, '0')}`;
+                  })()}
+                  disabled
+                  style={{ backgroundColor: '#f0f0f0' }}
+                />
+              </div>
+              <div className="form-group">
+                <label>Full Name *</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter full name"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Enter email"
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label>Role *</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  required
+                >
+                  <option value="staff">Staff</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              
+              {formData.role === 'staff' ? (
+                <div className="form-group">
+                  <label>Position *</label>
+                  <select
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    required
+                  >
+                    <option value="">Select Position</option>
+                    <option value="Housekeeper">Housekeeper</option>
+                    <option value="Receptionist">Receptionist</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="form-group full-width">
+                  <label>Permissions</label>
+                  <div className="permissions-grid">
+                    {[
+                      { key: 'dashboard', label: '📊 Dashboard' },
+                      { key: 'staffManagement', label: '👥 Staff Management' },
+                      { key: 'rooms', label: '🏠 Rooms' },
+                      { key: 'reservations', label: '📅 Reservations' },
+                      { key: 'inventory', label: '📦 Inventory' },
+                      { key: 'sales', label: '💰 Sales' },
+                      { key: 'reports', label: '📊 Reports' }
+                    ].map(perm => (
+                      <label key={perm.key} className="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={permissions[perm.key] || false}
+                          onChange={(e) => setPermissions({ ...permissions, [perm.key]: e.target.checked })}
+                          className="checkbox-input"
+                        />
+                        <span className="checkbox-label">{perm.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="form-group">
+                <label>Profile Picture</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormData({ ...formData, profilePicture: e.target.files[0] })}
+                />
+              </div>
+              <div className="form-group full-width">
+                <label>Address</label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter address"
+                />
+              </div>
+              {!editingStaff && (
+                <>
+                  <div className="form-group">
+                    <label>Password *</label>
                     <input
-                      type="checkbox"
-                      checked={permissions[perm.key] || false}
-                      onChange={(e) => setPermissions({ ...permissions, [perm.key]: e.target.checked })}
-                      style={{ cursor: 'pointer' }}
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="Enter password"
+                      required
                     />
-                    <span style={{ fontSize: '14px' }}>{perm.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="form-group">
-            <label>Profile Picture</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setFormData({ ...formData, profilePicture: e.target.files[0] })}
-            />
+                  </div>
+                  <div className="form-group">
+                    <label>Confirm Password *</label>
+                    <input
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      placeholder="Confirm password"
+                      required
+                    />
+                  </div>
+                </>
+              )}
+            </form>
           </div>
-          <div className="form-group full-width">
-            <label>Address</label>
-            <input
-              type="text"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Enter address"
-            />
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmit}>
+              {editingStaff ? 'Update' : 'Create'} User
+            </button>
           </div>
-          {!editingStaff && (
-            <>
-              <div className="form-group">
-                <label>Password *</label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="Enter password"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Confirm Password *</label>
-                <input
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  placeholder="Confirm password"
-                  required
-                />
-              </div>
-            </>
-          )}
-        </form>
-      </Modal>
+        </Modal>
+      )}
 
-      <Modal
-        isOpen={isPasswordModalOpen}
-        title="Reset Password"
-        onClose={() => setIsPasswordModalOpen(false)}
-        onSubmit={handleSubmitPassword}
-      >
-        <form className="form">
-          <div className="form-group">
-            <label>User: {editingStaff?.name}</label>
+      {isPasswordModalOpen && (
+        <Modal onClose={() => setIsPasswordModalOpen(false)}>
+          <div className="modal-header">
+            <h3>🔐 Reset Password</h3>
+            <button className="modal-close" onClick={() => setIsPasswordModalOpen(false)}>✕</button>
           </div>
-          <div className="form-group">
-            <label>New Password *</label>
-            <input
-              type="password"
-              value={passwordData.newPassword}
-              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-              required
-            />
+          <div className="modal-body">
+            <form className="form">
+              <div className="form-group">
+                <label>User: {editingStaff?.name}</label>
+              </div>
+              <div className="form-group">
+                <label>New Password *</label>
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  required
+                />
+              </div>
+            </form>
           </div>
-        </form>
-      </Modal>
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setIsPasswordModalOpen(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmitPassword}>Reset Password</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 };

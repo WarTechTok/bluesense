@@ -14,6 +14,7 @@ import InventoryManagement from "./pages/admin/InventoryManagement";
 import BookingManagement from "./pages/admin/BookingManagement";
 import SalesTracking from "./pages/admin/SalesTracking";
 import Reports from "./pages/admin/Reports";
+import MaintenanceManagement from "./pages/admin/MaintenanceManagement";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -222,6 +223,17 @@ function App() {
             <ProtectedRoute allowedRoles={['admin']}>
               <AdminLayout>
                 <Reports />
+              </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/admin/maintenance" 
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminLayout>
+                <MaintenanceManagement />
               </AdminLayout>
             </ProtectedRoute>
           } 

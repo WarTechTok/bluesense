@@ -124,7 +124,7 @@ exports.createStaffAccount = async (req, res) => {
       profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
     });
 
-    await staff.save();
+        await staff.save();
     console.log('✅ Staff created successfully:', staff.staffId);
     
     // Don't return password in response

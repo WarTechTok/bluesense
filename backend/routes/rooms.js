@@ -7,8 +7,49 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const roomController = require('../controllers/roomController');
 const { authenticate, authorize } = require('../middleware/role');
+
+// ============================================
+// MULTER CONFIGURATION - Image Upload
+// ============================================
+const uploadDir = path.join(__dirname, '../uploads/room-images');
+
+// Create uploads directory if it doesn't exist
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'room-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'));
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB max
+});
 
 // ============================================
 // GET ALL ROOMS - retrieve all available rooms/pools
@@ -53,5 +94,10 @@ router.get('/:id/staff', authenticate, roomController.getRoomStaff);
 // DELETE ROOM - remove room/pool from system (Admin only)
 // ============================================
 router.delete('/:id', authenticate, authorize('admin'), roomController.deleteRoom);
+
+// ============================================
+// UPLOAD ROOM IMAGE - upload image for room/pool (Admin only)
+// ============================================
+router.post('/upload-image', authenticate, authorize('admin'), upload.single('image'), roomController.uploadRoomImage);
 
 module.exports = router;

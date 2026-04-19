@@ -16,6 +16,26 @@ const RoomSchema = new mongoose.Schema({
     default: 'Available' // Current status of the room
   },
   // ============================================
+  // PACKAGE & AMENITIES
+  // ============================================
+  oasis: {
+    type: String,
+    enum: ['Oasis 1', 'Oasis 2'],
+    default: 'Oasis 1'
+  },
+  packageName: {
+    type: String,
+    default: null
+  },
+  image: {
+    type: String,
+    default: null // Path to room image
+  },
+  appliances: [{
+    type: String,
+    default: ''
+  }], // List of appliances/amenities (e.g., "Air Conditioning", "WiFi", "Smart TV")
+  // ============================================
   // STAFF ASSIGNMENT FEATURE
   // ============================================
   assignedStaff: [
