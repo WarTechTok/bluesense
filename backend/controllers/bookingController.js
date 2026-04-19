@@ -419,6 +419,13 @@ const createBooking = async (req, res) => {
       }
     }
 
+    // Generate sequential booking number
+    const lastBooking = await Booking.findOne()
+      .sort({ bookingNumber: -1 })
+      .select('bookingNumber');
+    
+    const nextBookingNumber = (lastBooking?.bookingNumber || 0) + 1;
+
     const newBooking = new Booking({
       customerName,
       customerContact,
@@ -438,6 +445,7 @@ const createBooking = async (req, res) => {
       status: "Pending",
       paymentStatus: paymentStatusForBooking,
       bookingReference: bookingReference,
+      bookingNumber: nextBookingNumber
     });
 
     await newBooking.save();
@@ -467,8 +475,11 @@ const getAllBookings = async (req, res) => {
       .populate("confirmedBy", "name email");
 
     // Auto-generate booking references for any bookings that don't have them
+    // and fix payment status for downpayment bookings with remaining balance
     const updatedBookings = [];
     for (const booking of bookings) {
+      let needsSave = false;
+
       if (!booking.bookingReference) {
         let bookingReference;
         let isUnique = false;
@@ -484,10 +495,28 @@ const getAllBookings = async (req, res) => {
 
         // Update booking with new reference
         booking.bookingReference = bookingReference;
-        await booking.save();
+        needsSave = true;
         console.log(
           `✅ Generated booking reference ${bookingReference} for booking ${booking._id}`,
         );
+      }
+
+      // Fix payment status for downpayment bookings
+      // If it's downpayment and payment status shows "Paid" but there's still a balance due,
+      // correct it to "Partial"
+      if (booking.paymentType === 'downpayment' && booking.paymentStatus === 'Paid') {
+        const balance = booking.totalAmount - (booking.downpayment || 0);
+        if (balance > 0) {
+          booking.paymentStatus = 'Partial';
+          needsSave = true;
+          console.log(
+            `✅ Fixed payment status to "Partial" for booking ${booking._id} (balance: ${balance})`,
+          );
+        }
+      }
+
+      if (needsSave) {
+        await booking.save();
       }
       updatedBookings.push(booking);
     }
@@ -552,12 +581,12 @@ const updateBookingStatus = async (req, res) => {
         const sale = new Sale({
           booking: id,
           amount: booking.totalAmount,
-          bookingNumber: booking.bookingNumber,
+          bookingNumber: booking.bookingNumber || 0,
           bookingReference: booking.bookingReference,
           location: booking.oasis,
         });
         await sale.save();
-        console.log(`✅ Sale record created for booking ${id}`);
+        console.log(`✅ Sale record created for booking ${id} (Booking #${booking.bookingNumber})`);
       }
     }
 
@@ -587,9 +616,19 @@ const updatePaymentStatus = async (req, res) => {
     const { id } = req.params;
     const { paymentStatus } = req.body;
 
+    // If setting to 'Paid', update downpayment to match totalAmount
+    // This prevents balance from being recalculated and auto-correcting to 'Partial'
+    const updateData = { paymentStatus };
+    if (paymentStatus === 'Paid') {
+      const booking = await Booking.findById(id);
+      if (booking && booking.totalAmount) {
+        updateData.downpayment = booking.totalAmount;
+      }
+    }
+
     const booking = await Booking.findByIdAndUpdate(
       id,
-      { paymentStatus },
+      updateData,
       { new: true },
     );
 

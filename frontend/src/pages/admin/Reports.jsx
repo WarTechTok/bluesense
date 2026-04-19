@@ -28,8 +28,15 @@ const Reports = () => {
       if (reportType !== "staff" && (!startDate || !endDate)) {
         const today = new Date();
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const startDateStr = firstDayOfMonth.toISOString().split("T")[0];
-        const endDateStr = today.toISOString().split("T")[0];
+        
+        // Format dates using local timezone (not UTC)
+        const startDateStr = firstDayOfMonth.getFullYear() + "-" +
+                             String(firstDayOfMonth.getMonth() + 1).padStart(2, "0") + "-" +
+                             String(firstDayOfMonth.getDate()).padStart(2, "0");
+        
+        const endDateStr = today.getFullYear() + "-" +
+                           String(today.getMonth() + 1).padStart(2, "0") + "-" +
+                           String(today.getDate()).padStart(2, "0");
         
         queryStartDate = startDateStr;
         queryEndDate = endDateStr;
@@ -55,9 +62,10 @@ const Reports = () => {
         if (queryStartDate && queryEndDate) {
           const start = new Date(queryStartDate);
           const end = new Date(queryEndDate);
+          // Filter by creation date (createdAt), not booking date
           data = data.filter((booking) => {
-            const bookingDate = new Date(booking.bookingDate);
-            return bookingDate >= start && bookingDate <= end;
+            const createdDate = new Date(booking.createdAt);
+            return createdDate >= start && createdDate <= end;
           });
         }
 

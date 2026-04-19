@@ -163,14 +163,17 @@ exports.getTasks = async (req, res) => {
   try {
     const { status, limit = 20, skip = 0 } = req.query;
 
-    // Get staff record by email
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    // Get staff ID from token (most reliable)
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      // Fallback: look up by email
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
     }
 
     // Build filter
-    const filter = { staffId: staff._id };
+    const filter = { staffId: staffId };
     if (status) filter.status = status;
 
     // Fetch tasks with room details
@@ -182,9 +185,9 @@ exports.getTasks = async (req, res) => {
       .skip(parseInt(skip));
 
     // Count by status
-    const pendingCount = await TaskAssignment.countDocuments({ staffId: staff._id, status: 'Pending' });
-    const inProgressCount = await TaskAssignment.countDocuments({ staffId: staff._id, status: 'In Progress' });
-    const completedCount = await TaskAssignment.countDocuments({ staffId: staff._id, status: 'Completed' });
+    const pendingCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'Pending' });
+    const inProgressCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'In Progress' });
+    const completedCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'Completed' });
 
     res.json({
       tasks,
@@ -206,10 +209,12 @@ exports.getTaskDetails = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    // Get staff record
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    // Get staff ID from token
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
     }
 
     const task = await TaskAssignment.findById(taskId)
@@ -221,7 +226,7 @@ exports.getTaskDetails = async (req, res) => {
     }
 
     // Verify ownership
-    if (task.staffId.toString() !== staff._id.toString()) {
+    if (task.staffId.toString() !== staffId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -242,10 +247,12 @@ exports.updateTaskStatus = async (req, res) => {
     const { taskId } = req.params;
     const { status, notes, actualHours } = req.body;
 
-    // Get staff record
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    // Get staff ID from token
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
     }
 
     const task = await TaskAssignment.findById(taskId);
@@ -254,7 +261,7 @@ exports.updateTaskStatus = async (req, res) => {
     }
 
     // Verify ownership
-    if (task.staffId.toString() !== staff._id.toString()) {
+    if (task.staffId.toString() !== staffId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -276,14 +283,16 @@ exports.updateTaskStatus = async (req, res) => {
 
     // Create notification for admin when task is completed
     if (status === 'Completed') {
+      // Get staff info for notification
+      const staffRecord = await Staff.findById(staffId);
       const admin = await User.findOne({ role: 'admin' });
-      if (admin) {
+      if (admin && staffRecord) {
         await Notification.create({
           userId: admin._id,
-          staffId: staff._id,
+          staffId: staffId,
           type: 'Task Update',
           title: 'Task Completed',
-          message: `${staff.name} has completed task: "${task.title}"`,
+          message: `${staffRecord.name} has completed task: "${task.title}"`,
           relatedId: task._id,
           relatedType: 'Task',
           priority: 'High',
@@ -305,11 +314,55 @@ exports.updateTaskStatus = async (req, res) => {
  */
 exports.getDashboardStats = async (req, res) => {
   try {
-    // Get staff record
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    console.log('\n=== 📊 getDashboardStats called ===');
+    console.log('User info:', {
+      userId: req.user.id,
+      email: req.user.email,
+      role: req.user.role,
+      staffId: req.user.staffId
+    });
+
+    // Use staffId from token (most reliable), fallback to email lookup
+    let staff = null;
+    
+    if (req.user.staffId) {
+      console.log('✅ Method 1: Looking up staff by staffId:', req.user.staffId);
+      staff = await Staff.findById(req.user.staffId);
+      if (staff) {
+        console.log('✅ Found staff by ID:', { id: staff._id, name: staff.name, email: staff.email });
+      } else {
+        console.warn('❌ Staff not found by ID:', req.user.staffId);
+      }
+    } else {
+      console.log('⚠️  Method 2: No staffId in token, looking up by email:', req.user.email);
+      staff = await Staff.findOne({ 
+        email: { $regex: `^${req.user.email}$`, $options: 'i' } 
+      });
+      if (staff) {
+        console.log('✅ Found staff by email:', { id: staff._id, name: staff.name });
+      } else {
+        console.warn('❌ Staff not found by email:', req.user.email);
+      }
     }
+    
+    if (!staff) {
+      console.error('❌ Staff record not found for user:', req.user.email);
+      const allStaff = await Staff.find({}).select('email name staffId _id');
+      console.log('Available staff in database:', allStaff.map(s => ({ 
+        email: s.email, 
+        staffId: s.staffId,
+        mongoId: s._id 
+      })));
+      
+      return res.status(404).json({ 
+        error: 'Staff record not found',
+        userEmail: req.user.email,
+        userStaffId: req.user.staffId,
+        availableStaff: allStaff.map(s => ({ email: s.email, staffId: s.staffId }))
+      });
+    }
+
+    console.log('✅ Staff found, fetching stats...');
 
     const pendingTasks = await TaskAssignment.countDocuments({ 
       staffId: staff._id, 
@@ -333,6 +386,13 @@ exports.getDashboardStats = async (req, res) => {
       'assignedStaff.staffId': staff._id
     }).select('name capacity status');
 
+    console.log('✅ Stats calculated:', { 
+      pendingTasks, 
+      inProgressTasks, 
+      completedTasks, 
+      rooms: assignedRooms.length 
+    });
+
     res.json({
       staffName: staff.name,
       position: staff.position,
@@ -344,8 +404,11 @@ exports.getDashboardStats = async (req, res) => {
       assignedRoomsCount: assignedRooms.length
     });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error fetching dashboard stats:', error.message);
+    res.status(500).json({ 
+      error: error.message,
+      details: 'Database error. Check backend logs for details.' 
+    });
   }
 };
 
@@ -355,15 +418,17 @@ exports.getDashboardStats = async (req, res) => {
  */
 exports.getAssignedRooms = async (req, res) => {
   try {
-    // Get staff record by email
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    // Get staff ID from token
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
     }
 
     // Get all rooms assigned to this staff
     const rooms = await Room.find({
-      'assignedStaff.staffId': staff._id
+      'assignedStaff.staffId': staffId
     }).select('_id name capacity price status description');
 
     res.json({
@@ -385,15 +450,17 @@ exports.getMyInspections = async (req, res) => {
   try {
     const { limit = 50, skip = 0 } = req.query;
 
-    // Get staff record by email
-    const staff = await Staff.findOne({ email: req.user.email });
-    if (!staff) {
-      return res.status(404).json({ error: 'Staff record not found' });
+    // Get staff ID from token
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
     }
 
     // Get all inspections created by this staff
     const inspections = await InspectionRecord.find({
-      inspectedBy: staff._id
+      inspectedBy: staffId
     })
       .populate('room', 'name capacity status')
       .sort({ inspectionDate: -1 })
@@ -401,7 +468,7 @@ exports.getMyInspections = async (req, res) => {
       .skip(parseInt(skip));
 
     const totalCount = await InspectionRecord.countDocuments({
-      inspectedBy: staff._id
+      inspectedBy: staffId
     });
 
     res.json({
@@ -439,8 +506,16 @@ exports.createInspectionRecord = async (req, res) => {
       return res.status(400).json({ error: 'Room ID is required' });
     }
 
-    // Get staff record by email
-    const staff = await Staff.findOne({ email: req.user.email });
+    // Get staff ID from token
+    let staffId = req.user.staffId;
+    if (!staffId) {
+      const staff = await Staff.findOne({ email: req.user.email });
+      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
+      staffId = staff._id;
+    }
+
+    // Get staff record for creating inspection
+    const staff = await Staff.findById(staffId);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
@@ -453,7 +528,7 @@ exports.createInspectionRecord = async (req, res) => {
 
     // Check if staff is assigned to this room
     const isAssigned = room.assignedStaff.some(
-      (assignment) => assignment.staffId.toString() === staff._id.toString()
+      (assignment) => assignment.staffId.toString() === staffId.toString()
     );
     if (!isAssigned) {
       return res.status(403).json({ error: 'You are not assigned to this room' });

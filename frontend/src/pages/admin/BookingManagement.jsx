@@ -219,6 +219,30 @@ const BookingManagement = () => {
     );
   };
 
+  const handleCollectRemainingBalance = async (bookingId) => {
+    const booking = bookings.find(b => b._id === bookingId);
+    if (!booking) return;
+    
+    const balance = getBalance(booking);
+    
+    showConfirmationModal(
+      'Collect Remaining Balance',
+      `Customer has paid: ₱${formatCurrency(booking.downpayment)}\nRemaining balance: ₱${formatCurrency(balance)}\n\nMark this booking as fully paid?`,
+      async () => {
+        try {
+          await adminApi.updatePaymentStatus(bookingId, 'Paid');
+          fetchBookings();
+          showConfirmationModal('Success', 'Payment completed! Booking is now fully paid.', null, 'OK');
+        } catch (error) {
+          console.error('Error collecting balance:', error);
+          showConfirmationModal('Error', 'Error processing payment: ' + error.message, null, 'OK');
+        }
+      },
+      'Yes, Mark as Paid',
+      'Cancel'
+    );
+  };
+
   const handleSubmit = async () => {
     try {
       if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || 
@@ -308,7 +332,13 @@ const BookingManagement = () => {
     { 
       key: 'paymentStatus', 
       label: 'Payment', 
-      render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> 
+      render: (value, row) => {
+        const balance = getBalance(row);
+        const displayText = value === 'Partial' && balance > 0 
+          ? `${value} - ₱${formatCurrency(balance)} remaining` 
+          : value;
+        return <span className={`status-badge status-${value.toLowerCase()}`}>{displayText}</span>;
+      }
     },
     { 
       key: 'status', 
@@ -384,7 +414,19 @@ const BookingManagement = () => {
             label: '📋 View Payment',
             type: 'payment',
             handler: (booking) => handleOpenPaymentVerification(booking),
-            condition: (booking) => booking.paymentStatus === 'Pending' || booking.paymentStatus === 'Rejected' || booking.paymentStatus === 'Partial'
+            condition: (booking) => booking.paymentStatus === 'Pending' || booking.paymentStatus === 'Rejected'
+          },
+          {
+            label: '� Collect Remaining Balance',
+            type: 'balance',
+            handler: (booking) => handleCollectRemainingBalance(booking._id),
+            condition: (booking) => getBalance(booking) > 0 && booking.paymentStatus !== 'Paid'
+          },
+          {
+            label: '�🗑️ Delete',
+            type: 'delete',
+            handler: (booking) => handleDelete(booking._id),
+            condition: (booking) => booking.status !== 'Completed'
           }
         ]}
       />

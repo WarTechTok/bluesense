@@ -4,99 +4,86 @@ import NotificationBell from '../components/staff/NotificationBell';
 import './StaffDashboard.css';
 
 /**
- * Staff Dashboard Component
- * Main dashboard for staff members
- * Features: 
- * - Tabs: Overview (stats & summaries), Tasks (assigned tasks)
- * - Notification Bell: Real-time notifications in header
- * - Stats Cards: Quick overview of tasks and assigned rooms
- * - Professional admin-style design
+ * Staff Dashboard Component - Clean & Working
  */
 const StaffDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [tasks, setTasks] = useState([]);
-  const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [taskFilter, setTaskFilter] = useState('');
+  const [error, setError] = useState(null);
 
-  // Fetch dashboard stats
-  const fetchStats = async () => {
-    try {
-      const data = await staffApi.getDashboardStats();
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
+  useEffect(() => {
+    loadDashboard();
+  }, []);
 
-  // Fetch tasks
-  const fetchTasks = async (status = '') => {
+  const loadDashboard = async () => {
     try {
       setLoading(true);
-      const data = await staffApi.getTasks(status ? { status } : {});
-      setTasks(data.tasks);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
+      setError(null);
+
+      const statsRes = await staffApi.getDashboardStats();
+      setStats(statsRes);
+
+      const tasksRes = await staffApi.getTasks();
+      setTasks(tasksRes.tasks || []);
+    } catch (err) {
+      console.error('❌ Dashboard error:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial load
-  useEffect(() => {
-    fetchStats();
-    fetchTasks();
-  }, []);
-
-  // Handle task status change
-  const handleTaskStatusChange = async (taskId, newStatus, notes = '') => {
-    try {
-      await staffApi.updateTaskStatus(taskId, { status: newStatus, notes });
-      alert('✅ Task updated successfully!');
-      fetchTasks(taskFilter);
-      fetchStats();
-      setSelectedTask(null);
-    } catch (error) {
-      console.error('Error updating task:', error);
-      alert('❌ Error updating task');
-    }
-  };
-
-  // Status badge color
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending':
-        return '#ffc107';
-      case 'In Progress':
-        return '#17a2b8';
-      case 'Completed':
-        return '#28a745';
-      case 'Cancelled':
-        return '#6c757d';
-      default:
-        return '#6c757d';
-    }
+    const colors = {
+      'Pending': '#ffc107',
+      'In Progress': '#17a2b8',
+      'Completed': '#28a745',
+      'Cancelled': '#6c757d'
+    };
+    return colors[status] || '#6c757d';
   };
 
-  // Priority badge color
   const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'Urgent':
-        return '#dc3545';
-      case 'High':
-        return '#ff6b6b';
-      case 'Medium':
-        return '#ffc107';
-      case 'Low':
-        return '#17a2b8';
-      default:
-        return '#6c757d';
-    }
+    const colors = {
+      'Urgent': '#dc3545',
+      'High': '#ff6b6b',
+      'Medium': '#ffc107',
+      'Low': '#17a2b8'
+    };
+    return colors[priority] || '#6c757d';
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="staff-dashboard loading">
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="staff-dashboard loading">
+        <div style={{ color: '#dc3545', textAlign: 'center' }}>
+          <h3>❌ Error</h3>
+          <p>{error}</p>
+          <button onClick={loadDashboard}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  // No data
   if (!stats) {
-    return <div className="staff-dashboard loading">Loading dashboard...</div>;
+    return (
+      <div className="staff-dashboard loading">
+        <div>No data available</div>
+      </div>
+    );
   }
 
   return (
@@ -123,7 +110,7 @@ const StaffDashboard = () => {
           </div>
           <div className="stat-content">
             <div className="stat-label">Pending Tasks</div>
-            <div className="stat-value">{stats.pendingTasks}</div>
+            <div className="stat-value">{stats.pendingTasks || 0}</div>
           </div>
         </div>
 
@@ -133,7 +120,7 @@ const StaffDashboard = () => {
           </div>
           <div className="stat-content">
             <div className="stat-label">In Progress</div>
-            <div className="stat-value">{stats.inProgressTasks}</div>
+            <div className="stat-value">{stats.inProgressTasks || 0}</div>
           </div>
         </div>
 
@@ -143,7 +130,7 @@ const StaffDashboard = () => {
           </div>
           <div className="stat-content">
             <div className="stat-label">Completed</div>
-            <div className="stat-value">{stats.completedTasks}</div>
+            <div className="stat-value">{stats.completedTasks || 0}</div>
           </div>
         </div>
 
@@ -153,7 +140,7 @@ const StaffDashboard = () => {
           </div>
           <div className="stat-content">
             <div className="stat-label">Notifications</div>
-            <div className="stat-value">{stats.unreadNotifications}</div>
+            <div className="stat-value">{stats.unreadNotifications || 0}</div>
           </div>
         </div>
       </div>
@@ -172,9 +159,6 @@ const StaffDashboard = () => {
             onClick={() => setActiveTab('tasks')}
           >
             <i className="fas fa-tasks"></i> Tasks
-            {stats.pendingTasks + stats.inProgressTasks > 0 && (
-              <span className="badge">{stats.pendingTasks + stats.inProgressTasks}</span>
-            )}
           </button>
         </div>
       </div>
@@ -189,24 +173,24 @@ const StaffDashboard = () => {
                 <h3>Task Summary</h3>
                 <div className="summary-item">
                   <span>Total Tasks:</span>
-                  <strong>{stats.totalTasks}</strong>
+                  <strong>{stats.totalTasks || 0}</strong>
                 </div>
                 <div className="summary-item">
                   <span>Pending:</span>
                   <strong style={{ color: getStatusColor('Pending') }}>
-                    {stats.pendingTasks}
+                    {stats.pendingTasks || 0}
                   </strong>
                 </div>
                 <div className="summary-item">
                   <span>In Progress:</span>
                   <strong style={{ color: getStatusColor('In Progress') }}>
-                    {stats.inProgressTasks}
+                    {stats.inProgressTasks || 0}
                   </strong>
                 </div>
                 <div className="summary-item">
                   <span>Completed:</span>
                   <strong style={{ color: getStatusColor('Completed') }}>
-                    {stats.completedTasks}
+                    {stats.completedTasks || 0}
                   </strong>
                 </div>
               </div>
@@ -215,14 +199,8 @@ const StaffDashboard = () => {
                 <h3>Room Assignments</h3>
                 <div className="summary-item">
                   <span>Assigned Rooms:</span>
-                  <strong>{stats.assignedRoomsCount}</strong>
+                  <strong>{stats.assignedRoomsCount || 0}</strong>
                 </div>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setActiveTab('tasks')}
-                >
-                  View Assigned Tasks <i className="fas fa-arrow-right"></i>
-                </button>
               </div>
             </div>
           </div>
@@ -231,45 +209,25 @@ const StaffDashboard = () => {
         {/* Tasks Tab */}
         {activeTab === 'tasks' && (
           <div className="tab-pane tasks-pane">
-            {/* Filter */}
-            <div className="task-filter">
-              <select
-                value={taskFilter}
-                onChange={(e) => {
-                  setTaskFilter(e.target.value);
-                  fetchTasks(e.target.value);
-                }}
-                className="filter-select"
-              >
-                <option value="">All Tasks</option>
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </div>
-
-            {/* Tasks List */}
-            <div className="tasks-list">
-              {loading ? (
-                <div className="loading-state">Loading tasks...</div>
-              ) : tasks.length === 0 ? (
-                <div className="empty-state">
-                  <i className="fas fa-inbox"></i>
-                  <p>No tasks assigned</p>
-                </div>
-              ) : (
-                tasks.map((task) => (
+            {tasks.length === 0 ? (
+              <div className="empty-state">
+                <i className="fas fa-inbox"></i>
+                <p>No tasks assigned</p>
+              </div>
+            ) : (
+              <div className="tasks-list">
+                {tasks.map((task) => (
                   <div key={task._id} className="task-card">
                     <div className="task-header">
-                      <div className="task-title-section">
-                        <h4>{task.title}</h4>
-                        <span
-                          className="badge"
+                      <h4>{task.title}</h4>
+                      <div className="task-badges">
+                        <span 
+                          className="badge" 
                           style={{ backgroundColor: getStatusColor(task.status) }}
                         >
                           {task.status}
                         </span>
-                        <span
+                        <span 
                           className="badge"
                           style={{ backgroundColor: getPriorityColor(task.priority) }}
                         >
@@ -277,107 +235,24 @@ const StaffDashboard = () => {
                         </span>
                       </div>
                     </div>
-
-                    <div className="task-info">
-                      <div className="info-item">
-                        <i className="fas fa-door-open"></i>
-                        <span>{task.roomId?.name}</span>
-                      </div>
-                      <div className="info-item">
-                        <i className="fas fa-calendar"></i>
-                        <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-                      </div>
-                      <div className="info-item">
-                        <i className="fas fa-tag"></i>
-                        <span>{task.taskType}</span>
-                      </div>
-                    </div>
-
-                    {task.description && (
-                      <div className="task-description">
-                        <p>{task.description}</p>
-                      </div>
-                    )}
-
-                    {/* Status Update Buttons */}
-                    <div className="task-actions">
-                      {task.status === 'Pending' && (
-                        <>
-                          <button
-                            className="btn btn-sm btn-primary"
-                            onClick={() =>
-                              handleTaskStatusChange(task._id, 'In Progress')
-                            }
-                          >
-                            <i className="fas fa-play"></i> Start Work
-                          </button>
-                        </>
+                    <div className="task-body">
+                      {task.roomId && (
+                        <p><strong>Room:</strong> {task.roomId.name}</p>
                       )}
-                      {task.status === 'In Progress' && (
-                        <>
-                          <button
-                            className="btn btn-sm btn-success"
-                            onClick={() => handleTaskStatusChange(task._id, 'Completed')}
-                          >
-                            <i className="fas fa-check"></i> Mark Complete
-                          </button>
-                        </>
+                      {task.dueDate && (
+                        <p><strong>Due:</strong> {new Date(task.dueDate).toLocaleDateString()}</p>
                       )}
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => setSelectedTask(task)}
-                      >
-                        <i className="fas fa-eye"></i> Details
-                      </button>
+                      {task.taskType && (
+                        <p><strong>Type:</strong> {task.taskType}</p>
+                      )}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
-
-      {/* Task Details Modal */}
-      {selectedTask && (
-        <div className="modal-overlay" onClick={() => setSelectedTask(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedTask(null)}
-            >
-              ✕
-            </button>
-            <h3>{selectedTask.title}</h3>
-            <div className="task-details">
-              <p>
-                <strong>Room:</strong> {selectedTask.roomId?.name}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedTask.taskType}
-              </p>
-              <p>
-                <strong>Status:</strong>{' '}
-                <span style={{ color: getStatusColor(selectedTask.status) }}>
-                  {selectedTask.status}
-                </span>
-              </p>
-              <p>
-                <strong>Priority:</strong>{' '}
-                <span style={{ color: getPriorityColor(selectedTask.priority) }}>
-                  {selectedTask.priority}
-                </span>
-              </p>
-              <p>
-                <strong>Due Date:</strong> {new Date(selectedTask.dueDate).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Description:</strong> {selectedTask.description}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -51,17 +51,18 @@ exports.getSalesReport = async (req, res) => {
     const { startDate, endDate } = req.query;
     const query = {};
 
-    // If date range provided, filter by sale date
+    // If date range provided, filter by creation date (when booking was submitted)
     if (startDate && endDate) {
-      query.date = {
+      query.createdAt = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate + 'T23:59:59.999Z')
       };
     }
 
     const sales = await Sale.find(query)
       .populate('reservation')
-      .populate('booking', 'bookingNumber bookingReference customerName totalAmount');
+      .populate('booking', 'bookingNumber bookingReference customerName totalAmount')
+      .sort({ date: -1 });
     const totalSales = sales.reduce((sum, sale) => sum + sale.amount, 0);
 
     res.json({ sales, totalSales });

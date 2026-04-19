@@ -20,6 +20,8 @@ const Dashboard = () => {
     monthlyRevenue: 0,
     totalExpenses: 0,
     monthlyExpenses: 0,
+    netTotalRevenue: 0,
+    netMonthlyRevenue: 0,
     lowStockItems: 0
   });
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,8 @@ const Dashboard = () => {
         monthlyRevenue: dashboardStats.monthlyRevenue || 0,
         totalExpenses: dashboardStats.totalExpenses || 0,
         monthlyExpenses: dashboardStats.monthlyExpenses || 0,
+        netTotalRevenue: (dashboardStats.totalRevenue || 0) - (dashboardStats.totalExpenses || 0),
+        netMonthlyRevenue: (dashboardStats.monthlyRevenue || 0) - (dashboardStats.monthlyExpenses || 0),
         lowStockItems: dashboardStats.lowStockItems || 0
       });
       
@@ -107,14 +111,45 @@ const Dashboard = () => {
 
       <PoolMonitoring />
 
-      {/* Key Metrics - First Row */}
+      {/* Financial Summary - Professional Table Format */}
       <div className="stats-section">
-        <h2 className="section-title">Key Metrics</h2>
-        <div className="stats-grid">
-          <StatCard title="Total Revenue" value={`₱${stats.totalRevenue.toLocaleString()}`} icon="💰" />
-          <StatCard title="Monthly Revenue" value={`₱${stats.monthlyRevenue.toLocaleString()}`} icon="📈" />
-          <StatCard title="Total Expenses" value={`₱${stats.totalExpenses.toLocaleString()}`} icon="💸" color="#ef4444" />
-          <StatCard title="Monthly Expenses" value={`₱${stats.monthlyExpenses.toLocaleString()}`} icon="📊" color="#f59e0b" />
+        <h2 className="section-title">Financial Summary</h2>
+        <div className="financial-table">
+          <div className="financial-row header">
+            <div className="financial-cell">Metric</div>
+            <div className="financial-cell text-right">Total</div>
+            <div className="financial-cell text-right">Monthly</div>
+            <div className="financial-cell text-right">Margin</div>
+          </div>
+          
+          <div className="financial-row">
+            <div className="financial-cell label">Revenue</div>
+            <div className="financial-cell text-right amount-positive">₱{stats.totalRevenue.toLocaleString()}</div>
+            <div className="financial-cell text-right amount-positive">₱{stats.monthlyRevenue.toLocaleString()}</div>
+            <div className="financial-cell text-right">—</div>
+          </div>
+          
+          <div className="financial-row">
+            <div className="financial-cell label">Expenses</div>
+            <div className="financial-cell text-right amount-negative">₱{stats.totalExpenses.toLocaleString()}</div>
+            <div className="financial-cell text-right amount-negative">₱{stats.monthlyExpenses.toLocaleString()}</div>
+            <div className="financial-cell text-right">
+              {stats.totalRevenue > 0 ? `${((stats.totalExpenses / stats.totalRevenue) * 100).toFixed(1)}%` : '0%'}
+            </div>
+          </div>
+          
+          <div className="financial-row highlight">
+            <div className="financial-cell label">Net Profit</div>
+            <div className={`financial-cell text-right ${stats.netTotalRevenue >= 0 ? 'amount-profit' : 'amount-loss'}`}>
+              ₱{stats.netTotalRevenue.toLocaleString()}
+            </div>
+            <div className={`financial-cell text-right ${stats.netMonthlyRevenue >= 0 ? 'amount-profit' : 'amount-loss'}`}>
+              ₱{stats.netMonthlyRevenue.toLocaleString()}
+            </div>
+            <div className="financial-cell text-right profit-margin">
+              {stats.totalRevenue > 0 ? `${((stats.netTotalRevenue / stats.totalRevenue) * 100).toFixed(1)}%` : '0%'}
+            </div>
+          </div>
         </div>
       </div>
 

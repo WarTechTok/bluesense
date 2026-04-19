@@ -276,8 +276,8 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" });
     }
 
-    // Check if email is verified (skip for Google OAuth users)
-    if (!user.googleId && !user.isEmailVerified) {
+    // Check if email is verified (skip for Google OAuth users and admins)
+    if (!user.googleId && !user.isEmailVerified && user.role !== "admin") {
       return res.status(401).json({ 
         message: "Please verify your email first. Check your inbox.",
         needsVerification: true,
@@ -329,8 +329,32 @@ const login = async (req, res) => {
     user.lastFailedAttempt = null;
     await user.save();
 
+    // If staff user, look up their Staff record and include staffId in token
+    let staffId = null;
+    if (user.role === 'staff') {
+      const Staff = require('../models/Staff');
+      // Use case-insensitive email lookup
+      const staffRecord = await Staff.findOne({ 
+        email: { $regex: `^${user.email}$`, $options: 'i' } 
+      });
+      if (staffRecord) {
+        console.log(`✅ Staff login: Found Staff record for ${user.email} with ID: ${staffRecord._id}`);
+        staffId = staffRecord._id;
+      } else {
+        console.warn(`⚠️ Staff login: NO Staff record found for ${user.email}`);
+        // Log all staff emails for debugging
+        const allStaff = await Staff.find({}).select('email _id staffId');
+        console.log('Available staff emails:', allStaff.map(s => s.email));
+      }
+    }
+
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role,
+        staffId: staffId  // Include staffId for staff users
+      },
       process.env.JWT_SECRET || "your_jwt_secret_key",
       { expiresIn: "7d" },
     );

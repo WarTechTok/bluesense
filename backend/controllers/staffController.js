@@ -297,3 +297,69 @@ exports.deleteStaff = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * POST /api/staff/sync-user-email
+ * Sync User email with Staff email - for fixing email mismatches
+ * This endpoint helps when User and Staff have different emails
+ * Body: { staffEmail, staffPassword }
+ * No authentication required (for setup/recovery)
+ */
+exports.syncUserEmailWithStaff = async (req, res) => {
+  try {
+    const { staffEmail, staffPassword } = req.body;
+    
+    if (!staffEmail || !staffPassword) {
+      return res.status(400).json({ error: 'Staff email and password required' });
+    }
+
+    // Find staff record by email
+    const staff = await Staff.findOne({ email: staffEmail });
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(staffPassword, staff.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    // Now find any User with a different email but same name
+    // This handles cases where User email is 'mhikejoshua@gmail.com' but Staff is 'mikejoshua@gmail.com'
+    const users = await require('../models/User').find({ name: staff.name });
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'No User found with matching name' });
+    }
+
+    const User = require('../models/User');
+    let updated = false;
+
+    for (const user of users) {
+      if (user.email !== staffEmail) {
+        console.log(`🔄 Syncing email for ${user.name}: ${user.email} → ${staffEmail}`);
+        user.email = staffEmail;
+        await user.save();
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      res.json({
+        message: 'Email synced successfully',
+        staffEmail: staff.email,
+        staffName: staff.name,
+        staffId: staff.staffId
+      });
+    } else {
+      res.json({
+        message: 'Emails already match',
+        staffEmail: staff.email
+      });
+    }
+  } catch (error) {
+    console.error('Error syncing email:', error);
+    res.status(500).json({ error: error.message });
+  }
+};

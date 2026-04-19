@@ -201,7 +201,13 @@ exports.updateMaintenance = async (req, res) => {
     if (category !== undefined) maintenance.category = category;
     if (vendor !== undefined) maintenance.vendor = vendor;
     if (invoiceNumber !== undefined) maintenance.invoiceNumber = invoiceNumber;
-    if (status !== undefined) maintenance.status = status;
+    if (status !== undefined) {
+      maintenance.status = status;
+      // Automatically set completedDate when marking as Completed
+      if (status === 'Completed' && !maintenance.completedDate) {
+        maintenance.completedDate = new Date();
+      }
+    }
     if (priority !== undefined) maintenance.priority = priority;
     if (scheduledDate !== undefined) maintenance.scheduledDate = scheduledDate;
     if (completedDate !== undefined) maintenance.completedDate = completedDate;
@@ -344,20 +350,22 @@ exports.markMaintenanceComplete = async (req, res) => {
   try {
     const { completedDate, notes } = req.body;
 
+    // First fetch the maintenance record to get current notes if not provided
+    const existingMaintenance = await Maintenance.findById(req.params.id);
+    if (!existingMaintenance) {
+      return res.status(404).json({ error: 'Maintenance record not found' });
+    }
+
     const maintenance = await Maintenance.findByIdAndUpdate(
       req.params.id,
       {
         status: 'Completed',
         completedDate: completedDate || new Date(),
-        notes: notes || maintenance.notes,
+        notes: notes !== undefined ? notes : existingMaintenance.notes,
         lastMaintenanceDate: new Date()
       },
       { new: true }
     );
-
-    if (!maintenance) {
-      return res.status(404).json({ error: 'Maintenance record not found' });
-    }
 
     // If room was in maintenance, update it back to available
     if (maintenance.room) {

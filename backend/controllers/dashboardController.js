@@ -69,11 +69,12 @@ exports.getDashboardStats = async (req, res) => {
     const monthlyBookingsRevenue = monthlyBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
     // Calculate monthly expenses (from completed maintenance in current month)
+    // Note: We use both completedDate and status to ensure accurate monthly tracking
     const monthlyExpenses = await Maintenance.aggregate([
       {
         $match: {
-          completedDate: { $gte: currentMonth },
-          status: 'Completed'
+          status: 'Completed',
+          completedDate: { $gte: currentMonth } // Only completed maintenance with valid dates
         }
       },
       {
@@ -85,10 +86,12 @@ exports.getDashboardStats = async (req, res) => {
     ]);
 
     // Calculate total expenses (all completed maintenance)
+    // Includes all completed tasks regardless of completion date
     const allExpenses = await Maintenance.aggregate([
       {
         $match: {
-          status: 'Completed'
+          status: 'Completed',
+          amount: { $gt: 0 } // Only count positive amounts
         }
       },
       {

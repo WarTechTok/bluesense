@@ -116,6 +116,12 @@ router.put('/:id/reset-password', authenticate, authorize('admin'), staffControl
 router.delete('/:id', authenticate, authorize('admin'), staffController.deleteStaff);
 
 // ============================================
+// SYNC USER EMAIL - sync User email with Staff email (for setup/recovery)
+// ============================================
+// No authentication required - used for fixing email mismatches during setup
+router.post('/sync-user-email', staffController.syncUserEmailWithStaff);
+
+// ============================================
 // ERROR HANDLING MIDDLEWARE - for multer and other errors
 // ============================================
 router.use((err, req, res, next) => {
