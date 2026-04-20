@@ -304,13 +304,13 @@ const createBooking = async (req, res) => {
       });
     }
 
-    const totalPaxForDay = existingBookings.reduce((sum, b) => sum + b.pax, 0);
-    if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
-      return res.status(400).json({
-        success: false,
-        message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`,
-      });
-    }
+    // const totalPaxForDay = existingBookings.reduce((sum, b) => sum + b.pax, 0);
+    // if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`,
+    //   });
+    // }
 
     // ============================================
     // 4. CHECK SESSION-SPECIFIC AVAILABILITY
