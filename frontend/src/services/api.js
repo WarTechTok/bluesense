@@ -1,24 +1,13 @@
 // src/services/api.js
 // ============================================
-// NETWORK CONFIG - CHANGE THIS WHEN YOU MOVE!
+// NETWORK CONFIG - Uses environment variable
 // ============================================
 
-// OPTION 1: Home WiFi
-const API_BASE_URL = "http://192.168.100.236:8080";
+// Get API URL from environment variable (set in .env file or Vercel/Render dashboard)
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-//const API_BASE_URL = "http://192.168.100.236:8080";
-
-// Pauig
-//const API_BASE_URL= "http://192.168.81.219:8080";
-
-// OPTION 2: Redmi Hotspot (current)
-//const API_BASE_URL = "http://10.122.57.40:8080";
-
-// OPTION 3: School WiFi
-// const API_BASE_URL = "http://[SCHOOL-IP-HERE]:8080";
-
-// OPTION 4: Laptop (LOCAL - for testing)
-//const API_BASE_URL = "http://localhost:8080";
+// Log which URL is being used (helps with debugging)
+console.log(`🔗 API Base URL: ${API_BASE_URL}`);
 
 // ============================================
 // AUTHENTICATION API CALLS
@@ -106,7 +95,6 @@ export async function updateProfile(formData) {
     method: 'PUT',
     headers: {
       'Authorization': `Bearer ${token}`
-      // DON'T set Content-Type - FormData sets it automatically
     },
     body: formData
   });
@@ -163,17 +151,13 @@ export async function getCurrentOasis() {
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
   
-  // Check if bookingData is FormData (includes file upload)
   const isFormData = bookingData instanceof FormData;
-  
   const headers = {};
   
-  // Only set Content-Type for JSON, FormData sets its own headers
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
   
-  // Add token if available (optional for public booking)
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
