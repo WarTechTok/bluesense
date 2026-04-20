@@ -99,15 +99,16 @@ router.get("/booked-dates", getBookedDatesWithSessions);
 // GET /api/bookings/customer/:email - tingnan ang bookings ng customer (no login)
 router.get("/customer/:email", getBookingsByCustomerEmail);
 
-// GET /api/bookings/:id - tingnan ang booking details (may ID lang)
-router.get("/:id", getBookingById);
-
 // ============================================
 // PROTECTED ROUTES - staff/admin only
 // ============================================
 
 // GET /api/bookings - kunin lahat ng bookings (staff only)
+// ⚠️ MUST be before /:id route or Express will treat "" as an ID
 router.get("/", verifyToken, isStaff, getAllBookings);
+
+// GET /api/bookings/:id - tingnan ang booking details (may ID lang)
+router.get("/:id", getBookingById);
 
 // PATCH /api/bookings/:id/status - i-update ang status (confirm/cancel)
 router.patch("/:id/status", verifyToken, isStaff, updateBookingStatus);
