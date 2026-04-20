@@ -4,8 +4,9 @@ import './GoogleLoginButton.css';
 
 function GoogleLoginButton() {
   const handleGoogleLogin = () => {
-    // Redirect to Google OAuth endpoint
-    window.location.href = 'http://localhost:8080/api/auth/google';
+    // Use environment variable instead of hardcoded localhost
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+    window.location.href = `${apiUrl}/api/auth/google`;
   };
 
   return (
