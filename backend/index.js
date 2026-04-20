@@ -38,10 +38,29 @@ if (!fs.existsSync(paymentProofDir)) {
   console.log('✅ Created uploads/payment-proofs folder');
 }
 
-// Middleware Order is IMPORTANT!
-app.use(cors());
+// ============================================
+// CORS CONFIGURATION - UPDATED FOR PRODUCTION
+// ============================================
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://bluesense.vercel.app',
+  'https://bluesense.onrender.com'
+];
 
-// Apply urlencoded and json AFTER cors but on main app
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
+// Apply urlencoded and json AFTER cors
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
@@ -62,11 +81,18 @@ if (!fs.existsSync(uploadDir)) {
 // Serve static files for avatars and payment proofs
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Get callback URL from environment or use default
+const getGoogleCallbackUrl = () => {
+  // Use environment variable if set, otherwise use production URL
+  const backendUrl = process.env.BACKEND_URL || 'https://bluesense.onrender.com';
+  return `${backendUrl}/api/auth/google/callback`;
+};
+
 // Google OAuth Strategy
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "http://localhost:8080/api/auth/google/callback"
+    callbackURL: getGoogleCallbackUrl()
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
@@ -90,9 +116,8 @@ app.use(passport.initialize());
 // ============================================
 // ROUTES
 // ============================================
-// ============================================
+
 // LOGGING MIDDLEWARE - track all requests
-// ============================================
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.path}`);
   next();
@@ -106,7 +131,7 @@ app.use("/api/bookings", bookingRoutes);
 // Staff Dashboard Routes (STAFF USER ROUTES)
 app.use("/api/staff/dashboard", staffDashboardRoutes);
 
-// Admin Dashboard API Routes (KEEP PAUIG'S ROUTES)
+// Admin Dashboard API Routes
 app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/admin/rooms", roomRoutes);
 app.use("/api/admin/reservations", reservationRoutes);
@@ -118,7 +143,18 @@ app.use("/api/admin/reports", reportRoutes);
 app.use("/api/admin/maintenance", maintenanceRoutes);
 
 // ============================================
-// DATABASE CONNECTION - KEEP YOUR VERSION!
+// ERROR HANDLING MIDDLEWARE
+// ============================================
+app.use((err, req, res, next) => {
+  console.error('❌ Error:', err.message);
+  res.status(500).json({ 
+    success: false, 
+    message: err.message || 'Internal server error' 
+  });
+});
+
+// ============================================
+// DATABASE CONNECTION
 // ============================================
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
@@ -128,4 +164,4 @@ mongoose.connect(process.env.MONGO_URI)
   .catch(err => console.log("❌ MongoDB Connection Error:", err));
 
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`🚀 Dashboard API running at http://localhost:${port}`));
+app.listen(port, () => console.log(`🚀 Server running at http://localhost:${port}`));
