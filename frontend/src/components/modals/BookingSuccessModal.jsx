@@ -106,7 +106,6 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
             {bookingDetails.paymentType === 'fullpayment' && (
               <li>Full payment is non-refundable</li>
             )}
-            <li>Please bring a valid government ID</li>
           </ul>
         </div>
 

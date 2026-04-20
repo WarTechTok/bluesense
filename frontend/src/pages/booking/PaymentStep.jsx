@@ -4,20 +4,51 @@
 // ============================================
 
 import React, { useState, useRef } from 'react';
+import imageCompression from 'browser-image-compression';
 
 function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice, downpayment, selectedSession }) {
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handlePaymentProof = (file) => {
-    handleChange({ target: { name: 'paymentProof', value: file } });
+  // Image compression function
+  const compressImage = async (file) => {
+    const options = {
+      maxSizeMB: 1,           // Max 1MB
+      maxWidthOrHeight: 1200, // Max width or height
+      useWebWorker: true,
+      fileType: 'image/jpeg'
+    };
     
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-    } else {
-      setPreviewUrl(null);
+    try {
+      setIsCompressing(true);
+      const compressedFile = await imageCompression(file, options);
+      console.log(`📸 Original: ${(file.size / 1024).toFixed(2)} KB → Compressed: ${(compressedFile.size / 1024).toFixed(2)} KB`);
+      setIsCompressing(false);
+      return compressedFile;
+    } catch (error) {
+      console.error('Compression failed:', error);
+      setIsCompressing(false);
+      return file; // Return original if compression fails
     }
+  };
+
+  const handlePaymentProof = async (file) => {
+    if (!file) {
+      setPreviewUrl(null);
+      handleChange({ target: { name: 'paymentProof', value: null } });
+      return;
+    }
+    
+    // Compress if file is larger than 1MB
+    let processedFile = file;
+    if (file.size > 1 * 1024 * 1024) {
+      processedFile = await compressImage(file);
+    }
+    
+    const url = URL.createObjectURL(processedFile);
+    setPreviewUrl(url);
+    handleChange({ target: { name: 'paymentProof', value: processedFile } });
   };
 
   const handleFileClick = () => {
@@ -173,9 +204,10 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
                 type="button" 
                 className="upload-icon-btn"
                 onClick={handleFileClick}
+                disabled={isCompressing}
               >
                 <i className="fas fa-paperclip"></i>
-                <span>Attach Screenshot</span>
+                <span>{isCompressing ? 'Compressing...' : 'Attach Screenshot'}</span>
               </button>
               <input 
                 ref={fileInputRef}
@@ -185,6 +217,13 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
                 className="hidden-file-input"
               />
             </div>
+            
+            {isCompressing && (
+              <div className="compressing-message">
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Compressing image for faster upload...</span>
+              </div>
+            )}
             
             {previewUrl && (
               <div className="image-preview-container">

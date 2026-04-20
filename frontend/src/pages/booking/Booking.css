@@ -384,6 +384,22 @@
   gap: 20px;
 }
 
+.compressing-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  color: #0284c7;
+  margin-top: 8px;
+}
+
+.compressing-message i {
+  font-size: 0.8rem;
+}
+
 /* ============================================ */
 /* DATE STEP LAYOUT */
 /* ============================================ */

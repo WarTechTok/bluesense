@@ -6,11 +6,23 @@
 import React, { useState } from 'react';
 import './PaymentVerificationModal.css';
 
+// Add the backend URL constant
+const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://bluesense.onrender.com';
+
 const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject }) => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
 
   if (!isOpen || !booking) return null;
+
+  // Helper function to get full payment proof URL
+  const getPaymentProofUrl = (paymentProof) => {
+    if (!paymentProof) return null;
+    // If it's already a full URL, return it
+    if (paymentProof.startsWith('http')) return paymentProof;
+    // Otherwise, prepend the backend URL
+    return `${BACKEND_URL}${paymentProof}`;
+  };
 
   const handleVerifyClick = async () => {
     setIsVerifying(true);
@@ -126,16 +138,21 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
             </div>
           </div>
 
-          {/* Payment Proof */}
+          {/* Payment Proof - FIXED IMAGE URL */}
           {booking.paymentProof && (
             <div className="verification-section">
               <h3>Payment Proof</h3>
               <div className="proof-container">
                 <img 
-                  src={booking.paymentProof} 
+                  src={getPaymentProofUrl(booking.paymentProof)} 
                   alt="Payment Proof" 
                   className="proof-image"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                  }}
                 />
+                <p className="proof-hint">Click image to view full size</p>
               </div>
             </div>
           )}

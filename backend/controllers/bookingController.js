@@ -77,17 +77,17 @@ const OASIS_CONFIG = {
 
 const PACKAGE_CAPACITY = {
   "Oasis 1": {
-    "Package 1": { base: 20, max: 100 }, // 20 base, up to 100 total with extra charge
-    "Package 2": { base: 20, max: 100 },
-    "Package 3": { base: 20, max: 100 },
-    "Package 4": { base: 20, max: 100 },
-    "Package 5": { base: 20, max: 100 },
-    "Package 5+": { base: 30, max: 100 }, // 30 base, up to 100 total
+    "Package 1": { base: 20, max: 200 }, // 20 base, up to 100 total with extra charge
+    "Package 2": { base: 20, max: 200 },
+    "Package 3": { base: 20, max: 200 },
+    "Package 4": { base: 20, max: 200 },
+    "Package 5": { base: 20, max: 200 },
+    "Package 5+": { base: 30, max: 200 }, // 30 base, up to 100 total
   },
   "Oasis 2": {
-    "Package A": { base: 30, max: 100 },
-    "Package B": { base: 30, max: 100 },
-    "Package C": { base: 50, max: 100 }, // 50 base, up to 100 total
+    "Package A": { base: 30, max: 200 },
+    "Package B": { base: 30, max: 200 },
+    "Package C": { base: 50, max: 200 }, // 50 base, up to 100 total
   },
 };
 
@@ -470,12 +470,12 @@ const createBooking = async (req, res) => {
 
 const getAllBookings = async (req, res) => {
   try {
+    // Simplified - remove populate to avoid errors
     const bookings = await Booking.find()
-      .sort({ createdAt: -1 })
-      .populate("confirmedBy", "name email");
+      .sort({ createdAt: -1 });
+      // Removed .populate("confirmedBy", "name email") to prevent errors
 
     // Auto-generate booking references for any bookings that don't have them
-    // and fix payment status for downpayment bookings with remaining balance
     const updatedBookings = [];
     for (const booking of bookings) {
       let needsSave = false;
@@ -502,10 +502,8 @@ const getAllBookings = async (req, res) => {
       }
 
       // Fix payment status for downpayment bookings
-      // If it's downpayment and payment status shows "Paid" but there's still a balance due,
-      // correct it to "Partial"
       if (booking.paymentType === 'downpayment' && booking.paymentStatus === 'Paid') {
-        const balance = booking.totalAmount - (booking.downpayment || 0);
+        const balance = (booking.totalAmount || 0) - (booking.downpayment || 0);
         if (balance > 0) {
           booking.paymentStatus = 'Partial';
           needsSave = true;
@@ -523,7 +521,12 @@ const getAllBookings = async (req, res) => {
 
     res.json(updatedBookings);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in getAllBookings:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message,
+      stack: error.stack 
+    });
   }
 };
 
@@ -533,10 +536,8 @@ const getAllBookings = async (req, res) => {
 
 const getBookingById = async (req, res) => {
   try {
-    const booking = await Booking.findById(req.params.id).populate(
-      "confirmedBy",
-      "name email",
-    );
+    const booking = await Booking.findById(req.params.id);
+    // Removed .populate to avoid errors
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
@@ -544,6 +545,7 @@ const getBookingById = async (req, res) => {
 
     res.json(booking);
   } catch (error) {
+    console.error("Error in getBookingById:", error);
     res.status(500).json({ message: error.message });
   }
 };
