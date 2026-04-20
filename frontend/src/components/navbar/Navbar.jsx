@@ -12,6 +12,9 @@ import PCView from "./PCView";
 import MobileView from "./MobileView";
 import "./Navbar.css";
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -140,7 +143,7 @@ function Navbar() {
       if (userData.avatar.startsWith("http")) {
         return userData.avatar;
       }
-      return `http://localhost:8080${userData.avatar}`;
+      return `${API_BASE_URL}${userData.avatar}`;
     }
 
     if (userData.googleAvatar) {
@@ -165,7 +168,7 @@ function Navbar() {
       console.log('Saving profile data:', updatedData);
       
       const response = await axios.put(
-        "http://localhost:8080/api/auth/profile",
+        `${API_BASE_URL}/api/auth/profile`,
         {
           name: updatedData.name,
           phone: updatedData.phone || "",

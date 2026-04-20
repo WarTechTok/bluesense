@@ -3,7 +3,8 @@
 // CENTRALIZED API CLIENT - Ensures all requests go to correct backend
 // ============================================
 
-const API_BASE_URL = "http://localhost:8080";
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 /**
  * Centralized fetch wrapper for all API calls

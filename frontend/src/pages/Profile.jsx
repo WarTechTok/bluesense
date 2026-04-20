@@ -9,6 +9,9 @@ import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import './Profile.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function Profile() {
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
@@ -164,7 +167,7 @@ function Profile() {
 
       // Update profile (name, phone)
       console.log('Updating profile with:', profileUpdateData);
-      const profileResponse = await fetch(`http://localhost:8080/api/auth/profile`, {
+      const profileResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +190,7 @@ function Profile() {
       // Handle password change separately if provided
       if (formData.currentPassword && formData.newPassword) {
         console.log('Attempting password change...');
-        const passwordResponse = await fetch(`http://localhost:8080/api/auth/change-password`, {
+        const passwordResponse = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

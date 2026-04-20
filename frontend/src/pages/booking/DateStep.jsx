@@ -7,6 +7,9 @@ import React, { useState, useEffect } from 'react';
 import AvailabilityCalendar from '../../components/booking/AvailabilityCalendar';
 import SessionSelector from '../../components/booking/SessionSelector';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage, onSessionSelect, selectedSession }) {
   const [bookedSessions, setBookedSessions] = useState({});
 
@@ -31,9 +34,8 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
 
     const fetchBookedSessions = async () => {
       try {
-        const backendUrl = "http://localhost:8080";
-        // FIXED: Add email parameter to the URL
-        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}&email=${encodeURIComponent(currentUserEmail)}`;
+        // Use environment variable instead of hardcoded localhost
+        const url = `${API_BASE_URL}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}&email=${encodeURIComponent(currentUserEmail)}`;
         
         console.log('📅 Fetching booked sessions from:', url);
         
@@ -67,7 +69,7 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
     };
 
     fetchBookedSessions();
-  }, [formData.reservationDate, selectedOasis, selectedPackage, currentUserEmail]); // ← Added currentUserEmail to dependencies
+  }, [formData.reservationDate, selectedOasis, selectedPackage, currentUserEmail]);
   
   const handleDateChange = (date) => {
     // Fix timezone issue - use local date instead of UTC

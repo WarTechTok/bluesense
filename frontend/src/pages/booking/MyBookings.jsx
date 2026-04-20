@@ -8,6 +8,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import "./MyBookings.css";
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 const MyBookings = () => {
   const [proofFile, setProofFile] = useState(null);
   const [proofPreview, setProofPreview] = useState(null);
@@ -47,7 +50,7 @@ const MyBookings = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:8080/api/bookings/customer/${customerEmail}`,
+        `${API_BASE_URL}/api/bookings/customer/${customerEmail}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -137,7 +140,7 @@ const MyBookings = () => {
       }
 
       const response = await fetch(
-        `http://localhost:8080/api/bookings/${selectedBooking._id}/cancel`,
+        `${API_BASE_URL}/api/bookings/${selectedBooking._id}/cancel`,
         {
           method: "POST",
           headers: {
@@ -488,6 +491,12 @@ const MyBookings = () => {
                   </p>
                 </div>
               )}
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-close-modal" onClick={handleCloseModal}>
+                Close
+              </button>
             </div>
           </div>
         </div>

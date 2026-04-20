@@ -4,6 +4,9 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import './ResetPassword.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function ResetPassword() {
   const navigate = useNavigate();
   const { token } = useParams();
@@ -27,7 +30,7 @@ function ResetPassword() {
     setLoading(true);
 
     try {
-      await axios.post(`http://localhost:8080/api/auth/reset-password/${token}`, { password });
+      await axios.post(`${API_BASE_URL}/api/auth/reset-password/${token}`, { password });
       setSuccess('Password reset successful! Redirecting to login...');
       setTimeout(() => {
         navigate('/login');

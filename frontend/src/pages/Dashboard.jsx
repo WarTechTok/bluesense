@@ -8,6 +8,9 @@ import { Link } from "react-router-dom";
 import LatestCard from "../components/LatestCard";
 import HistoryView from "../components/history/HistoryView";
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 // ESP32 Control Component (inline for now)
 const ESP32Control = () => {
   const [currentOasis, setCurrentOasis] = useState('oasis1');
@@ -17,7 +20,7 @@ const ESP32Control = () => {
   useEffect(() => {
     const fetchCurrentOasis = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/readings/current-oasis');
+        const response = await fetch(`${API_BASE_URL}/api/readings/current-oasis`);
         const data = await response.json();
         if (data.oasis) {
           setCurrentOasis(data.oasis);
@@ -32,7 +35,7 @@ const ESP32Control = () => {
   const handleSwitchOasis = async (oasis) => {
     setSwitching(true);
     try {
-      const response = await fetch('http://localhost:8080/api/readings/set-oasis', {
+      const response = await fetch(`${API_BASE_URL}/api/readings/set-oasis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -160,7 +163,7 @@ function Dashboard() {
   const fetchLatestData = useCallback(async () => {
     try {
       // Fetch data for selected oasis
-      const response = await fetch(`http://localhost:8080/api/readings/latest?oasis=${selectedOasis}`);
+      const response = await fetch(`${API_BASE_URL}/api/readings/latest?oasis=${selectedOasis}`);
       const data = await response.json();
       setLiveData(data);
       setLoading(false);

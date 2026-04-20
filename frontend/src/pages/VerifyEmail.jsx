@@ -9,6 +9,9 @@ import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import './VerifyEmail.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -17,7 +20,7 @@ function VerifyEmail() {
 
   const verifyEmail = useCallback(async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/auth/verify-email?token=${token}`);
+      const response = await fetch(`${API_BASE_URL}/api/auth/verify-email?token=${token}`);
       const data = await response.json();
       
       if (response.ok) {

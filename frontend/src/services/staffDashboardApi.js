@@ -6,14 +6,18 @@
 
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8080/api/staff/dashboard';
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
+// Staff Dashboard API base URL
+const STAFF_API_BASE_URL = `${API_BASE_URL}/api/staff/dashboard`;
 
 // Get auth token from localStorage
 const getAuthToken = () => localStorage.getItem('token');
 
 // Create axios instance with auth
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: STAFF_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

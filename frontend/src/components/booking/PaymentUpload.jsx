@@ -1,6 +1,9 @@
 // frontend/src/components/booking/PaymentUpload.jsx
 import React, { useState } from 'react';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpayment }) {
   const [proofFile, setProofFile] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -29,7 +32,7 @@ function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpa
     formData.append('amount', downpayment);
 
     try {
-      const response = await fetch('http://localhost:8080/api/payments/upload', {
+      const response = await fetch(`${API_BASE_URL}/api/payments/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         body: formData

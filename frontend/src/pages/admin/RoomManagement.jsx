@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import DataTable from '../../components/admin/DataTable';
+// Remove unused DataTable import
+// import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as adminApi from '../../services/admin/adminApi';
@@ -242,14 +243,15 @@ const RoomManagement = () => {
     }
   };
 
-  const columns = [
-    { key: 'name', label: 'Room Name' },
-    { key: 'capacity', label: 'Capacity' },
-    { key: 'price', label: 'Price', render: (value) => `₱${value}` },
-    { key: 'oasis', label: 'Oasis' },
-    { key: 'description', label: 'Description' },
-    { key: 'status', label: 'Status', render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> }
-  ];
+  // Remove the unused columns variable or comment it out
+  // const columns = [
+  //   { key: 'name', label: 'Room Name' },
+  //   { key: 'capacity', label: 'Capacity' },
+  //   { key: 'price', label: 'Price', render: (value) => `₱${value}` },
+  //   { key: 'oasis', label: 'Oasis' },
+  //   { key: 'description', label: 'Description' },
+  //   { key: 'status', label: 'Status', render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> }
+  // ];
 
   return (
     <div className="management-page">

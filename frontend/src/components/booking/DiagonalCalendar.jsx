@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from "react";
 import "./DiagonalCalendar.css";
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedDates, setBookedDates] = useState({});
@@ -30,9 +33,8 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
 
       setLoading(true);
       try {
-        const backendUrl = "http://localhost:8080";
-        // ← Add email parameter to the URL
-        const url = `${backendUrl}/api/bookings/booked-dates?oasis=${encodeURIComponent(oasis)}&package=${encodeURIComponent(packageName)}&email=${encodeURIComponent(currentUserEmail)}`;
+        // Use environment variable instead of hardcoded localhost
+        const url = `${API_BASE_URL}/api/bookings/booked-dates?oasis=${encodeURIComponent(oasis)}&package=${encodeURIComponent(packageName)}&email=${encodeURIComponent(currentUserEmail)}`;
 
         console.log("📅 Fetching booked dates from:", url);
 
@@ -66,7 +68,7 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
     };
 
     fetchBookedDates();
-  }, [oasis, packageName, currentUserEmail]); // ← Add currentUserEmail to dependencies
+  }, [oasis, packageName, currentUserEmail]);
 
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();

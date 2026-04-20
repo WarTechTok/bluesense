@@ -4,6 +4,9 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import './ForgotPassword.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -18,7 +21,7 @@ function ForgotPassword() {
     setMessage('');
 
     try {
-      await axios.post('http://localhost:8080/api/auth/forgot-password', { email });
+      await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email });
       setSent(true);
       setMessage('Password reset link sent! Check your email.');
     } catch (err) {

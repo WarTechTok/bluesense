@@ -9,13 +9,16 @@
 
 import axios from 'axios';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 // ============================================
 // API BASE CONFIGURATION
 // ============================================
 // API_BASE_URL: Backend admin API endpoint
 // Interceptor: Auto-injects 'Authorization: Bearer {token}' header
 // getAuthToken(): Retrieves JWT from localStorage
-const API_BASE_URL = 'http://localhost:8080/api/admin';
+const ADMIN_API_BASE_URL = `${API_BASE_URL}/api/admin`;
 
 // ============================================
 // GET AUTH TOKEN FROM STORAGE
@@ -31,7 +34,7 @@ const getAuthToken = () => localStorage.getItem('token');
 // Request interceptor: Adds JWT token to Authorization header
 // Applies to all API calls in this service
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: ADMIN_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

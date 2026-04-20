@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Modal.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function ProfileModal({ isOpen, onClose, user, onUpdate, onLogout }) {
   const [isEditing, setIsEditing] = useState(false);
   const [showImageConfirm, setShowImageConfirm] = useState(false);
@@ -88,7 +91,7 @@ function ProfileModal({ isOpen, onClose, user, onUpdate, onLogout }) {
       }
 
       const response = await axios.put(
-        'http://localhost:8080/api/auth/profile',
+        `${API_BASE_URL}/api/auth/profile`,
         formDataToSend,
         {
           headers: {
@@ -131,7 +134,7 @@ function ProfileModal({ isOpen, onClose, user, onUpdate, onLogout }) {
         return user.avatar;
       }
       // If it's a local path, add the backend URL
-      return `http://localhost:8080${user.avatar}`;
+      return `${API_BASE_URL}${user.avatar}`;
     }
     
     // Fallback for backward compatibility

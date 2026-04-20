@@ -5,6 +5,9 @@ import axios from 'axios';
 import SignupSuccessModal from '../components/modals/SignupSuccessModal';
 import './Register.css';
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
 function Register() {
   const [form, setForm] = useState({
     name: '',
@@ -72,7 +75,7 @@ function Register() {
     
     try {
       const { confirmPassword, ...submitData } = form;
-      await axios.post('http://localhost:8080/api/auth/register', submitData);
+      await axios.post(`${API_BASE_URL}/api/auth/register`, submitData);
       
       // Store email and name for the modal
       setRegisteredEmail(form.email);
@@ -241,7 +244,7 @@ function Register() {
         email={registeredEmail}
         name={registeredName}
       />
-    </div>
+    </div> 
   );
 }
 
