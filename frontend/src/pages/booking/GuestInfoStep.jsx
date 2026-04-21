@@ -64,6 +64,9 @@ const GuestInfoStep = ({
     });
   }, [formData.fullName, formData.email, formData.phone]);
 
+  // Check if guests exceed 100
+  const isGuestCountValid = formData.guestCount <= 100;
+
   return (
     <div className="step-card">
       <div className="step-header">
@@ -121,20 +124,29 @@ const GuestInfoStep = ({
           </label>
           <div className="input-wrapper">
             <i className="fas fa-user-friends input-icon"></i>
-            <input
-              type="number"
-              name="guestCount"
-              value={formData.guestCount}
-              onChange={handleChange}
-              min="1"
-              className={errors?.guestCount ? "error" : ""}
-            />
+            {isConfirmed && isGuestCountValid ? (
+              // Read-only when confirmed AND guests ≤ 100
+              <div className="readonly-display">
+                {formData.guestCount || "Not provided"}{" "}
+                {formData.guestCount === 1 ? "person" : "persons"}
+              </div>
+            ) : (
+              // Editable when not confirmed OR guests > 100
+              <input
+                type="number"
+                name="guestCount"
+                value={formData.guestCount}
+                onChange={handleChange}
+                min="1"
+                className={errors?.guestCount ? "error" : ""}
+              />
+            )}
           </div>
 
           {/* Warning when guests exceed 100 */}
           {formData.guestCount > 100 && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              Note: You have {formData.guestCount} guests. Max recommended is 100. For groups larger than 100, please contact us.
+              Note: You have {formData.guestCount} guests. Max recommended is 100. Please adjust to 100 or less to confirm.
             </div>
           )}
 
