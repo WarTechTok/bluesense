@@ -121,45 +121,20 @@ const GuestInfoStep = ({
           </label>
           <div className="input-wrapper">
             <i className="fas fa-user-friends input-icon"></i>
-            {isConfirmed ? (
-              <div className="readonly-display">
-                {formData.guestCount || "Not provided"}{" "}
-                {formData.guestCount === 1 ? "person" : "persons"}
-              </div>
-            ) : (
-              <input
-                type="number"
-                name="guestCount"
-                value={formData.guestCount}
-                onChange={handleChange}
-                min="1"
-                className={errors?.guestCount ? "error" : ""}
-              />
-            )}
+            <input
+              type="number"
+              name="guestCount"
+              value={formData.guestCount}
+              onChange={handleChange}
+              min="1"
+              className={errors?.guestCount ? "error" : ""}
+            />
           </div>
 
-          {/* Warning when guests exceed 100 - Just a warning, not blocking */}
+          {/* Warning when guests exceed 100 */}
           {formData.guestCount > 100 && (
-            <div
-              className="warning-message"
-              style={{
-                color: "#f59e0b",
-                marginTop: "8px",
-                backgroundColor: "#fef3c7",
-                padding: "8px 12px",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              <i className="fas fa-exclamation-triangle"></i>
-              <span>
-                ⚠️ Note: You have {formData.guestCount} guests. Maximum
-                recommended is 100 guests. For groups larger than 100, please
-                contact us directly to ensure we can accommodate your group
-                properly.
-              </span>
+            <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
+              Note: You have {formData.guestCount} guests. Max recommended is 100. For groups larger than 100, please contact us.
             </div>
           )}
 
@@ -174,7 +149,6 @@ const GuestInfoStep = ({
           type="button"
           className={`confirm-info-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={onConfirm}
-          disabled={isConfirmed}
         >
           {isConfirmed ? (
             <>
