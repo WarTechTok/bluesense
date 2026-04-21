@@ -114,7 +114,7 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
-        // frontend/src/pages/booking/GuestInfoStep.jsx
+        
         <div className="form-group">
           <label>
             Number of Guests <span className="required">*</span>
