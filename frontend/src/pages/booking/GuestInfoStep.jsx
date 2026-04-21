@@ -92,7 +92,6 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
-
         <div className="form-group">
           <label>
             Email Address <span className="required">*</span>
@@ -104,7 +103,6 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
-
         <div className="form-group">
           <label>
             Phone Number <span className="required">*</span>
@@ -116,7 +114,7 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
-
+        // frontend/src/pages/booking/GuestInfoStep.jsx
         <div className="form-group">
           <label>
             Number of Guests <span className="required">*</span>
@@ -124,24 +122,47 @@ const GuestInfoStep = ({
           <div className="input-wrapper">
             <i className="fas fa-user-friends input-icon"></i>
             {isConfirmed ? (
-              // When confirmed, show as read-only div
               <div className="readonly-display">
                 {formData.guestCount || "Not provided"}{" "}
                 {formData.guestCount === 1 ? "person" : "persons"}
               </div>
             ) : (
-              // When not confirmed, show as editable input
               <input
                 type="number"
                 name="guestCount"
                 value={formData.guestCount}
                 onChange={handleChange}
-                min={1}
-                max={100}
+                min="1"
                 className={errors?.guestCount ? "error" : ""}
               />
             )}
           </div>
+
+          {/* Warning when guests exceed 100 - Just a warning, not blocking */}
+          {formData.guestCount > 100 && (
+            <div
+              className="warning-message"
+              style={{
+                color: "#f59e0b",
+                marginTop: "8px",
+                backgroundColor: "#fef3c7",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+            >
+              <i className="fas fa-exclamation-triangle"></i>
+              <span>
+                ⚠️ Note: You have {formData.guestCount} guests. Maximum
+                recommended is 100 guests. For groups larger than 100, please
+                contact us directly to ensure we can accommodate your group
+                properly.
+              </span>
+            </div>
+          )}
+
           {errors?.guestCount && (
             <span className="error-message">{errors.guestCount}</span>
           )}
