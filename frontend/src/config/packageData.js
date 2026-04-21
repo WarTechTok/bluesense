@@ -7,8 +7,8 @@ export const oasisPackages = {
         name: 'Package 1',
         image: '/images/packages/oasis1/package-1.jpg',
         description: 'Cottage Only (No Room)',
-        baseCapacity: 20,
-        maxCapacity: 20,
+        baseCapacity: 20,  // Good for 20 pax
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -27,8 +27,8 @@ export const oasisPackages = {
         name: 'Package 2',
         image: '/images/packages/oasis1/package-2.jpg',
         description: '1 AC Room (Superior - 2-4 pax)',
-        baseCapacity: 4,
-        maxCapacity: 4,
+        baseCapacity: 20,  // Good for 20 pax (changed from 4)
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -50,8 +50,8 @@ export const oasisPackages = {
         name: 'Package 3',
         image: '/images/packages/oasis1/package-3.jpg',
         description: '1 AC Room (Family - 8-12 pax)',
-        baseCapacity: 12,
-        maxCapacity: 12,
+        baseCapacity: 20,  // Good for 20 pax (changed from 12)
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -74,8 +74,8 @@ export const oasisPackages = {
         name: 'Package 4',
         image: '/images/packages/oasis1/package-4.jpg',
         description: '2 AC Rooms (Family + Superior - 12-15 pax)',
-        baseCapacity: 15,
-        maxCapacity: 15,
+        baseCapacity: 20,  // Good for 20 pax (changed from 15)
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -98,8 +98,8 @@ export const oasisPackages = {
         name: 'Package 5',
         image: '/images/packages/oasis1/package-5.jpg',
         description: '4 AC Rooms (2 Family + 2 Superior - 22-25 pax)',
-        baseCapacity: 25,
-        maxCapacity: 25,
+        baseCapacity: 20,  // Good for 20 pax (changed from 25)
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -122,7 +122,7 @@ export const oasisPackages = {
         name: 'Package 5+',
         image: '/images/packages/oasis1/package-5plus.jpg',
         description: '4 AC Rooms + Extra Space (30-100 pax)',
-        baseCapacity: 30,
+        baseCapacity: 30,  // Good for 30-100 pax (kept as is)
         maxCapacity: 100,
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
@@ -151,8 +151,8 @@ export const oasisPackages = {
         name: 'Package A',
         image: '/images/packages/oasis2/package-a.jpg',
         description: 'Pool & Open Spaces Only',
-        baseCapacity: 30,
-        maxCapacity: 30,
+        baseCapacity: 30,  // Good for 30 pax
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -169,8 +169,8 @@ export const oasisPackages = {
         name: 'Package B',
         image: '/images/packages/oasis2/package-b.jpg',
         description: '1 AC Family Room',
-        baseCapacity: 30,
-        maxCapacity: 30,
+        baseCapacity: 30,  // Good for 30 pax
+        maxCapacity: 100,   // Can accept extra guests up to 100
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -189,7 +189,7 @@ export const oasisPackages = {
         name: 'Package C',
         image: '/images/packages/oasis2/package-c.jpg',
         description: 'Ideal for Events (50-100 pax)',
-        baseCapacity: 50,
+        baseCapacity: 50,  // Good for 50-100 pax (kept as is)
         maxCapacity: 100,
         inclusions: [
           'Pool and all open spaces',

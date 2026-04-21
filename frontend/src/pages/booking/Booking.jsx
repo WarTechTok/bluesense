@@ -18,7 +18,7 @@ import DateStep from './DateStep';
 import PaymentStep from './PaymentStep';
 import ReviewStep from './ReviewStep';
 import AddonsSelector from '../../components/booking/AddonsSelector';
-import { getPackagePrice, getDownpayment, oasisPackages } from '../../config/packageData';
+import { getPackagePrice, getDownpayment, oasisPackages, getMaxCapacity } from '../../config/packageData';
 import './Booking.css';
 
 function Booking() {
@@ -68,6 +68,12 @@ function Booking() {
     if (selectedOasis === 'Oasis 1' && selectedPackage === 'Package 5+') return 30;
     if (selectedOasis === 'Oasis 2' && selectedPackage === 'Package C') return 50;
     return 0;
+  };
+
+  // Get max capacity for current package
+  const getMaxCapacityForPackage = () => {
+    if (!selectedOasis || !selectedPackage) return 100;
+    return getMaxCapacity(selectedOasis, selectedPackage);
   };
 
   // Check if selections are missing
@@ -206,16 +212,21 @@ function Booking() {
         newErrors.phone = 'Phone number is required';
       }
 
-      // Guest info validation - allow exceeding capacity (just warn, don't block)
+      // Guest info validation
       if (!formData.guestCount || formData.guestCount < 1) {
         newErrors.guestCount = 'Number of guests is required';
       }
       
-      // Capacity validation - only check minimum, maximum is allowed with extra charge
+      // Capacity validation - check both minimum and maximum
       const minCapacity = getMinCapacityForPackage();
+      const maxCapacity = getMaxCapacityForPackage();
       
       if (minCapacity > 0 && formData.guestCount < minCapacity) {
         newErrors.guestCount = `Minimum ${minCapacity} guests required for this package`;
+      }
+      
+      if (formData.guestCount > maxCapacity) {
+        newErrors.guestCount = `Maximum ${maxCapacity} guests only. For groups larger than ${maxCapacity}, please contact us directly.`;
       }
       
       // Check if info is confirmed

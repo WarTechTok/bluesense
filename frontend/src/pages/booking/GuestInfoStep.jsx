@@ -3,13 +3,19 @@
 // GUEST INFO STEP - Read-only with confirm button
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 
-const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed }) => {
+const GuestInfoStep = ({
+  formData,
+  errors,
+  handleChange,
+  onConfirm,
+  isConfirmed,
+}) => {
   const [userInfo, setUserInfo] = useState({
-    fullName: formData.fullName || '',
-    email: formData.email || '',
-    phone: formData.phone || ''
+    fullName: formData.fullName || "",
+    email: formData.email || "",
+    phone: formData.phone || "",
   });
 
   // Listen for profile updates from navbar
@@ -18,37 +24,43 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
       const updatedUser = event.detail;
       if (updatedUser) {
         setUserInfo({
-          fullName: updatedUser.name || '',
-          email: updatedUser.email || '',
-          phone: updatedUser.phone || ''
+          fullName: updatedUser.name || "",
+          email: updatedUser.email || "",
+          phone: updatedUser.phone || "",
         });
-        handleChange({ target: { name: 'fullName', value: updatedUser.name || '' } });
-        handleChange({ target: { name: 'email', value: updatedUser.email || '' } });
-        handleChange({ target: { name: 'phone', value: updatedUser.phone || '' } });
+        handleChange({
+          target: { name: "fullName", value: updatedUser.name || "" },
+        });
+        handleChange({
+          target: { name: "email", value: updatedUser.email || "" },
+        });
+        handleChange({
+          target: { name: "phone", value: updatedUser.phone || "" },
+        });
       }
     };
 
-    window.addEventListener('profileUpdated', handleProfileUpdate);
-    
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    window.addEventListener("profileUpdated", handleProfileUpdate);
+
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
     if (user) {
       setUserInfo({
-        fullName: user.name || '',
-        email: user.email || '',
-        phone: user.phone || ''
+        fullName: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
       });
     }
 
     return () => {
-      window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener("profileUpdated", handleProfileUpdate);
     };
   }, [handleChange]);
 
   useEffect(() => {
     setUserInfo({
-      fullName: formData.fullName || '',
-      email: formData.email || '',
-      phone: formData.phone || ''
+      fullName: formData.fullName || "",
+      email: formData.email || "",
+      phone: formData.phone || "",
     });
   }, [formData.fullName, formData.email, formData.phone]);
 
@@ -70,63 +82,87 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
 
       <div className="form-grid">
         <div className="form-group full-width">
-          <label>Full Name <span className="required">*</span></label>
+          <label>
+            Full Name <span className="required">*</span>
+          </label>
           <div className="input-wrapper">
             <i className="fas fa-user input-icon"></i>
             <div className="readonly-display">
-              {userInfo.fullName || 'Not provided'}
+              {userInfo.fullName || "Not provided"}
             </div>
           </div>
         </div>
-        
+
         <div className="form-group">
-          <label>Email Address <span className="required">*</span></label>
+          <label>
+            Email Address <span className="required">*</span>
+          </label>
           <div className="input-wrapper">
             <i className="fas fa-envelope input-icon"></i>
             <div className="readonly-display">
-              {userInfo.email || 'Not provided'}
+              {userInfo.email || "Not provided"}
             </div>
           </div>
         </div>
-        
+
         <div className="form-group">
-          <label>Phone Number <span className="required">*</span></label>
+          <label>
+            Phone Number <span className="required">*</span>
+          </label>
           <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>
             <div className="readonly-display">
-              {userInfo.phone || 'Not provided'}
+              {userInfo.phone || "Not provided"}
             </div>
           </div>
         </div>
-        
+
         <div className="form-group">
-          <label>Number of Guests <span className="required">*</span></label>
+          <label>
+            Number of Guests <span className="required">*</span>
+          </label>
           <div className="input-wrapper">
             <i className="fas fa-user-friends input-icon"></i>
-            <input 
-              type="number" 
-              name="guestCount" 
-              value={formData.guestCount} 
-              onChange={handleChange}
-              min="1"
-              max="100"
-              className={errors?.guestCount ? 'error' : ''}
-            />
+            {isConfirmed ? (
+              // When confirmed, show as read-only div
+              <div className="readonly-display">
+                {formData.guestCount || "Not provided"}{" "}
+                {formData.guestCount === 1 ? "person" : "persons"}
+              </div>
+            ) : (
+              // When not confirmed, show as editable input
+              <input
+                type="number"
+                name="guestCount"
+                value={formData.guestCount}
+                onChange={handleChange}
+                min={1}
+                max={100}
+                className={errors?.guestCount ? "error" : ""}
+              />
+            )}
           </div>
-          {errors?.guestCount && <span className="error-message">{errors.guestCount}</span>}
+          {errors?.guestCount && (
+            <span className="error-message">{errors.guestCount}</span>
+          )}
         </div>
       </div>
-      
+
       <div className="confirm-section">
-        <button 
-          type="button" 
-          className={`confirm-info-btn ${isConfirmed ? 'confirmed' : ''}`}
+        <button
+          type="button"
+          className={`confirm-info-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={onConfirm}
+          disabled={isConfirmed}
         >
           {isConfirmed ? (
-            <><i className="fas fa-check-circle"></i> Confirmed</>
+            <>
+              <i className="fas fa-check-circle"></i> Confirmed
+            </>
           ) : (
-            <><i className="fas fa-check"></i> Confirm</>
+            <>
+              <i className="fas fa-check"></i> Confirm
+            </>
           )}
         </button>
       </div>
