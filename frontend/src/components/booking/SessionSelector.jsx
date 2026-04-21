@@ -1,6 +1,6 @@
 // frontend/src/components/booking/SessionSelector.jsx
 // ============================================
-// SESSION SELECTOR - Radio buttons with pricing
+// SESSION SELECTOR - Radio buttons with clear pricing
 // ============================================
 
 import React from 'react';
@@ -14,12 +14,8 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
 
   // Check if a specific session is disabled
   const isSessionDisabled = (sessionId) => {
-    // If the session itself is directly booked
     if (bookedSessions[sessionId]) return true;
-    
-    // Special rule: 22hrs is disabled if Day OR Night is booked
     if (sessionId === '22hrs' && is22hrsDisabled()) return true;
-    
     return false;
   };
 
@@ -34,70 +30,148 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     return '';
   };
 
-  // Get pricing based on oasis and package
-  const getSessionPrice = (session) => {
+  // Get pricing display with weekday/weekend breakdown
+  const getSessionPriceDisplay = (session) => {
     // Oasis 1 Package 1
     if (oasis === 'Oasis 1' && packageName === 'Package 1') {
-      if (session === 'Day') return '₱5,999 - ₱6,400';
-      if (session === 'Night') return '₱6,400 - ₱6,800';
+      if (session === 'Day') {
+        return { weekday: '₱5,999', weekend: '₱6,400' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱6,400', weekend: '₱6,800' };
+      }
     }
     
     // Oasis 1 Package 2
     if (oasis === 'Oasis 1' && packageName === 'Package 2') {
-      if (session === 'Day') return '₱9,000 - ₱9,500';
-      if (session === 'Night') return '₱10,000 - ₱10,500';
-      if (session === '22hrs') return '₱15,000 - ₱16,000';
+      if (session === 'Day') {
+        return { weekday: '₱9,000', weekend: '₱9,500' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱10,000', weekend: '₱10,500' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱15,000', weekend: '₱16,000' };
+      }
     }
     
     // Oasis 1 Package 3
     if (oasis === 'Oasis 1' && packageName === 'Package 3') {
-      if (session === 'Day') return '₱9,500 - ₱10,000';
-      if (session === 'Night') return '₱10,500 - ₱11,000';
-      if (session === '22hrs') return '₱16,000 - ₱17,000';
+      if (session === 'Day') {
+        return { weekday: '₱9,500', weekend: '₱10,000' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱10,500', weekend: '₱11,000' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱16,000', weekend: '₱17,000' };
+      }
     }
     
     // Oasis 1 Package 4
     if (oasis === 'Oasis 1' && packageName === 'Package 4') {
-      if (session === 'Day') return '₱10,000 - ₱10,500';
-      if (session === 'Night') return '₱11,000 - ₱11,500';
-      if (session === '22hrs') return '₱17,000 - ₱18,000';
+      if (session === 'Day') {
+        return { weekday: '₱10,000', weekend: '₱10,500' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱11,000', weekend: '₱11,500' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱17,000', weekend: '₱18,000' };
+      }
     }
     
     // Oasis 1 Package 5
     if (oasis === 'Oasis 1' && packageName === 'Package 5') {
-      if (session === 'Day') return '₱14,200 - ₱15,600';
-      if (session === 'Night') return '₱14,600 - ₱16,000';
-      if (session === '22hrs') return '₱19,400 - ₱21,200';
+      if (session === 'Day') {
+        return { weekday: '₱14,200', weekend: '₱15,600' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱14,600', weekend: '₱16,000' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱19,400', weekend: '₱21,200' };
+      }
     }
     
     // Oasis 1 Package 5+
     if (oasis === 'Oasis 1' && packageName === 'Package 5+') {
-      if (session === 'Day') return '₱17,000 - ₱20,000';
-      if (session === 'Night') return '₱18,000 - ₱21,000';
-      if (session === '22hrs') return '₱25,000 - ₱30,000';
+      if (session === 'Day') {
+        return { weekday: '₱17,000', weekend: '₱20,000' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱18,000', weekend: '₱21,000' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱25,000', weekend: '₱30,000' };
+      }
     }
     
     // Oasis 2 Package A
     if (oasis === 'Oasis 2' && packageName === 'Package A') {
-      if (session === 'Day') return '₱7,500 - ₱10,000';
-      if (session === 'Night') return '₱8,500 - ₱11,000';
+      if (session === 'Day') {
+        return { weekday: '₱7,500', weekend: '₱10,000' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱8,500', weekend: '₱11,000' };
+      }
     }
     
     // Oasis 2 Package B
     if (oasis === 'Oasis 2' && packageName === 'Package B') {
-      if (session === 'Day') return '₱9,000 - ₱12,000';
-      if (session === 'Night') return '₱10,000 - ₱12,500';
-      if (session === '22hrs') return '₱16,500 - ₱20,000';
+      if (session === 'Day') {
+        return { weekday: '₱9,000', weekend: '₱12,000' };
+      }
+      if (session === 'Night') {
+        return { weekday: '₱10,000', weekend: '₱12,500' };
+      }
+      if (session === '22hrs') {
+        return { weekday: '₱16,500', weekend: '₱20,000' };
+      }
     }
     
-    // Oasis 2 Package C (50 PAX)
+    // Oasis 2 Package C - Based on PAX, not day of week
     if (oasis === 'Oasis 2' && packageName === 'Package C') {
-      if (session === 'Day') return '₱19,000 - ₱20,000';
-      if (session === 'Night') return '₱20,000 - ₱21,000';
-      if (session === '22hrs') return '₱26,000 - ₱30,000';
+      if (session === 'Day') {
+        return { pax50: '₱19,000', pax100: '₱20,000' };
+      }
+      if (session === 'Night') {
+        return { pax50: '₱20,000', pax100: '₱21,000' };
+      }
+      if (session === '22hrs') {
+        return { pax50: '₱26,000', pax100: '₱30,000' };
+      }
     }
     
-    return 'Price varies';
+    return null;
+  };
+
+  // Render price display based on package type
+  const renderPrice = (sessionId) => {
+    const price = getSessionPriceDisplay(sessionId);
+    if (!price) return <div className="session-price">Price varies</div>;
+    
+    // Package C - shows based on PAX
+    if (price.pax50 && price.pax100) {
+      return (
+        <div className="session-price">
+          <div className="price-row">50 PAX: {price.pax50}</div>
+          <div className="price-row">100 PAX: {price.pax100}</div>
+        </div>
+      );
+    }
+    
+    // Regular packages - shows weekday/weekend
+    if (price.weekday && price.weekend) {
+      return (
+        <div className="session-price">
+          <div className="price-row weekday">Mon-Thu: {price.weekday}</div>
+          <div className="price-row weekend">Fri-Sun: {price.weekend}</div>
+        </div>
+      );
+    }
+    
+    return <div className="session-price">Price varies</div>;
   };
 
   // Get available sessions based on package
@@ -162,7 +236,9 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
                 </div>
                 <div className="session-time">{session.time}</div>
               </div>
-              <div className="session-price">{getSessionPrice(session.id)}</div>
+              <div className="session-price-container">
+                {renderPrice(session.id)}
+              </div>
             </label>
           );
         })}

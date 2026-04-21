@@ -2180,7 +2180,40 @@
   pointer-events: none;
 }
 
+/* Session price styling */
+.session-price-container {
+  text-align: right;
+  min-width: 100px;
+}
 
+.session-price {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.price-row {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.price-row.weekday {
+  color: #22c55e;
+}
+
+.price-row.weekend {
+  color: #f59e0b;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .session-price-container {
+    min-width: 80px;
+  }
+  
+  .price-row {
+    font-size: 0.7rem;
+  }
+}
 
 /* Responsive for warning message */
 @media (max-width: 768px) {

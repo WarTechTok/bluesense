@@ -19,6 +19,36 @@ const BookingSummary = ({
   paymentType
 }) => {
   
+  // Get the day type based on selected date
+  const getDayType = () => {
+    if (!formData.reservationDate) return null;
+    
+    const date = new Date(formData.reservationDate);
+    const dayOfWeek = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+    
+    // Monday = 1, Tuesday = 2, Wednesday = 3, Thursday = 4
+    if (dayOfWeek >= 1 && dayOfWeek <= 4) {
+      return 'weekday';
+    }
+    // Friday = 5, Saturday = 6, Sunday = 0
+    return 'weekend';
+  };
+
+  const dayType = getDayType();
+  const isWeekday = dayType === 'weekday';
+  
+  // Get rate breakdown text
+  const getRateBreakdown = () => {
+    if (!selectedPackage || !selectedSession || !formData.reservationDate) return '';
+    
+    const dayTypeText = isWeekday ? 'Monday - Thursday' : 'Friday - Sunday';
+    const sessionText = selectedSession === 'Day' ? 'Day Rate' : 
+                       selectedSession === 'Night' ? 'Night Rate' : 
+                       selectedSession === '22 Hours' ? '22 Hours Rate' : selectedSession;
+    
+    return `${dayTypeText} • ${sessionText}`;
+  };
+
   // Get package display name with proper formatting
   const getPackageDisplayName = () => {
     if (!selectedPackage) return '—';
@@ -49,7 +79,7 @@ const BookingSummary = ({
         'Package 3': 20,
         'Package 4': 20,
         'Package 5': 20,
-        'Package 5+': 100, // 30-100 pax
+        'Package 5+': 100,
       };
       return capacities[selectedPackage] || 20;
     }
@@ -59,7 +89,7 @@ const BookingSummary = ({
       const capacities = {
         'Package A': 30,
         'Package B': 30,
-        'Package C': 100, // 50-100 pax
+        'Package C': 100,
       };
       return capacities[selectedPackage] || 30;
     }
@@ -67,7 +97,7 @@ const BookingSummary = ({
     return 0;
   };
 
-  // Get min capacity (for display)
+  // Get min capacity
   const getMinCapacity = () => {
     if (!selectedPackage) return 0;
     
@@ -99,19 +129,19 @@ const BookingSummary = ({
     
     const rooms = {
       'Package 1': 'No room, cottage only',
-      'Package 2': '1 AC Superior Room',
-      'Package 3': '1 AC Family Room',
-      'Package 4': '1 Family Room + 1 Superior Room',
-      'Package 5': '2 Family Rooms + 2 Superior Rooms',
-      'Package 5+': '2 Family Rooms + 2 Superior Rooms',
+      'Package 2': '1 AC Superior Room (2-4 pax)',
+      'Package 3': '1 AC Family Room (8-12 pax)',
+      'Package 4': '1 Family Room + 1 Superior Room (12-15 pax)',
+      'Package 5': '2 Family Rooms + 2 Superior Rooms (22-25 pax)',
+      'Package 5+': '2 Family Rooms + 2 Superior Rooms (22-25 pax sleeping)',
       'Package A': 'No room',
-      'Package B': '1 AC Family Room',
-      'Package C': '1 AC Family Room',
+      'Package B': '1 AC Family Room w/ ref',
+      'Package C': '1 AC Family Room w/ ref',
     };
     return rooms[selectedPackage] || '';
   };
 
-  // Calculate extra persons fee (₱150 per person beyond capacity)
+  // Calculate extra persons fee
   const getExtraPersonsFee = () => {
     const maxCapacity = getMaxCapacity();
     const guestCount = formData.guestCount || 1;
@@ -128,8 +158,6 @@ const BookingSummary = ({
   const minCapacity = getMinCapacity();
   const extraPersonsCount = formData.guestCount - maxCapacity;
   const totalWithExtra = totalPrice;
-
-  // Check if guest count is below minimum
   const isBelowMin = minCapacity > 0 && formData.guestCount < minCapacity;
 
   return (
@@ -180,10 +208,18 @@ const BookingSummary = ({
               <span className="label">Reservation Date</span>
               <span className="value">
                 {new Date(formData.reservationDate).toLocaleDateString('en-US', { 
+                  weekday: 'long',
                   month: 'long', 
                   day: 'numeric', 
                   year: 'numeric' 
                 })}
+              </span>
+            </div>
+            
+            <div className="summary-item">
+              <span className="label">Day Type</span>
+              <span className="value">
+                {isWeekday ? 'Monday - Thursday' : 'Friday - Sunday'}
               </span>
             </div>
             
@@ -205,6 +241,12 @@ const BookingSummary = ({
             </div>
             
             <div className="summary-divider"></div>
+            
+            {/* Rate Breakdown */}
+            <div className="summary-item" style={{ background: '#f0f9ff', margin: '0 -20px', padding: '8px 20px', borderRadius: '8px' }}>
+              <span className="label" style={{ fontWeight: '600', color: '#0369a1' }}>Rate Applied</span>
+              <span className="value" style={{ fontWeight: '600', color: '#0284c7' }}>{getRateBreakdown()}</span>
+            </div>
             
             {/* Package Rate */}
             <div className="summary-item">
@@ -236,7 +278,7 @@ const BookingSummary = ({
               <span className="value">₱{totalWithExtra.toLocaleString()}</span>
             </div>
             
-            {/* Downpayment - Only show if downpayment type is selected */}
+            {/* Downpayment */}
             {paymentType === 'downpayment' && (
               <>
                 <div className="summary-downpayment">
@@ -244,7 +286,6 @@ const BookingSummary = ({
                   <span className="downpayment-amount">₱{downpayment.toLocaleString()}</span>
                 </div>
                 
-                {/* Remaining Balance */}
                 <div className="summary-item">
                   <span className="label">Remaining Balance</span>
                   <span className="value">₱{(totalWithExtra - downpayment).toLocaleString()}</span>
@@ -252,7 +293,7 @@ const BookingSummary = ({
               </>
             )}
             
-            {/* Full Payment Note */}
+            {/* Payment Type Note */}
             {paymentType === 'fullpayment' && (
               <div className="summary-item" style={{ background: '#d4edda', padding: '12px', borderRadius: '8px', marginTop: '12px' }}>
                 <span className="label" style={{ color: '#155724' }}>Payment Type</span>
@@ -260,31 +301,42 @@ const BookingSummary = ({
               </div>
             )}
             
-            {/* Note */}
+            {/* Info Notes */}
             {paymentType === 'downpayment' && (
               <div className="summary-note">
                 <i className="fas fa-info-circle"></i>
                 <span>Downpayment is required to secure your reservation. Balance payable upon arrival.</span>
               </div>
             )}
+            
             {paymentType === 'fullpayment' && (
               <div className="summary-note" style={{ background: '#d4edda', color: '#155724' }}>
                 <i className="fas fa-check-circle"></i>
                 <span>Full payment is required. No additional payment needed upon arrival.</span>
               </div>
             )}
+            
             {extraPersonsFee > 0 && (
               <div className="summary-note" style={{ background: '#fef3c7', color: '#92400e' }}>
                 <i className="fas fa-exclamation-triangle"></i>
                 <span>Extra person charge: ₱150 per person beyond package capacity.</span>
               </div>
             )}
+            
             {isBelowMin && (
               <div className="summary-note" style={{ background: '#fee2e2', color: '#991b1b' }}>
                 <i className="fas fa-exclamation-circle"></i>
                 <span>Minimum {minCapacity} guests required for this package.</span>
               </div>
             )}
+
+            {/* Rate Info Note */}
+            <div className="summary-note" style={{ background: '#e0f2fe', color: '#0369a1', marginTop: '12px' }}>
+              <i className="fas fa-calendar-alt"></i>
+              <span>
+                Monday-Thursday rates are lower than Friday-Sunday rates.
+              </span>
+            </div>
           </>
         )}
         
