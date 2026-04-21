@@ -124,14 +124,12 @@ const GuestInfoStep = ({
           </label>
           <div className="input-wrapper">
             <i className="fas fa-user-friends input-icon"></i>
-            {isConfirmed && isGuestCountValid ? (
-              // Read-only when confirmed AND guests ≤ 100
+            {isConfirmed ? (
               <div className="readonly-display">
                 {formData.guestCount || "Not provided"}{" "}
                 {formData.guestCount === 1 ? "person" : "persons"}
               </div>
             ) : (
-              // Editable when not confirmed OR guests > 100
               <input
                 type="number"
                 name="guestCount"
@@ -146,7 +144,7 @@ const GuestInfoStep = ({
           {/* Warning when guests exceed 100 */}
           {formData.guestCount > 100 && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              Note: You have {formData.guestCount} guests. Max recommended is 100. Please adjust to 100 or less to confirm.
+              Maximum 100 guests only. Please reduce to 100 or less to confirm.
             </div>
           )}
 
@@ -161,6 +159,8 @@ const GuestInfoStep = ({
           type="button"
           className={`confirm-info-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={onConfirm}
+          disabled={isConfirmed || !isGuestCountValid}
+          style={{ opacity: (!isGuestCountValid && !isConfirmed) ? 0.5 : 1 }}
         >
           {isConfirmed ? (
             <>
