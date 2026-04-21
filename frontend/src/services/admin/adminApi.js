@@ -21,6 +21,11 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 const ADMIN_API_BASE_URL = `${API_BASE_URL}/api/admin`;
 
 // ============================================
+// SEPARATE CLIENT FOR BOOKINGS (no /admin prefix)
+// ============================================
+const BOOKINGS_API_BASE_URL = `${API_BASE_URL}/api`;
+
+// ============================================
 // GET AUTH TOKEN FROM STORAGE
 // ============================================
 // Retrieves JWT token stored during login
@@ -41,13 +46,23 @@ const apiClient = axios.create({
 });
 
 // ============================================
+// BOOKINGS API CLIENT (no /admin prefix)
+// ============================================
+const bookingsApiClient = axios.create({
+  baseURL: BOOKINGS_API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// ============================================
 // REQUEST INTERCEPTOR - ADD JWT TOKEN
 // ============================================
 // Runs before every API request
 // Retrieves token from localStorage
 // Adds 'Authorization: Bearer {token}' header if token exists
 
-// Add token to all requests
+// Add token to main apiClient
 apiClient.interceptors.request.use((config) => {
   const token = getAuthToken();
   console.log(`📡 API Request: ${config.method.toUpperCase()} ${config.url}`, {
@@ -70,6 +85,15 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Add token to bookingsApiClient
+bookingsApiClient.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // ============================================
 // RESPONSE ERROR INTERCEPTOR
 // ============================================
@@ -86,6 +110,16 @@ apiClient.interceptors.response.use(
     } else {
       // Error in request setup
       console.error('❌ Request error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+bookingsApiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error(`❌ Bookings API Error [${error.response.status}]:`, error.response.data);
     }
     return Promise.reject(error);
   }
@@ -317,14 +351,22 @@ export const getRoomStaff = async (id) => {
 // DELETE /bookings/:id - Delete booking (admin only)
 
 // ============================================
-// GET ALL BOOKINGS
+// GET ALL BOOKINGS - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Returns: Array of all booking objects with confirmation details
 // Requires: Staff role
+// TO THIS (using fetch directly with the correct URL):
 export const getAllBookings = async () => {
   try {
-    const res = await apiClient.get('/bookings');
-    return res.data;
+    const token = localStorage.getItem('token');
+    const res = await fetch(`${API_BASE_URL}/api/bookings`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error('Error fetching bookings:', error);
     throw error;
@@ -332,13 +374,13 @@ export const getAllBookings = async () => {
 };
 
 // ============================================
-// GET BOOKING BY ID
+// GET BOOKING BY ID - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id
 // Returns: Single booking object with details
 export const getBookingById = async (id) => {
   try {
-    const res = await apiClient.get(`/bookings/${id}`);
+    const res = await bookingsApiClient.get(`/bookings/${id}`);
     return res.data;
   } catch (error) {
     console.error('Error fetching booking:', error);
@@ -347,13 +389,13 @@ export const getBookingById = async (id) => {
 };
 
 // ============================================
-// CREATE BOOKING
+// CREATE BOOKING - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: bookingData - booking information
 // Returns: Newly created booking object
 export const createBooking = async (bookingData) => {
   try {
-    const res = await apiClient.post('/bookings', bookingData);
+    const res = await bookingsApiClient.post('/bookings', bookingData);
     return res.data;
   } catch (error) {
     console.error('Error creating booking:', error);
@@ -362,14 +404,14 @@ export const createBooking = async (bookingData) => {
 };
 
 // ============================================
-// UPDATE BOOKING STATUS
+// UPDATE BOOKING STATUS - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id, status - new status
 // Returns: Updated booking object
 // Requires: Staff role
 export const updateBookingStatus = async (id, status) => {
   try {
-    const res = await apiClient.patch(`/bookings/${id}/status`, { status });
+    const res = await bookingsApiClient.patch(`/bookings/${id}/status`, { status });
     return res.data;
   } catch (error) {
     console.error('Error updating booking status:', error);
@@ -378,14 +420,14 @@ export const updateBookingStatus = async (id, status) => {
 };
 
 // ============================================
-// UPDATE PAYMENT STATUS
+// UPDATE PAYMENT STATUS - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id, paymentStatus - new payment status
 // Returns: Updated booking object
 // Requires: Staff role
 export const updatePaymentStatus = async (id, paymentStatus) => {
   try {
-    const res = await apiClient.patch(`/bookings/${id}/payment`, { paymentStatus });
+    const res = await bookingsApiClient.patch(`/bookings/${id}/payment`, { paymentStatus });
     return res.data;
   } catch (error) {
     console.error('Error updating payment status:', error);
@@ -394,15 +436,14 @@ export const updatePaymentStatus = async (id, paymentStatus) => {
 };
 
 // ============================================
-// VERIFY PAYMENT AND CONFIRM BOOKING
+// VERIFY PAYMENT AND CONFIRM BOOKING - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id
 // Returns: Updated booking object with status Confirmed and paymentStatus Paid
 // Requires: Staff role
-// Actions: Updates payment status to Paid, booking status to Confirmed, sends email to customer
 export const verifyPayment = async (id) => {
   try {
-    const res = await apiClient.patch(`/bookings/${id}/verify`);
+    const res = await bookingsApiClient.patch(`/bookings/${id}/verify`);
     return res.data;
   } catch (error) {
     console.error('Error verifying payment:', error);
@@ -411,14 +452,14 @@ export const verifyPayment = async (id) => {
 };
 
 // ============================================
-// DELETE BOOKING
+// DELETE BOOKING - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id
 // Returns: Deleted booking object
 // Requires: Staff role
 export const deleteBooking = async (id) => {
   try {
-    const res = await apiClient.delete(`/bookings/${id}`);
+    const res = await bookingsApiClient.delete(`/bookings/${id}`);
     return res.data;
   } catch (error) {
     console.error('Error deleting booking:', error);

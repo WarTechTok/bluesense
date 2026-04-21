@@ -143,6 +143,22 @@ app.use("/api/admin/reports", reportRoutes);
 app.use("/api/admin/maintenance", maintenanceRoutes);
 
 // ============================================
+// TEST ENDPOINT - Direct database access
+// ============================================
+app.get('/api/test-bookings-direct', async (req, res) => {
+  console.log("🔥🔥🔥 DIRECT TEST ENDPOINT HIT! 🔥🔥🔥");
+  try {
+    const Booking = require('./models/Booking');
+    const bookings = await Booking.find().sort({ createdAt: -1 });
+    console.log(`✅ Test endpoint found ${bookings.length} bookings`);
+    res.json({ success: true, count: bookings.length, bookings });
+  } catch (error) {
+    console.error("❌ Test endpoint error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // ERROR HANDLING MIDDLEWARE
 // ============================================
 app.use((err, req, res, next) => {

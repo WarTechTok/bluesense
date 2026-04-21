@@ -40,14 +40,20 @@ const BookingManagement = () => {
   });
 
   const fetchBookings = useCallback(async () => {
-    try {
-      const data = await adminApi.getAllBookings();
-      setBookings(data);
-    } catch (error) {
-      console.error("Error fetching bookings:", error);
-      showConfirmationModal("Error", "Failed to fetch bookings", null, "OK");
-    }
-  }, []);
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch('http://localhost:8080/api/bookings', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    const data = await response.json();
+    setBookings(data);
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    showConfirmationModal("Error", "Failed to fetch bookings", null, "OK");
+  }
+}, []);
 
   useEffect(() => {
     fetchBookings();

@@ -3,6 +3,8 @@
 // BOOKING CONTROLLER - with booking limits & capacity management
 // ============================================
 
+console.log("🟢🟢🟢 BOOKING CONTROLLER IS LOADED! 🟢🟢🟢");
+
 const Booking = require("../models/Booking");
 const Sale = require("../models/Sale");
 
@@ -465,68 +467,18 @@ const createBooking = async (req, res) => {
 };
 
 // ============================================
-// GET ALL BOOKINGS - para sa staff/admin
+// GET ALL BOOKINGS - EXACT SAME PATTERN AS ROOMS
 // ============================================
 
 const getAllBookings = async (req, res) => {
+  console.log("🔴🔴🔴 getAllBookings FUNCTION IS EXECUTING! 🔴🔴🔴");
   try {
-    // Simplified - remove populate to avoid errors
-    const bookings = await Booking.find()
-      .sort({ createdAt: -1 });
-      // Removed .populate("confirmedBy", "name email") to prevent errors
-
-    // Auto-generate booking references for any bookings that don't have them
-    const updatedBookings = [];
-    for (const booking of bookings) {
-      let needsSave = false;
-
-      if (!booking.bookingReference) {
-        let bookingReference;
-        let isUnique = false;
-
-        // Generate unique reference
-        while (!isUnique) {
-          bookingReference = await generateBookingReference();
-          const existingRef = await Booking.findOne({ bookingReference });
-          if (!existingRef) {
-            isUnique = true;
-          }
-        }
-
-        // Update booking with new reference
-        booking.bookingReference = bookingReference;
-        needsSave = true;
-        console.log(
-          `✅ Generated booking reference ${bookingReference} for booking ${booking._id}`,
-        );
-      }
-
-      // Fix payment status for downpayment bookings
-      if (booking.paymentType === 'downpayment' && booking.paymentStatus === 'Paid') {
-        const balance = (booking.totalAmount || 0) - (booking.downpayment || 0);
-        if (balance > 0) {
-          booking.paymentStatus = 'Partial';
-          needsSave = true;
-          console.log(
-            `✅ Fixed payment status to "Partial" for booking ${booking._id} (balance: ${balance})`,
-          );
-        }
-      }
-
-      if (needsSave) {
-        await booking.save();
-      }
-      updatedBookings.push(booking);
-    }
-
-    res.json(updatedBookings);
+    const bookings = await Booking.find().sort({ createdAt: -1 });
+    console.log(`✅ Found ${bookings.length} bookings`);
+    res.json(bookings);
   } catch (error) {
-    console.error("Error in getAllBookings:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message,
-      stack: error.stack 
-    });
+    console.error("❌ Error in getAllBookings:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
