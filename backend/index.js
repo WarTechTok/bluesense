@@ -43,7 +43,7 @@ if (!fs.existsSync(paymentProofDir)) {
 // ============================================
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://bluesense.vercel.app',
+  'https://bluesense-de14.vercel.app',
   'https://bluesense.onrender.com'
 ];
 
