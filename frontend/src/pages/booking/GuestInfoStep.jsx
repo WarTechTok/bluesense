@@ -22,7 +22,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
           email: updatedUser.email || '',
           phone: updatedUser.phone || ''
         });
-        // Also update the parent form data
         handleChange({ target: { name: 'fullName', value: updatedUser.name || '' } });
         handleChange({ target: { name: 'email', value: updatedUser.email || '' } });
         handleChange({ target: { name: 'phone', value: updatedUser.phone || '' } });
@@ -31,7 +30,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
     
-    // Initial load from localStorage
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user) {
       setUserInfo({
@@ -46,7 +44,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
     };
   }, [handleChange]);
 
-  // Update when formData changes from parent
   useEffect(() => {
     setUserInfo({
       fullName: formData.fullName || '',
@@ -65,16 +62,10 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
         </div>
       </div>
 
-      {/* Enhanced Warning message with edit link */}
-      <div className="info-note warning">
-        <i className="fas fa-exclamation-triangle"></i>
-        <div className="warning-content">
-          <strong>Need to make changes?</strong>
-          <p>Your information is automatically loaded from your profile.</p>
-          <a href="/profile" className="edit-profile-link">
-            <i className="fas fa-user-edit"></i> Update My Profile
-          </a>
-        </div>
+      {/* Simple reminder - can edit through profile */}
+      <div className="info-note subtle">
+        <i className="fas fa-info-circle"></i>
+        <p>You can update your information in your profile settings.</p>
       </div>
 
       <div className="form-grid">
@@ -126,7 +117,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
         </div>
       </div>
       
-      {/* Confirm Button */}
       <div className="confirm-section">
         <button 
           type="button" 

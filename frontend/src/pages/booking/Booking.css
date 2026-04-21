@@ -2126,6 +2126,60 @@
   pointer-events: none;
 }
 
+/* Subtle info note - clean and simple */
+.info-note.subtle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #f0f9ff;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 0.8rem;
+  color: #0369a1;
+}
+
+.info-note.subtle i {
+  font-size: 14px;
+  flex-shrink: 0;
+  color: #0284c7;
+}
+
+.info-note.subtle p {
+  margin: 0;
+}
+
+/* Read-only display styling */
+.readonly-display {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #475569;
+  cursor: default;
+  font-style: italic;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+  z-index: 1;
+  pointer-events: none;
+}
+
 
 
 /* Responsive for warning message */
