@@ -357,18 +357,27 @@ export const getRoomStaff = async (id) => {
 // Requires: Staff role
 // TO THIS (using fetch directly with the correct URL):
 export const getAllBookings = async () => {
+  console.log("🔵🔵🔵 1. getAllBookings STARTED 🔵🔵🔵");
+  console.log("🔵 2. API_BASE_URL:", API_BASE_URL);
+  
   try {
     const token = localStorage.getItem('token');
+    console.log("🔵 3. Token exists:", !!token);
+    console.log("🔵 4. Full URL:", `${API_BASE_URL}/api/bookings`);
+    
     const res = await fetch(`${API_BASE_URL}/api/bookings`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       }
     });
+    
+    console.log("🔵 5. Response status:", res.status);
     const data = await res.json();
+    console.log("🔵 6. Data received:", data);
     return data;
   } catch (error) {
-    console.error('Error fetching bookings:', error);
+    console.error("🔵 7. ERROR:", error);
     throw error;
   }
 };
