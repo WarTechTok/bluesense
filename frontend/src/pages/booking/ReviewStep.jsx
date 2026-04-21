@@ -113,7 +113,7 @@ function ReviewStep({
             </div>
             {formData.paymentType === 'downpayment' && (
               <div className="review-item downpayment">
-                <span>Downpayment (30%):</span>
+                <span>Downpayment:</span>
                 <strong>₱{downpayment.toLocaleString()}</strong>
               </div>
             )}
@@ -180,7 +180,7 @@ function ReviewStep({
                 <h4>1. Booking and Payment</h4>
               {formData.paymentType === 'downpayment' ? (
                 <>
-                  <p>A downpayment (30%) is required to secure your reservation. The remaining balance must be paid upon arrival.</p>
+                  <p>A downpayment is required to secure your reservation. The remaining balance must be paid upon arrival.</p>
                   <p>Your downpayment amount: ₱{downpayment.toLocaleString()}</p>
                 </>
               ) : (

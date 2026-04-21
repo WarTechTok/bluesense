@@ -74,7 +74,7 @@ function BookingSuccessModal({ isOpen, onClose, bookingDetails }) {
                     <span className="detail-value">₱{bookingDetails.totalAmount?.toLocaleString()}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Downpayment (30%):</span>
+                    <span className="detail-label">Downpayment:</span>
                     <span className="detail-value">₱{bookingDetails.downpayment?.toLocaleString()}</span>
                   </div>
                 </>

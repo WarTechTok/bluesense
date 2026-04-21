@@ -5,7 +5,7 @@ import Modal from "../../components/admin/Modal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import PaymentVerificationModal from "../../components/admin/PaymentVerificationModal";
 import * as adminApi from "../../services/admin/adminApi";
-import "./ManagementPages.css";
+import "./BookingManagement.css";
 
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
@@ -191,6 +191,35 @@ const BookingManagement = () => {
     }
   };
 
+  const handleMarkAsFullyPaid = async (id) => {
+    showConfirmationModal(
+      "Mark as Fully Paid",
+      "Has the customer paid the remaining balance? This will mark the booking as fully paid.",
+      async () => {
+        try {
+          await adminApi.updatePaymentStatus(id, "Paid");
+          fetchBookings();
+          showConfirmationModal(
+            "Success",
+            "Booking marked as fully paid!",
+            null,
+            "OK",
+          );
+        } catch (error) {
+          console.error("Error marking as fully paid:", error);
+          showConfirmationModal(
+            "Error",
+            "Error marking as fully paid",
+            null,
+            "OK",
+          );
+        }
+      },
+      "Yes, Mark as Paid",
+      "Cancel",
+    );
+  };
+
   const handleRejectPayment = async (bookingId) => {
     showConfirmationModal(
       "Reject Payment",
@@ -366,41 +395,52 @@ const BookingManagement = () => {
 
   // Consistent button styles - all same size and alignment
   const getActions = (booking) => {
-    const actions = [];
+  const actions = [];
 
-    if (
-      booking.paymentStatus === "Pending" ||
-      booking.paymentStatus === "Partial" ||
-      booking.paymentStatus === "Rejected"
-    ) {
-      actions.push({
-        label: "View Payment",
-        icon: "📋",
-        onClick: () => handleOpenPaymentVerification(booking),
-        className: "btn-outline",
-      });
-    }
+  // 1. View Payment - ALWAYS show for ALL bookings (to see payment proof)
+  actions.push({
+    label: "View Payment",
+    icon: "📋",
+    onClick: () => handleOpenPaymentVerification(booking),
+    className: "btn-outline",
+  });
 
-    if (booking.status !== "Cancelled" && booking.status !== "Completed") {
-      actions.push({
-        label: "Cancel",
-        icon: "✕",
-        onClick: () => handleCancel(booking._id),
-        className: "btn-outline-danger",
-      });
-    }
+  // 2. Mark as Paid - For Confirmed + Partial (downpayment customers paying remaining balance)
+  if (booking.status === "Confirmed" && booking.paymentStatus === "Partial") {
+    actions.push({
+      label: "Mark as Paid",
+      icon: "💰",
+      onClick: () => handleMarkAsFullyPaid(booking._id),
+      className: "btn-outline-success",
+    });
+  }
 
-    if (booking.status === "Confirmed") {
-      actions.push({
-        label: "Complete",
-        icon: "✓",
-        onClick: () => handleComplete(booking._id),
-        className: "btn-outline-success",
-      });
-    }
+  // 3. Mark Completed - For Confirmed + Paid
+  if (booking.status === "Confirmed" && booking.paymentStatus === "Paid") {
+    actions.push({
+      label: "Mark Completed",
+      icon: "✓",
+      onClick: () => handleComplete(booking._id),
+      className: "btn-outline-success",
+    });
+  }
 
-    return actions;
-  };
+  // 4. Cancel - Only for non-cancelled, non-completed, and not fully paid
+  if (
+    booking.status !== "Cancelled" && 
+    booking.status !== "Completed" &&
+    booking.paymentStatus !== "Paid"
+  ) {
+    actions.push({
+      label: "Cancel",
+      icon: "✕",
+      onClick: () => handleCancel(booking._id),
+      className: "btn-outline-danger",
+    });
+  }
+
+  return actions;
+};
 
   return (
     <div className="management-page">

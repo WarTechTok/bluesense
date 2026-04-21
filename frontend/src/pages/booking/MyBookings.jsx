@@ -450,7 +450,7 @@ const MyBookings = () => {
                     <span className="value">
                       {selectedBooking.paymentType === "fullpayment"
                         ? "✓ Full Payment"
-                        : "Downpayment (30%)"}
+                        : "Downpayment"}
                     </span>
                   </div>
                   <div className="detail-item">

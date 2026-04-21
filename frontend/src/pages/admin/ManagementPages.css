@@ -103,7 +103,15 @@
   cursor: not-allowed;
 }
 
-/* Action Buttons for Bookings Table */
+/* Action Buttons for Bookings Table - HORIZONTAL */
+.actions-cell {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .btn-view-payment {
   display: inline-flex;
   align-items: center;
@@ -406,13 +414,6 @@
 
 .bookings-table tr:hover td {
   background: #f8fafc;
-}
-
-.actions-cell {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 /* ============================================ */
@@ -780,15 +781,18 @@
     grid-template-columns: 1fr;
   }
   
+  /* Keep buttons horizontal - just wrap */
   .actions-cell {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
   }
   
   .btn-view-payment,
   .btn-cancel,
   .btn-complete,
   .btn-delete {
-    width: 100%;
+    width: auto;
     justify-content: center;
   }
   
@@ -800,5 +804,18 @@
 @media (max-width: 480px) {
   .permissions-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .actions-cell {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .btn-view-payment,
+  .btn-cancel,
+  .btn-complete {
+    width: auto;
+    font-size: 0.7rem;
+    padding: 4px 10px;
   }
 }

@@ -1,7 +1,4 @@
-// frontend/src/components/admin/PaymentVerificationModal.jsx
-// ============================================
-// PAYMENT VERIFICATION MODAL - View payment proof and verify
-// ============================================
+// src/components/admin/PaymentVerificationModal.jsx
 
 import React, { useState } from 'react';
 import './PaymentVerificationModal.css';
@@ -107,14 +104,14 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
               </div>
               <div className="info-item">
                 <label>Payment Type:</label>
-                <span>{booking.paymentType === 'fullpayment' ? 'Full Payment' : 'Down Payment (30%)'}</span>
+                <span>{booking.paymentType === 'fullpayment' ? 'Full Payment' : 'Down Payment'}</span>
               </div>
               <div className="info-item">
-                <label>{booking.paymentStatus === 'Partial' ? 'Remaining Balance' : 'Amount'}:</label>
+                <label>Amount:</label>
                 <span className="amount">
-                  ₱{booking.paymentStatus === 'Partial' 
-                    ? (booking.totalAmount - booking.downpayment)?.toLocaleString()
-                    : (booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}
+                  ₱{booking.paymentType === 'fullpayment' 
+                    ? booking.totalAmount?.toLocaleString() 
+                    : booking.downpayment?.toLocaleString()}
                 </span>
               </div>
               <div className="info-item">
@@ -126,8 +123,8 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
               {booking.paymentStatus === 'Partial' && (
                 <>
                   <div className="info-item">
-                    <label>Initial Payment:</label>
-                    <span className="amount">₱{booking.downpayment?.toLocaleString()}</span>
+                    <label>Remaining Balance:</label>
+                    <span className="amount">₱{(booking.totalAmount - booking.downpayment)?.toLocaleString()}</span>
                   </div>
                   <div className="info-item">
                     <label>Total Amount:</label>
@@ -150,6 +147,7 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+                    console.error('Failed to load image:', getPaymentProofUrl(booking.paymentProof));
                   }}
                 />
                 <p className="proof-hint">Click image to view full size</p>
@@ -166,7 +164,6 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
           )}
         </div>
 
-        {/* Action Buttons */}
         <div className="modal-footer">
           <button 
             className="btn-reject"
