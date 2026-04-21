@@ -10,7 +10,7 @@
 
 .register-card {
   width: 100%;
-  max-width: 480px; /* Wider for more space */
+  max-width: 480px;
   background: white;
   border-radius: 24px;
   padding: 48px 40px;
@@ -94,6 +94,56 @@
 
 .error-message {
   flex: 1;
+}
+
+/* Google Sign Up Button */
+.google-signup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 40px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 20px;
+}
+
+.google-signup-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Divider */
+.register-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.register-divider::before,
+.register-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.register-divider span {
+  margin: 0 10px;
 }
 
 /* Form */
@@ -227,13 +277,33 @@
   text-decoration: underline;
 }
 
-/* Add or update this in your Register.css */
+/* Password note */
 .password-note {
-  font-size: 11px;  /* Smaller text like Reset Password */
+  font-size: 11px;
   color: #6b7280;
   margin: -8px 0 12px 0;
   line-height: 1.5;
   padding: 0 4px;
+}
+
+/* Divider - Same as Login page */
+.register-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 24px 0;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider-text {
+  margin: 0 12px;
 }
 
 /* Responsive */
@@ -249,5 +319,10 @@
   
   .register-title {
     font-size: 1.8rem;
+  }
+  
+  .google-signup-btn {
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 }

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import SignupSuccessModal from '../components/modals/SignupSuccessModal';
+import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import './Register.css';
 
 // Get API URL from environment variable
@@ -25,6 +26,58 @@ function Register() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [registeredName, setRegisteredName] = useState('');
+
+  // Philippine phone number validation
+  const validatePhoneNumber = (phone) => {
+    if (!phone) return true; // Phone is optional
+    
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    
+    // Philippine mobile numbers:
+    // - 11 digits starting with 09 (e.g., 09123456789)
+    // - 13 digits starting with 639 (e.g., 639123456789)
+    // - 10 digits starting with 9 (e.g., 9123456789)
+    
+    if (cleaned.length === 11 && cleaned.startsWith('09')) {
+      return true;
+    }
+    if (cleaned.length === 13 && cleaned.startsWith('639')) {
+      return true;
+    }
+    if (cleaned.length === 10 && cleaned.startsWith('9')) {
+      return true;
+    }
+    return false;
+  };
+
+  // Format phone number as user types (optional)
+  const formatPhoneNumber = (value) => {
+    const cleaned = value.replace(/\D/g, '');
+    if (cleaned.length >= 11) {
+      // Format as +63 XXX XXX XXXX
+      if (cleaned.startsWith('63')) {
+        const match = cleaned.match(/^(\d{2})(\d{3})(\d{3})(\d{4})$/);
+        if (match) {
+          return `+${match[1]} ${match[2]} ${match[3]} ${match[4]}`;
+        }
+      }
+      // Format as 09XX XXX XXXX
+      if (cleaned.startsWith('09')) {
+        const match = cleaned.match(/^(\d{4})(\d{3})(\d{4})$/);
+        if (match) {
+          return `${match[1]} ${match[2]} ${match[3]}`;
+        }
+      }
+    }
+    return value;
+  };
+
+  const handlePhoneChange = (e) => {
+    const rawValue = e.target.value;
+    const formatted = formatPhoneNumber(rawValue);
+    setForm({...form, phone: formatted});
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,8 +113,9 @@ function Register() {
       errors.push("Passwords don't match");
     }
     
-    if (form.phone && !/^[0-9+\-\s()]{10,}$/.test(form.phone)) {
-      errors.push("Valid phone number required");
+    // Phone validation (optional but must be valid if provided)
+    if (form.phone && !validatePhoneNumber(form.phone)) {
+      errors.push("Please enter a valid Philippine mobile number (e.g., 09123456789 or 639123456789)");
     }
     
     if (errors.length > 0) {
@@ -74,10 +128,15 @@ function Register() {
     setError('');
     
     try {
+      // Clean phone number before sending to backend (remove spaces)
+      const cleanPhone = form.phone ? form.phone.replace(/\s/g, '') : '';
       const { confirmPassword, ...submitData } = form;
-      await axios.post(`${API_BASE_URL}/api/auth/register`, submitData);
       
-      // Store email and name for the modal
+      await axios.post(`${API_BASE_URL}/api/auth/register`, {
+        ...submitData,
+        phone: cleanPhone
+      });
+      
       setRegisteredEmail(form.email);
       setRegisteredName(form.name);
       setShowSuccessModal(true);
@@ -204,9 +263,9 @@ function Register() {
           <div className="form-group">
             <input
               type="tel"
-              placeholder="Phone number (optional)"
+              placeholder="Phone number (optional) - e.g., 09123456789"
               value={form.phone}
-              onChange={(e) => setForm({...form, phone: e.target.value})}
+              onChange={handlePhoneChange}
               className="register-input"
             />
           </div>
@@ -230,6 +289,14 @@ function Register() {
           </button>
         </form>
 
+        <div className="register-divider">
+          <span className="divider-line"></span>
+          <span className="divider-text">or</span>
+          <span className="divider-line"></span>
+        </div>
+
+        <GoogleLoginButton buttonText="Sign up with Google" />
+
         <div className="register-footer">
           <p>
             Already have an account? <Link to="/login">Sign in</Link>
@@ -237,7 +304,6 @@ function Register() {
         </div>
       </div>
 
-      {/* Success Modal - Shows verification message */}
       <SignupSuccessModal 
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}

@@ -15,6 +15,7 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [phoneError, setPhoneError] = useState(''); // ← Add specific phone error
 
   // Format phone number to Philippine format: +63 (XXX) XXX-XXXX
   const formatPhoneNumber = (value) => {
@@ -47,16 +48,20 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
   };
 
-  // Validate phone number
+  // Validate phone number - returns error message or null
   const validatePhoneNumber = (phone) => {
-    if (!phone) return true; // Phone is optional
+    if (!phone) return null; // Phone is optional
     
     const phoneDigits = phone.replace(/\D/g, '');
     // Must have at least 10 digits
     if (phoneDigits.length < 10) {
       return 'Phone number must be at least 10 digits';
     }
-    return true;
+    // Must be 10-13 digits (Philippine format)
+    if (phoneDigits.length > 13) {
+      return 'Phone number is too long';
+    }
+    return null;
   };
 
   // Reset form when modal opens and load latest userData
@@ -71,6 +76,7 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
       });
       setError('');
       setSuccess('');
+      setPhoneError('');
       setLoading(false);
     }
   }, [isOpen, userData]);
@@ -80,23 +86,24 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
   const handlePhoneChange = (e) => {
     const formatted = formatPhoneNumber(e.target.value);
     setEditForm({ ...editForm, phone: formatted });
+    // Clear phone error when user types
+    if (phoneError) setPhoneError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate phone number if provided
-    if (editForm.phone) {
-      const validation = validatePhoneNumber(editForm.phone);
-      if (validation !== true) {
-        setError(validation);
-        return;
-      }
+    const phoneValidationError = validatePhoneNumber(editForm.phone);
+    if (phoneValidationError) {
+      setPhoneError(phoneValidationError);
+      return;
     }
     
     setLoading(true);
     setError('');
     setSuccess('');
+    setPhoneError('');
     
     try {
       // Clean phone number for backend - remove all non-digit characters
@@ -104,8 +111,9 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
       
       // Prepare data for saving
       const saveData = {
-        ...editForm,
-        phone: cleanPhoneForBackend
+        name: editForm.name,
+        phone: cleanPhoneForBackend,
+        address: editForm.address
       };
       
       // Call onSave to update backend - this will also update localStorage on success
@@ -181,8 +189,10 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
             value={editForm.phone}
             onChange={handlePhoneChange}
             placeholder="Add phone number"
+            className={phoneError ? 'error-input' : ''}
           />
           <small className="field-hint">Format: +63 (XXX) XXX-XXXX (e.g., +63 (909) 123-4567)</small>
+          {phoneError && <div className="field-error">{phoneError}</div>}
         </div>
 
         <div className="edit-field">

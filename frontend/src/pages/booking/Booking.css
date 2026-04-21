@@ -2006,25 +2006,138 @@
 }
 
 /* Warning note */
+/* Warning note - Enhanced with edit profile link */
 .info-note.warning {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 12px 16px;
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+  border-left: 4px solid #ff9800;
+  padding: 20px;
   border-radius: 12px;
-  margin-bottom: 20px;
-  font-size: 0.8rem;
-  color: #92400e;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .info-note.warning i {
-  font-size: 1rem;
-  flex-shrink: 0;
+  font-size: 24px;
+  color: #ff9800;
+  margin-top: 2px;
 }
 
-.info-note.warning p {
+.info-note.warning .warning-content {
+  flex: 1;
+}
+
+.info-note.warning .warning-content strong {
+  display: block;
+  font-size: 16px;
+  color: #856404;
+  margin-bottom: 6px;
+}
+
+.info-note.warning .warning-content p {
+  margin: 0 0 12px 0;
+  color: #856404;
+  font-size: 14px;
+}
+
+.edit-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #ff9800;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.edit-profile-link:hover {
+  background-color: #f57c00;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255,152,0,0.3);
+}
+
+.edit-profile-link i {
+  font-size: 14px;
   margin: 0;
+  color: white;
+}
+
+/* Read-only input styles - Add this if not already present */
+/* Read-only input styles - Light gray for visual feedback */
+/* Clean, modern read-only styling */
+.read-only {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  cursor: default;
+  border-color: #e2e8f0 !important;
+  opacity: 0.85;
+  font-style: italic;
+}
+
+.read-only:hover {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.read-only:focus {
+  outline: none;
+  border-color: #e2e8f0 !important;
+  box-shadow: none !important;
+}
+/* Read-only display - replaces input fields for uneditable data */
+.readonly-display {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  color: #475569;
+  cursor: default;
+  font-style: italic;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+
+/* Ensure proper positioning for the icon */
+.input-wrapper {
+  position: relative;
+}
+
+.input-wrapper .input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 16px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+
+
+/* Responsive for warning message */
+@media (max-width: 768px) {
+  .info-note.warning {
+    flex-direction: column;
+  }
+  
+  .edit-profile-link {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* Confirm Section */

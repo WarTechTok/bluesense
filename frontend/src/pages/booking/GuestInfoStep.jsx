@@ -12,13 +12,6 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
     phone: formData.phone || ''
   });
 
-  // Handle field changes and update parent
-  const handleFieldChange = (e) => {
-    const { name, value } = e.target;
-    setUserInfo(prev => ({ ...prev, [name]: value }));
-    handleChange(e);
-  };
-
   // Listen for profile updates from navbar
   useEffect(() => {
     const handleProfileUpdate = (event) => {
@@ -72,10 +65,16 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
         </div>
       </div>
 
-      {/* Warning message */}
+      {/* Enhanced Warning message with edit link */}
       <div className="info-note warning">
-        <i className="fas fa-info-circle"></i>
-        <p>If your information is incorrect, please update your profile first.</p>
+        <i className="fas fa-exclamation-triangle"></i>
+        <div className="warning-content">
+          <strong>Need to make changes?</strong>
+          <p>Your information is automatically loaded from your profile.</p>
+          <a href="/profile" className="edit-profile-link">
+            <i className="fas fa-user-edit"></i> Update My Profile
+          </a>
+        </div>
       </div>
 
       <div className="form-grid">
@@ -83,48 +82,30 @@ const GuestInfoStep = ({ formData, errors, handleChange, onConfirm, isConfirmed 
           <label>Full Name <span className="required">*</span></label>
           <div className="input-wrapper">
             <i className="fas fa-user input-icon"></i>
-            <input 
-              type="text" 
-              name="fullName"
-              value={userInfo.fullName} 
-              onChange={handleFieldChange}
-              placeholder="Enter your full name"
-              className={errors?.fullName ? 'error' : ''}
-            />
+            <div className="readonly-display">
+              {userInfo.fullName || 'Not provided'}
+            </div>
           </div>
-          {errors?.fullName && <span className="error-message">{errors.fullName}</span>}
         </div>
         
         <div className="form-group">
           <label>Email Address <span className="required">*</span></label>
           <div className="input-wrapper">
             <i className="fas fa-envelope input-icon"></i>
-            <input 
-              type="email" 
-              name="email"
-              value={userInfo.email} 
-              onChange={handleFieldChange}
-              placeholder="Enter your email"
-              className={errors?.email ? 'error' : ''}
-            />
+            <div className="readonly-display">
+              {userInfo.email || 'Not provided'}
+            </div>
           </div>
-          {errors?.email && <span className="error-message">{errors.email}</span>}
         </div>
         
         <div className="form-group">
           <label>Phone Number <span className="required">*</span></label>
           <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>
-            <input 
-              type="tel" 
-              name="phone"
-              value={userInfo.phone} 
-              onChange={handleFieldChange}
-              placeholder="Enter your phone number"
-              className={errors?.phone ? 'error' : ''}
-            />
+            <div className="readonly-display">
+              {userInfo.phone || 'Not provided'}
+            </div>
           </div>
-          {errors?.phone && <span className="error-message">{errors.phone}</span>}
         </div>
         
         <div className="form-group">

@@ -35,7 +35,6 @@ function Profile() {
     // Handle numbers starting with 63 (already has country code)
     if (cleaned.startsWith('63')) {
       const number = cleaned.slice(2);
-      // Ensure we have exactly 10 digits after 63 (total 12 digits)
       if (number.length >= 10) {
         return `+63${number.slice(0, 10)}`;
       }
@@ -65,7 +64,6 @@ function Profile() {
   // Load user data on mount
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    // Format the phone number if it exists
     const formattedPhone = user.phone ? formatPhoneNumber(user.phone) : '';
     setFormData(prev => ({
       ...prev,
@@ -78,7 +76,6 @@ function Profile() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Apply phone formatting if phone field
     if (name === 'phone') {
       const formatted = formatPhoneNumber(value);
       setFormData(prev => ({ ...prev, [name]: formatted }));
@@ -104,26 +101,24 @@ function Profile() {
       newErrors.email = 'Please enter a valid email';
     }
 
+    // Phone validation
     if (!formData.phone || formData.phone.trim() === '') {
       newErrors.phone = 'Phone number is required';
     } else {
-      // Validate Philippine phone number format (+639XXXXXXXXX)
       const phoneDigits = formData.phone.replace(/\D/g, '');
-      // Must be exactly 12 digits for +63 format (63 + 10 digits)
       if (phoneDigits.length !== 12) {
         newErrors.phone = 'Please enter a valid Philippine phone number (e.g., +639123456789)';
       } else if (!phoneDigits.startsWith('63')) {
         newErrors.phone = 'Phone number must start with +63';
       } else {
         const localNumber = phoneDigits.slice(2);
-        // Check if the number starts with 9 (mobile number) or 2 (landline)
         if (!localNumber.match(/^(9|2)\d{9}$/)) {
           newErrors.phone = 'Please enter a valid Philippine mobile number (starts with 9) or landline (starts with 2)';
         }
       }
     }
 
-    // Password validation (only if user is changing password)
+    // Password validation
     if (formData.newPassword || formData.confirmPassword || formData.currentPassword) {
       if (!formData.currentPassword) {
         newErrors.currentPassword = 'Current password is required to change password';
@@ -155,17 +150,13 @@ function Profile() {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const token = localStorage.getItem('token');
 
-      // Clean phone number for backend - keep the +63 format but remove any spaces/dashes
-      // Backend expects numbers in international format
       const cleanPhoneForBackend = formData.phone.replace(/\s|-|\(|\)/g, '');
       
-      // Split into profile update and password change
       const profileUpdateData = {
         name: formData.fullName,
-        phone: cleanPhoneForBackend  // Send clean phone to backend
+        phone: cleanPhoneForBackend
       };
 
-      // Update profile (name, phone)
       console.log('Updating profile with:', profileUpdateData);
       const profileResponse = await fetch(`${API_BASE_URL}/api/auth/profile`, {
         method: 'PUT',
@@ -187,7 +178,6 @@ function Profile() {
       
       console.log('Profile updated successfully');
 
-      // Handle password change separately if provided
       if (formData.currentPassword && formData.newPassword) {
         console.log('Attempting password change...');
         const passwordResponse = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
@@ -210,22 +200,19 @@ function Profile() {
         }
       }
 
-      // Update localStorage immediately with new user data (BEFORE the redirect)
       const updatedUser = {
         ...user,
         name: formData.fullName,
-        phone: cleanPhoneForBackend,  // Store clean phone in localStorage (+639XXXXXXXXX format)
+        phone: cleanPhoneForBackend,
         email: formData.email
       };
       localStorage.setItem('user', JSON.stringify(updatedUser));
       console.log('localStorage updated:', updatedUser);
 
-      // Dispatch custom event for other components to listen
       window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updatedUser }));
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
 
-      // Clear password fields
       setFormData(prev => ({
         ...prev,
         currentPassword: '',
@@ -233,9 +220,8 @@ function Profile() {
         confirmPassword: ''
       }));
 
-      // Redirect after 2 seconds
       setTimeout(() => {
-        navigate(-1); // Go back to previous page
+        navigate(-1);
       }, 2000);
     } catch (error) {
       console.error('Update error:', error);
@@ -246,7 +232,7 @@ function Profile() {
   };
 
   const handleCancel = () => {
-    navigate(-1); // Go back to previous page
+    navigate(-1);
   };
 
   return (
@@ -287,7 +273,7 @@ function Profile() {
                     className={errors.fullName ? 'error' : ''}
                   />
                 </div>
-                {errors.fullName && <span className="error-message">{errors.fullName}</span>}
+                {errors.fullName && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.fullName}</span>}
               </div>
 
               <div className="form-group">
@@ -303,7 +289,7 @@ function Profile() {
                     className={errors.email ? 'error' : ''}
                   />
                 </div>
-                {errors.email && <span className="error-message">{errors.email}</span>}
+                {errors.email && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.email}</span>}
               </div>
 
               <div className="form-group">
@@ -319,8 +305,8 @@ function Profile() {
                     className={errors.phone ? 'error' : ''}
                   />
                 </div>
-                <small className="input-hint">Format: +639XXXXXXXXX or 09XXXXXXXXX</small>
-                {errors.phone && <span className="error-message">{errors.phone}</span>}
+                <small className="input-hint" style={{ display: 'block', fontSize: '0.7rem', color: '#6b7280', marginTop: '4px' }}>Format: +639XXXXXXXXX or 09XXXXXXXXX</small>
+                {errors.phone && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.phone}</span>}
               </div>
             </div>
 
@@ -341,7 +327,7 @@ function Profile() {
                     className={errors.currentPassword ? 'error' : ''}
                   />
                 </div>
-                {errors.currentPassword && <span className="error-message">{errors.currentPassword}</span>}
+                {errors.currentPassword && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.currentPassword}</span>}
               </div>
 
               <div className="form-group">
@@ -357,7 +343,7 @@ function Profile() {
                     className={errors.newPassword ? 'error' : ''}
                   />
                 </div>
-                {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+                {errors.newPassword && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.newPassword}</span>}
               </div>
 
               <div className="form-group">
@@ -373,7 +359,7 @@ function Profile() {
                     className={errors.confirmPassword ? 'error' : ''}
                   />
                 </div>
-                {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+                {errors.confirmPassword && <span className="error-message" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>{errors.confirmPassword}</span>}
               </div>
             </div>
 
