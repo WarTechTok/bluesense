@@ -44,4 +44,10 @@ router.get('/staff-activity', authenticate, authorize('admin'), reportController
 // ============================================
 router.get('/export', authenticate, authorize('admin'), reportController.exportReportAsJSON);
 
+// ============================================
+// DEBUG ENDPOINT - Check sales status (Admin only)
+// For troubleshooting why sales aren't appearing
+// ============================================
+router.get('/debug/sales-status', authenticate, authorize('admin'), reportController.debugSalesStatus);
+
 module.exports = router;

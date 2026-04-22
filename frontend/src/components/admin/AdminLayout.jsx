@@ -10,7 +10,9 @@ import LogoutConfirmModal from '../modals/LogoutConfirmModal';
 import './AdminLayout.css';
 
 const AdminLayout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // On mobile, sidebar starts closed; on desktop, it starts open
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -31,6 +33,28 @@ const AdminLayout = ({ children }) => {
       address: user.address || ''
     });
   }, []);
+
+  // Handle window resize to track mobile state
+  useEffect(() => {
+    const handleResize = () => {
+      const newIsMobile = window.innerWidth <= 768;
+      setIsMobile(newIsMobile);
+      // On desktop, keep sidebar open; on mobile, close it
+      if (!newIsMobile) {
+        setSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Close sidebar when navigation changes on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   useEffect(() => {
     document.body.classList.add('no-navbar');
@@ -96,6 +120,14 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="admin-layout">
+      {/* Mobile Overlay - Click to close sidebar */}
+      {isMobile && (
+        <div 
+          className={`mobile-overlay ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
@@ -108,7 +140,11 @@ const AdminLayout = ({ children }) => {
             {sidebarOpen && <span className="logo-text">Admin</span>}
           </div>
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
+            {isMobile ? (
+              <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
+            ) : (
+              <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
+            )}
           </button>
         </div>
 
@@ -117,7 +153,13 @@ const AdminLayout = ({ children }) => {
             <button
               key={item.id}
               className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                // Close sidebar on mobile after navigation
+                if (isMobile) {
+                  setSidebarOpen(false);
+                }
+              }}
             >
               <i className={`${item.icon} nav-icon`}></i>
               {sidebarOpen && <span className="nav-label">{item.label}</span>}
@@ -129,6 +171,15 @@ const AdminLayout = ({ children }) => {
       {/* Main Content */}
       <main className="admin-main">
         <div className="admin-header">
+          {/* Mobile Menu Toggle Button */}
+          <button 
+            className="mobile-menu-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle menu"
+          >
+            <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
+          </button>
+          
           <div className="header-title">
             <h1>{menuItems.find(item => isActive(item.path))?.label || 'Dashboard'}</h1>
             <p>Welcome back, {userData?.name || 'Admin'}</p>

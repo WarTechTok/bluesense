@@ -173,12 +173,23 @@ const BookingManagement = () => {
   const handleVerifyPayment = async (bookingId) => {
     try {
       const booking = bookings.find((b) => b._id === bookingId);
+      // Verify payment first
       await adminApi.verifyPayment(bookingId);
+      
+      // Then delete the payment proof
+      if (booking.paymentProof) {
+        try {
+          await adminApi.deletePaymentProof(bookingId);
+        } catch (proofDeleteError) {
+          console.warn("Warning: Failed to delete payment proof, but payment was verified", proofDeleteError);
+        }
+      }
+      
       fetchBookings();
       const message =
         booking.paymentStatus === "Partial"
-          ? "Final payment verified successfully! Full payment completed."
-          : "Payment verified successfully! Booking confirmed.";
+          ? "Final payment verified successfully! Full payment completed. Payment proof has been deleted."
+          : "Payment verified successfully! Booking confirmed. Payment proof has been deleted.";
       showConfirmationModal("Success", message, null, "OK");
     } catch (error) {
       console.error("Error verifying payment:", error);
@@ -329,9 +340,9 @@ const BookingManagement = () => {
   const getSessionDisplay = (session) => {
     if (!session) return "N/A";
     const sessionMap = {
-      Day: "🌅 Day (6AM - 5PM)",
-      Night: "🌙 Night (5PM - 10PM)",
-      "22hrs": "⏰ Whole Day (6AM - 4AM)",
+      Day: "Day (8AM - 5PM)",
+      Night: "Night (6PM - 6AM)",
+      "22hrs": "22-Hour Session (Flexible)",
     };
     return sessionMap[session] || session;
   };
@@ -339,13 +350,14 @@ const BookingManagement = () => {
   const columns = [
     {
       key: "index",
-      label: "#",
+      label: "Booking ID",
       render: (value, row, index) => index + 1,
       width: "50px",
     },
     {
       key: "bookingReference",
-      label: "Booking #",
+      label: "Booking Reference",
+      width: "150px",
       render: (value, row) => value || row._id?.slice(-6).toUpperCase(),
     },
     { key: "customerName", label: "Customer" },
@@ -397,13 +409,15 @@ const BookingManagement = () => {
   const getActions = (booking) => {
   const actions = [];
 
-  // 1. View Payment - ALWAYS show for ALL bookings (to see payment proof)
-  actions.push({
-    label: "View Payment",
-    icon: "📋",
-    onClick: () => handleOpenPaymentVerification(booking),
-    className: "btn-outline",
-  });
+  // 1. View Payment - Only show if payment is NOT verified (paymentStatus is not 'Paid')
+  if (booking.paymentStatus !== "Paid") {
+    actions.push({
+      label: "View Payment",
+      icon: "📋",
+      onClick: () => handleOpenPaymentVerification(booking),
+      className: "btn-outline",
+    });
+  }
 
   // 2. Mark as Paid - For Confirmed + Partial (downpayment customers paying remaining balance)
   if (booking.status === "Confirmed" && booking.paymentStatus === "Partial") {

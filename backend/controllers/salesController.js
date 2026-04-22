@@ -1,4 +1,5 @@
 const Sale = require('../models/Sale');
+const Booking = require('../models/Booking');
 
 /**
  * Sales Controller
@@ -14,12 +15,20 @@ const Sale = require('../models/Sale');
 exports.getAllSales = async (req, res) => {
   try {
     const sales = await Sale.find()
-      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
       .populate('reservation', 'room guestName')
       .sort({ date: -1 });
     
+    // Filter to only include confirmed or completed bookings (both represent received revenue)
+    const completedSales = sales.filter(sale => {
+      if (sale.booking) {
+        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+      }
+      return true; // Keep reservation sales (no booking status to check)
+    });
+    
     // Format sales with reference code and location
-    const formattedSales = sales.map(sale => ({
+    const formattedSales = completedSales.map(sale => ({
       _id: sale._id,
       amount: sale.amount,
       date: sale.date,
@@ -54,12 +63,20 @@ exports.getDailySales = async (req, res) => {
     const dailySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
     })
-      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
       .populate('reservation', 'room guestName')
       .sort({ date: -1 });
 
+    // Filter to only include confirmed or completed bookings (both represent received revenue)
+    const completedSales = dailySales.filter(sale => {
+      if (sale.booking) {
+        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+      }
+      return true; // Keep reservation sales
+    });
+
     // Format sales with reference code and location
-    const formattedSales = dailySales.map(sale => ({
+    const formattedSales = completedSales.map(sale => ({
       _id: sale._id,
       amount: sale.amount,
       date: sale.date,
@@ -92,12 +109,20 @@ exports.getWeeklySales = async (req, res) => {
     const weeklySales = await Sale.find({
       date: { $gte: startOfWeek }
     })
-      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
       .populate('reservation', 'room guestName')
       .sort({ date: -1 });
 
+    // Filter to only include confirmed or completed bookings (both represent received revenue)
+    const completedSales = weeklySales.filter(sale => {
+      if (sale.booking) {
+        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+      }
+      return true; // Keep reservation sales
+    });
+
     // Format sales with reference code and location
-    const formattedSales = weeklySales.map(sale => ({
+    const formattedSales = completedSales.map(sale => ({
       _id: sale._id,
       amount: sale.amount,
       date: sale.date,
@@ -109,7 +134,7 @@ exports.getWeeklySales = async (req, res) => {
       reservation: sale.reservation,
     }));
 
-    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    const total = completedSales.reduce((sum, sale) => sum + sale.amount, 0);
     res.json({ sales: formattedSales, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -131,12 +156,20 @@ exports.getMonthlySales = async (req, res) => {
     const monthlySales = await Sale.find({
       date: { $gte: startDate, $lt: endDate }
     })
-      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount')
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
       .populate('reservation', 'room guestName')
       .sort({ date: -1 });
 
+    // Filter to only include confirmed or completed bookings (both represent received revenue)
+    const completedSales = monthlySales.filter(sale => {
+      if (sale.booking) {
+        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+      }
+      return true; // Keep reservation sales
+    });
+
     // Format sales with reference code and location
-    const formattedSales = monthlySales.map(sale => ({
+    const formattedSales = completedSales.map(sale => ({
       _id: sale._id,
       amount: sale.amount,
       date: sale.date,
@@ -148,7 +181,7 @@ exports.getMonthlySales = async (req, res) => {
       reservation: sale.reservation,
     }));
 
-    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    const total = completedSales.reduce((sum, sale) => sum + sale.amount, 0);
     res.json({ sales: formattedSales, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -175,13 +208,30 @@ exports.recordSale = async (req, res) => {
 /**
  * DELETE /api/admin/sales/:id
  * Delete a sale record (Admin only)
- * Warning: Use with caution as this affects financial records
+ * ⚠️ WARNING: Automatically deletes the associated booking to maintain data integrity
+ * This ensures only accurate sales data remains in the system
  */
 exports.deleteSale = async (req, res) => {
   try {
     const sale = await Sale.findByIdAndDelete(req.params.id);
     if (!sale) return res.status(404).json({ error: 'Sale not found' });
-    res.json({ message: 'Sale deleted successfully' });
+    
+    // Also delete the associated booking to keep data in sync
+    if (sale.booking) {
+      const deletedBooking = await Booking.findByIdAndDelete(sale.booking);
+      if (deletedBooking) {
+        console.log(`🗑️ Associated booking deleted when sale was removed`);
+        console.log(`   Booking Reference: ${deletedBooking.bookingReference}`);
+        console.log(`   Customer: ${deletedBooking.customerName}`);
+        console.log(`   Amount: ₱${deletedBooking.totalAmount?.toLocaleString() || 'N/A'}`);
+      }
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Sale and associated booking deleted successfully (data synchronized)',
+      deletedSale: sale
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

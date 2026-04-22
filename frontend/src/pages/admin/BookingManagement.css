@@ -306,6 +306,14 @@
   font-size: 0.8rem;
 }
 
+/* Center align the # and Booking Reference columns */
+.bookings-table th:nth-child(1),
+.bookings-table td:nth-child(1),
+.bookings-table th:nth-child(2),
+.bookings-table td:nth-child(2) {
+  text-align: center;
+}
+
 .bookings-table tr:hover td {
   background: #f8fafc;
 }

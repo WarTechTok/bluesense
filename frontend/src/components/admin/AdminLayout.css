@@ -76,7 +76,7 @@
   }
 }
 
-/* Mobile: sidebar is always 260px when open, no toggle */
+/* Mobile: sidebar slides in/out from left */
 @media (max-width: 768px) {
   .mobile-menu-btn {
     display: flex;
@@ -91,8 +91,9 @@
     left: 0;
   }
   
-  /* Disable the closed class on mobile */
+  /* On mobile, closed state moves sidebar off-screen */
   .admin-sidebar.closed {
+    left: -260px;
     width: 260px;
   }
   
@@ -148,10 +149,15 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Hide toggle button on mobile */
+/* Show toggle button on mobile with hamburger icon */
 @media (max-width: 768px) {
   .sidebar-toggle {
-    display: none;
+    display: flex;
+  }
+  
+  /* Mobile: show hamburger icon and position absolutely */
+  .sidebar-toggle i {
+    font-size: 20px;
   }
 }
 
@@ -229,6 +235,28 @@
   }
 }
 
+/* Mobile overlay that appears when sidebar is open */
+.mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+.mobile-overlay.open {
+  display: block;
+}
+
+@media (min-width: 769px) {
+  .mobile-overlay {
+    display: none !important;
+  }
+}
+
 /* Admin Header */
 .admin-header {
   background: white;
@@ -240,13 +268,51 @@
   position: sticky;
   top: 0;
   z-index: 99;
+  gap: 16px;
 }
 
 @media (max-width: 768px) {
   .admin-header {
     padding: 12px 16px;
-    padding-left: 70px;
   }
+}
+
+/* Mobile Menu Toggle Button - Always Visible on Mobile */
+.mobile-menu-toggle {
+  display: none;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  border: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: white;
+  font-size: 18px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+}
+
+.mobile-menu-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+}
+
+.mobile-menu-toggle:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-toggle {
+    display: flex;
+  }
+}
+
+.header-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .header-title h1 {
@@ -254,12 +320,25 @@
   font-weight: 600;
   color: #1e293b;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-title p {
   font-size: 0.8rem;
   color: #64748b;
   margin: 2px 0 0;
+}
+
+@media (max-width: 768px) {
+  .header-title h1 {
+    font-size: 1.1rem;
+  }
+  
+  .header-title p {
+    font-size: 0.7rem;
+  }
 }
 
 /* Profile Dropdown */

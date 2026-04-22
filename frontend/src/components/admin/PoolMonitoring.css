@@ -629,23 +629,386 @@
    RESPONSIVE
    ============================================================ */
 
+@media (max-width: 1024px) {
+  .pm-wrapper {
+    border-radius: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .pm-selector-header {
+    padding: 24px 24px 16px;
+  }
+  
+  .pm-oasis-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 24px 24px;
+  }
+  
+  .pm-readings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 24px 16px;
+  }
+  
+  .pm-reading-card {
+    border-radius: 12px;
+    padding: 14px 12px;
+  }
+  
+  .pm-reading-value {
+    font-size: 1.4rem;
+  }
+  
+  .pm-title {
+    font-size: 1.1rem;
+  }
+  
+  .pm-selector-heading {
+    font-size: 1.3rem;
+  }
+}
+
 @media (max-width: 900px) {
-  .pm-readings-grid { grid-template-columns: repeat(2, 1fr); }
-  .pm-oasis-cards { grid-template-columns: 1fr; gap: 14px; }
+  .pm-readings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .pm-oasis-cards {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  
+  .pm-oasis-card-img-wrap {
+    height: 160px;
+  }
+  
+  .pm-pool-hero {
+    height: 150px;
+  }
+  
+  .pm-header {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .pm-wrapper {
+    border-radius: 12px;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .pm-selector-header {
+    padding: 20px 16px 12px;
+  }
+  
+  .pm-selector-heading {
+    font-size: 1.2rem;
+  }
+  
+  .pm-selector-sub {
+    font-size: 0.8rem;
+  }
+  
+  .pm-oasis-cards {
+    padding: 0 16px 20px;
+    gap: 12px;
+  }
+  
+  .pm-oasis-card-body {
+    padding: 14px 16px 16px;
+  }
+  
+  .pm-oasis-card-name {
+    font-size: 0.9rem;
+  }
+  
+  .pm-oasis-card-desc {
+    font-size: 0.75rem;
+  }
+  
+  .pm-header {
+    padding: 16px 12px 10px;
+    gap: 8px;
+  }
+  
+  .pm-oasis-tag {
+    font-size: 0.7rem;
+    padding: 3px 10px 3px 4px;
+  }
+  
+  .pm-oasis-tag-img {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .pm-title {
+    font-size: 1rem;
+  }
+  
+  .pm-switch-btn {
+    font-size: 0.75rem;
+    padding: 6px 12px;
+  }
+  
+  .pm-pool-hero {
+    margin: 0 12px 16px;
+    height: 130px;
+    border-radius: 12px;
+  }
+  
+  .pm-readings-grid {
+    padding: 0 12px 16px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  
+  .pm-reading-card {
+    border-radius: 12px;
+    padding: 12px 10px;
+  }
+  
+  .pm-reading-label {
+    font-size: 0.65rem;
+  }
+  
+  .pm-reading-value {
+    font-size: 1.2rem;
+  }
+  
+  .pm-reading-icon {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .pm-history-toggle {
+    width: calc(100% - 24px);
+    margin: 0 12px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    border-radius: 10px;
+  }
+  
+  .pm-history {
+    padding: 12px 12px 16px;
+    margin-top: 12px;
+  }
+  
+  .pm-history-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .pm-filter-group,
+  .pm-chart-type-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  
+  .pm-filter-btn,
+  .pm-chart-type-btn {
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    flex: 1;
+    min-width: auto;
+  }
+  
+  .pm-line-chart-wrapper {
+    min-height: 280px;
+  }
+  
+  .pm-line-chart {
+    height: 200px;
+  }
 }
 
 @media (max-width: 640px) {
-  .pm-selector-header { padding: 24px 20px 16px; }
-  .pm-oasis-cards { padding: 0 20px 24px; }
-  .pm-header { padding: 18px 18px 12px; }
-  .pm-pool-hero { margin: 0 16px 16px; height: 130px; }
-  .pm-readings-grid { padding: 0 16px 16px; grid-template-columns: repeat(2, 1fr); }
-  .pm-history-toggle { width: calc(100% - 32px); margin: 0 16px; }
-  .pm-history { padding: 16px 16px 20px; }
-  .pm-history-controls { flex-direction: column; align-items: flex-start; }
-  .pm-reading-value { font-size: 1.3rem; }
+  .pm-selector-header {
+    padding: 16px 12px 12px;
+  }
+  
+  .pm-selector-heading {
+    font-size: 1.1rem;
+  }
+  
+  .pm-oasis-cards {
+    padding: 0 12px 16px;
+    gap: 10px;
+  }
+  
+  .pm-oasis-card-img-wrap {
+    height: 140px;
+  }
+  
+  .pm-header {
+    padding: 12px 10px 8px;
+  }
+  
+  .pm-pool-hero {
+    margin: 0 10px 12px;
+    height: 120px;
+  }
+  
+  .pm-readings-grid {
+    padding: 0 10px 12px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .pm-reading-card {
+    padding: 10px 8px;
+  }
+  
+  .pm-reading-value {
+    font-size: 1.1rem;
+  }
+  
+  .pm-history-toggle {
+    width: calc(100% - 20px);
+    margin: 0 10px;
+  }
+  
+  .pm-history {
+    padding: 10px 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pm-wrapper {
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  
+  .pm-selector-header {
+    padding: 12px 10px 10px;
+  }
+  
+  .pm-selector-heading {
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+  
+  .pm-selector-sub {
+    font-size: 0.7rem;
+  }
+  
+  .pm-oasis-cards {
+    padding: 0 10px 12px;
+    gap: 8px;
+  }
+  
+  .pm-oasis-card {
+    border-radius: 12px;
+  }
+  
+  .pm-oasis-card-img-wrap {
+    height: 120px;
+  }
+  
+  .pm-oasis-card-body {
+    padding: 10px 12px 12px;
+  }
+  
+  .pm-oasis-card-name {
+    font-size: 0.85rem;
+  }
+  
+  .pm-oasis-card-desc {
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+  }
+  
+  .pm-oasis-card-cta {
+    font-size: 0.75rem;
+  }
+  
+  .pm-header {
+    padding: 10px 8px 6px;
+    gap: 6px;
+  }
+  
+  .pm-header-left {
+    gap: 4px;
+  }
+  
+  .pm-title {
+    font-size: 0.9rem;
+  }
+  
+  .pm-switch-btn {
+    font-size: 0.7rem;
+    padding: 5px 10px;
+  }
+  
+  .pm-pool-hero {
+    margin: 0 8px 10px;
+    height: 100px;
+    border-radius: 10px;
+  }
+  
+  .pm-readings-grid {
+    padding: 0 8px 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .pm-reading-card {
+    border-radius: 10px;
+    padding: 10px 8px;
+  }
+  
+  .pm-reading-label {
+    font-size: 0.6rem;
+  }
+  
+  .pm-reading-value {
+    font-size: 1rem;
+  }
+  
+  .pm-reading-icon {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .pm-history-toggle {
+    width: calc(100% - 16px);
+    margin: 0 8px;
+    padding: 8px 12px;
+  }
+  
+  .pm-history {
+    padding: 8px 8px 10px;
+  }
+  
+  .pm-history-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .pm-filter-btn,
+  .pm-chart-type-btn {
+    padding: 4px 10px;
+    font-size: 0.7rem;
+  }
 }
 
 @media (max-width: 400px) {
-  .pm-readings-grid { grid-template-columns: 1fr; }
+  .pm-readings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .pm-selector-heading {
+    font-size: 0.95rem;
+  }
+  
+  .pm-title {
+    font-size: 0.85rem;
+  }
+  
+  .pm-oasis-tag {
+    font-size: 0.65rem;
+  }
 }

@@ -25,6 +25,9 @@
   text-transform: uppercase;
   letter-spacing: 0.3px;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stat-value {
@@ -55,12 +58,57 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .stat-card {
     padding: 20px;
   }
   
+  .stat-title {
+    font-size: 0.8rem;
+  }
+  
   .stat-value {
     font-size: 1.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-card {
+    border-radius: 10px;
+    padding: 16px;
+  }
+  
+  .stat-title {
+    font-size: 0.75rem;
+  }
+  
+  .stat-value {
+    font-size: 1.6rem;
+  }
+  
+  .stat-trend {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    border-radius: 8px;
+    padding: 12px;
+  }
+  
+  .stat-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.2px;
+  }
+  
+  .stat-value {
+    font-size: 1.4rem;
+    margin-top: 4px;
+  }
+  
+  .stat-trend {
+    font-size: 0.75rem;
+    margin-top: 6px;
   }
 }

@@ -159,6 +159,75 @@ app.get('/api/test-bookings-direct', async (req, res) => {
 });
 
 // ============================================
+// DIAGNOSTIC ENDPOINT - Check sales/bookings mismatch
+// ============================================
+app.get('/api/diagnose-sales', async (req, res) => {
+  console.log("🔍 DIAGNOSTIC ENDPOINT - Checking bookings vs sales");
+  try {
+    const Booking = require('./models/Booking');
+    const Sale = require('./models/Sale');
+
+    // Get all bookings with their status
+    const allBookings = await Booking.find({}, 'bookingNumber status totalAmount oasis customerName createdAt');
+    const confirmedBookings = allBookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed');
+    
+    // Get all sales and populate booking info
+    const allSales = await Sale.find({})
+      .populate('booking', 'bookingNumber status totalAmount oasis customerName');
+    
+    // Check which confirmed bookings don't have sales
+    const bookingsWithoutSales = confirmedBookings.filter(booking => 
+      !allSales.some(sale => sale.booking && sale.booking._id.toString() === booking._id.toString())
+    );
+
+    const diagnosis = {
+      totalBookings: allBookings.length,
+      confirmedBookings: confirmedBookings.length,
+      totalSales: allSales.length,
+      bookingsWithoutSales: bookingsWithoutSales.length,
+      
+      // Group bookings by status
+      bookingsByStatus: {
+        pending: allBookings.filter(b => b.status === 'Pending').length,
+        confirmed: allBookings.filter(b => b.status === 'Confirmed').length,
+        completed: allBookings.filter(b => b.status === 'Completed').length,
+        cancelled: allBookings.filter(b => b.status === 'Cancelled').length,
+      },
+      
+      // Sample data
+      sampleConfirmedBookings: confirmedBookings.slice(0, 5).map(b => ({
+        id: b._id,
+        bookingNumber: b.bookingNumber,
+        status: b.status,
+        amount: b.totalAmount,
+        oasis: b.oasis,
+        customerName: b.customerName,
+        createdAt: b.createdAt,
+        hasSale: allSales.some(s => s.booking && s.booking._id.toString() === b._id.toString())
+      })),
+      
+      sampleSales: allSales.slice(0, 5).map(s => ({
+        id: s._id,
+        bookingId: s.booking ? s.booking._id : null,
+        bookingNumber: s.booking ? s.booking.bookingNumber : s.bookingNumber,
+        amount: s.amount,
+        date: s.date,
+        bookingStatus: s.booking ? s.booking.status : 'No booking'
+      })),
+      
+      issue: bookingsWithoutSales.length > 0 
+        ? `⚠️ ${bookingsWithoutSales.length} confirmed/completed bookings are missing sales records!`
+        : '✅ All confirmed/completed bookings have sales records'
+    };
+
+    res.json(diagnosis);
+  } catch (error) {
+    console.error("❌ Diagnostic error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
 // ERROR HANDLING MIDDLEWARE
 // ============================================
 app.use((err, req, res, next) => {

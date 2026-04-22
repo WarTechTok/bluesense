@@ -15,7 +15,7 @@
 .toggle-bar {
   width: 22px;
   height: 2px;
-  background: #1e293b;
+  background: #87CEEB;
   border-radius: 2px;
   transition: all 0.3s ease;
 }

@@ -159,11 +159,14 @@ const createBooking = async (req, res) => {
     } = req.body;
 
     // Get payment proof file from multer
-    const paymentProof = req.file
-      ? `/uploads/payment-proofs/${req.file.filename}`
-      : null;
-
-    console.log("💾 Payment Proof Path:", paymentProof);
+    let paymentProof = null;
+    if (req.file) {
+      paymentProof = `/uploads/payment-proofs/${req.file.filename}`;
+      console.log("✅ Payment proof file received:", req.file.filename);
+      console.log("✅ Payment proof path:", paymentProof);
+    } else {
+      console.log("⚠️ No payment proof file received");
+    }
 
     // Parse addons if it's a JSON string (from FormData)
     let parsedAddons = {};
@@ -452,6 +455,11 @@ const createBooking = async (req, res) => {
 
     await newBooking.save();
 
+    console.log(`✅ Booking created successfully:`);
+    console.log(`   - Booking ID: ${newBooking._id}`);
+    console.log(`   - Payment Proof Saved: ${newBooking.paymentProof || 'NONE'}`);
+    console.log(`   - Payment Status: ${newBooking.paymentStatus}`);
+
     res.status(201).json({
       success: true,
       message: "Booking submitted successfully. Please wait for staff to verify your payment and confirm your booking.",
@@ -475,6 +483,11 @@ const getAllBookings = async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     console.log(`✅ Found ${bookings.length} bookings`);
+    
+    // Log bookings with payment proofs
+    const bookingsWithProofs = bookings.filter(b => b.paymentProof);
+    console.log(`📸 ${bookingsWithProofs.length} bookings have payment proofs`);
+    
     res.json(bookings);
   } catch (error) {
     console.error("❌ Error in getAllBookings:", error);
@@ -494,6 +507,11 @@ const getBookingById = async (req, res) => {
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
+
+    console.log(`📋 Retrieved booking ${req.params.id}:`);
+    console.log(`   - Payment Proof: ${booking.paymentProof || 'NONE'}`);
+    console.log(`   - Payment Status: ${booking.paymentStatus}`);
+    console.log(`   - Status: ${booking.status}`);
 
     res.json(booking);
   } catch (error) {
@@ -528,8 +546,8 @@ const updateBookingStatus = async (req, res) => {
       new: true,
     });
 
-    // Create sale record if booking is confirmed
-    if (status === "Confirmed" && booking.totalAmount) {
+    // Create sale record when booking is confirmed or completed (when payment is received)
+    if ((status === "Completed" || status === "Confirmed") && booking.totalAmount) {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale) {
         const sale = new Sale({
@@ -538,9 +556,10 @@ const updateBookingStatus = async (req, res) => {
           bookingNumber: booking.bookingNumber || 0,
           bookingReference: booking.bookingReference,
           location: booking.oasis,
+          date: new Date(), // FIX: explicitly set date so it's always present for report filtering
         });
         await sale.save();
-        console.log(`✅ Sale record created for booking ${id} (Booking #${booking.bookingNumber})`);
+        console.log(`✅ Sale record created for ${status} booking ${id} (Booking #${booking.bookingNumber})`);
       }
     }
 
@@ -625,18 +644,53 @@ const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Prevent deletion of completed bookings
+    // Get booking details before deletion
     const booking = await Booking.findById(id);
-    if (booking.status === "Completed") {
-      return res
-        .status(400)
-        .json({ message: "Cannot delete a completed booking" });
+    
+    if (!booking) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Booking not found" 
+      });
     }
 
-    await Booking.findByIdAndDelete(id);
-    res.json({ message: "Booking deleted successfully" });
+    // Prevent deletion of completed bookings
+    if (booking.status === "Completed") {
+      return res.status(400).json({ 
+        success: false,
+        message: "Cannot delete a completed booking" 
+      });
+    }
+
+    // Delete associated sale record
+    const deletedSale = await Sale.findOneAndDelete({ booking: id });
+    if (deletedSale) {
+      console.log(`🗑️ Sale record deleted for booking ${id}`);
+      console.log(`   Booking Reference: ${booking.bookingReference}`);
+      console.log(`   Customer: ${booking.customerName}`);
+      console.log(`   Amount: ₱${booking.totalAmount?.toLocaleString() || 'N/A'}`);
+    }
+
+    // Delete the booking itself
+    const deletedBooking = await Booking.findByIdAndDelete(id);
+
+    console.log(`🗑️ Booking deleted successfully`);
+    console.log(`   Booking #${booking.bookingNumber || 'N/A'}`);
+    console.log(`   Reference: ${booking.bookingReference}`);
+    console.log(`   Status: ${booking.status}`);
+
+    res.json({ 
+      success: true,
+      message: "Booking and associated sales records deleted successfully",
+      deletedBooking,
+      deletedSale
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error deleting booking:", error);
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 
@@ -788,24 +842,8 @@ const verifyPayment = async (req, res) => {
       { new: true },
     ).populate("paymentVerifiedBy", "name email");
 
-    // Create sale record for revenue tracking
-    try {
-      const existingSale = await Sale.findOne({ booking: id });
-      if (!existingSale && booking.totalAmount) {
-        const sale = new Sale({
-          booking: id,
-          amount: booking.totalAmount,
-          bookingNumber: booking.bookingNumber,
-          bookingReference: booking.bookingReference,
-          location: booking.oasis,
-        });
-        await sale.save();
-        console.log(`✅ Sale record created for booking ${id}`);
-      }
-    } catch (saleError) {
-      console.error("⚠️  Failed to create sale record:", saleError.message);
-      // Continue with email even if sale creation fails
-    }
+    // Note: Sale record will be created only when booking status changes to "Completed"
+    // This is handled in the updateBookingStatus function
 
     // Send email notification to customer
     const sendEmail = require("../utils/sendEmail");
@@ -848,6 +886,69 @@ const verifyPayment = async (req, res) => {
     });
   } catch (error) {
     console.error("Error verifying payment:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ============================================
+// DELETE PAYMENT PROOF - Staff deletes payment proof after verification
+// ============================================
+
+const deletePaymentProof = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    if (!booking.paymentProof) {
+      return res.status(400).json({
+        success: false,
+        message: "No payment proof to delete",
+      });
+    }
+
+    // Delete the file from storage if needed
+    const fs = require("fs");
+    const path = require("path");
+    
+    try {
+      // Try to delete the file from uploads folder
+      const filePath = path.join(__dirname, "../uploads/payment-proofs", path.basename(booking.paymentProof));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        console.log(`✅ Payment proof file deleted: ${filePath}`);
+      }
+    } catch (fileDeleteError) {
+      console.warn("⚠️  Could not delete physical file:", fileDeleteError.message);
+      // Continue anyway - just remove from database
+    }
+
+    // Update booking - remove payment proof
+    const updatedBooking = await Booking.findByIdAndUpdate(
+      id,
+      {
+        paymentProof: null,
+      },
+      { new: true },
+    );
+
+    res.json({
+      success: true,
+      message: "Payment proof deleted successfully",
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error("Error deleting payment proof:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -943,6 +1044,228 @@ const cancelBooking = async (req, res) => {
   }
 };
 
+// ============================================
+// CLEANUP ORPHANED SALES - Remove sales with no matching booking
+// ============================================
+
+const cleanupOrphanedSales = async (req, res) => {
+  try {
+    console.log("🧹 Starting cleanup of orphaned sales records...");
+    
+    // Get all sales records
+    const allSales = await Sale.find();
+    console.log(`📊 Total sales in database: ${allSales.length}`);
+    
+    let orphanedCount = 0;
+    const orphanedSales = [];
+    
+    // Check each sale to see if it has a matching booking
+    for (const sale of allSales) {
+      if (sale.booking) {
+        const booking = await Booking.findById(sale.booking);
+        if (!booking) {
+          orphanedSales.push(sale._id);
+          orphanedCount++;
+        }
+      }
+    }
+    
+    if (orphanedCount === 0) {
+      return res.json({
+        success: true,
+        message: "✅ No orphaned sales found. All sales have matching bookings.",
+        totalSales: allSales.length,
+        orphanedCount: 0
+      });
+    }
+    
+    console.log(`🗑️ Found ${orphanedCount} orphaned sales records`);
+    
+    // Delete orphaned sales
+    const result = await Sale.deleteMany({ _id: { $in: orphanedSales } });
+    
+    console.log(`✅ Deleted ${result.deletedCount} orphaned sales records`);
+    
+    res.json({
+      success: true,
+      message: `✅ Cleanup complete! Deleted ${orphanedCount} orphaned sales records.`,
+      totalSales: allSales.length,
+      orphanedCount: orphanedCount,
+      deletedCount: result.deletedCount,
+      orphanedSalesIds: orphanedSales
+    });
+  } catch (error) {
+    console.error("❌ Error cleaning up orphaned sales:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error cleaning up orphaned sales: " + error.message
+    });
+  }
+};
+
+// ============================================
+// SYNC BOOKINGS & SALES - Bidirectional Data Integrity
+// ============================================
+/**
+ * Comprehensive cleanup to ensure only accurate booking & sales data
+ * - Removes sales with missing bookings
+ * - Removes sales for non-completed bookings
+ * - Ensures bidirectional data integrity
+ */
+const syncBookingsAndSales = async (req, res) => {
+  try {
+    console.log("🔄 Starting comprehensive booking & sales sync...\n");
+    
+    let deletedOrphanedSales = 0;
+    let deletedSalesForNonCompleted = 0;
+    let issues = [];
+    
+    // ===== STEP 1: Remove orphaned sales (no matching booking) =====
+    console.log("📋 Step 1: Removing sales with missing bookings...");
+    const allSales = await Sale.find();
+    
+    for (const sale of allSales) {
+      if (sale.booking) {
+        const booking = await Booking.findById(sale.booking);
+        if (!booking) {
+          await Sale.findByIdAndDelete(sale._id);
+          deletedOrphanedSales++;
+          console.log(`  🗑️ Deleted orphaned sale: ${sale.bookingReference || sale._id}`);
+        }
+      }
+    }
+    
+    // ===== STEP 2: Remove sales for non-completed bookings =====
+    console.log("\n📋 Step 2: Removing sales for non-completed bookings...");
+    const salesForNonCompleted = await Sale.find()
+      .populate('booking', 'status bookingReference bookingNumber');
+    
+    for (const sale of salesForNonCompleted) {
+      if (sale.booking && sale.booking.status !== 'Completed') {
+        await Sale.findByIdAndDelete(sale._id);
+        deletedSalesForNonCompleted++;
+        console.log(`  🗑️ Deleted sale for ${sale.booking.status} booking: ${sale.booking.bookingReference}`);
+      }
+    }
+    
+    // ===== STEP 3: Verify final state =====
+    console.log("\n📋 Step 3: Verifying final data state...");
+    const finalBookings = await Booking.find();
+    const finalSales = await Sale.find().populate('booking', 'bookingReference status bookingNumber');
+    
+    // Check for any remaining issues
+    for (const sale of finalSales) {
+      if (sale.booking) {
+        if (sale.booking.status !== 'Completed') {
+          issues.push({
+            type: 'WARNING',
+            issue: 'Sale found for non-completed booking',
+            sale: sale._id,
+            booking: sale.booking.bookingReference,
+            status: sale.booking.status
+          });
+        }
+      }
+    }
+    
+    console.log(`\n✅ Sync Complete!\n`);
+    
+    res.json({
+      success: true,
+      message: "✅ Booking and Sales data synchronized successfully!",
+      summary: {
+        totalBookings: finalBookings.length,
+        totalSales: finalSales.length,
+        deletedOrphanedSales,
+        deletedSalesForNonCompleted,
+        totalDeleted: deletedOrphanedSales + deletedSalesForNonCompleted,
+        remainingIssues: issues.length
+      },
+      issues: issues
+    });
+  } catch (error) {
+    console.error("❌ Error syncing bookings & sales:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error syncing bookings & sales: " + error.message
+    });
+  }
+};
+
+// ============================================
+// VERIFY SALES AND BOOKINGS CONNECTION
+// ============================================
+
+const verifySalesConnection = async (req, res) => {
+  try {
+    console.log("🔍 Verifying sales and bookings connection...");
+    
+    const allBookings = await Booking.find();
+    const allSales = await Sale.find();
+    
+    console.log(`📊 Total bookings: ${allBookings.length}`);
+    console.log(`💰 Total sales: ${allSales.length}`);
+    
+    let connectedCount = 0;
+    let orphanedBookings = 0;
+    let orphanedSales = 0;
+    const issues = [];
+    
+    // Check bookings without sales (when they should have them)
+    for (const booking of allBookings) {
+      if (booking.status === 'Completed') {
+        const sale = await Sale.findOne({ booking: booking._id });
+        if (!sale) {
+          orphanedBookings++;
+          issues.push({
+            type: 'Missing Sale',
+            bookingId: booking._id,
+            bookingRef: booking.bookingReference,
+            bookingStatus: booking.status,
+            bookingNumber: booking.bookingNumber
+          });
+        } else {
+          connectedCount++;
+        }
+      }
+    }
+    
+    // Check sales with missing bookings
+    for (const sale of allSales) {
+      if (sale.booking) {
+        const booking = await Booking.findById(sale.booking);
+        if (!booking) {
+          orphanedSales++;
+          issues.push({
+            type: 'Orphaned Sale',
+            saleId: sale._id,
+            bookingId: sale.booking,
+            amount: sale.amount
+          });
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      summary: {
+        totalBookings: allBookings.length,
+        totalSales: allSales.length,
+        connectedPairs: connectedCount,
+        orphanedBookings: orphanedBookings,
+        orphanedSales: orphanedSales
+      },
+      issues: issues.slice(0, 50) // Show first 50 issues
+    });
+  } catch (error) {
+    console.error("❌ Error verifying sales connection:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error verifying connection: " + error.message
+    });
+  }
+};
+
 module.exports = {
   createBooking,
   getAllBookings,
@@ -953,5 +1276,9 @@ module.exports = {
   deleteBooking,
   getBookedDatesWithSessions,
   verifyPayment,
-  cancelBooking
+  deletePaymentProof,
+  cancelBooking,
+  cleanupOrphanedSales,
+  verifySalesConnection,
+  syncBookingsAndSales
 };

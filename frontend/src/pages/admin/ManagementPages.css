@@ -819,3 +819,37 @@
     padding: 4px 10px;
   }
 }
+/* ============================================ */
+/* REPORTS TABLE HEADER FIX - BLACK TEXT */
+/* ============================================ */
+
+/* Force black text for all report table headers */
+.report-container .data-table thead th,
+.report-container .data-table th,
+.data-table thead th {
+  color: #000000 !important;
+  background-color: #f3f4f6;
+  font-weight: 600;
+}
+
+/* For any other tables in management pages */
+.management-page .data-table th,
+.management-page .report-container th {
+  color: #000000 !important;
+}
+
+/* Alternative: If you want to keep your existing color but ensure it's dark enough */
+.data-table th {
+  color: #0f172a !important; /* Very dark slate, almost black */
+  background-color: #f8fafc;
+}
+
+/* For sales table headers too */
+.sales-table th {
+  color: #000000 !important;
+}
+
+/* For bookings table headers */
+.bookings-table th {
+  color: #000000 !important;
+}

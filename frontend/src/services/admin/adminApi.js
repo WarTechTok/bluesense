@@ -461,14 +461,33 @@ export const verifyPayment = async (id) => {
 };
 
 // ============================================
+// DELETE PAYMENT PROOF - Deletes the payment proof file from storage
+// ============================================
+// Params: id - Booking MongoDB _id
+// Returns: Updated booking object with paymentProof cleared
+// Requires: Staff role
+export const deletePaymentProof = async (id) => {
+  try {
+    const res = await bookingsApiClient.patch(`/bookings/${id}/delete-proof`);
+    return res.data;
+  } catch (error) {
+    console.error('Error deleting payment proof:', error);
+    throw error;
+  }
+};
+
+// ============================================
 // DELETE BOOKING - Uses bookingsApiClient (no /admin prefix)
 // ============================================
 // Params: id - Booking MongoDB _id
-// Returns: Deleted booking object
+// Returns: Deleted booking + sale objects, message
+// Note: Also deletes associated Sale record (cascading delete)
 // Requires: Staff role
 export const deleteBooking = async (id) => {
   try {
     const res = await bookingsApiClient.delete(`/bookings/${id}`);
+    console.log('🗑️ Booking deleted:', res.data);
+    console.log('🗑️ Associated Sale also deleted (if existed)');
     return res.data;
   } catch (error) {
     console.error('Error deleting booking:', error);
