@@ -39,26 +39,10 @@ if (!fs.existsSync(paymentProofDir)) {
 }
 
 // ============================================
-// CORS CONFIGURATION - UPDATED FOR PRODUCTION
+// CORS CONFIGURATION - Allow all origins (ESP32, frontend, etc.)
 // ============================================
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://bluesense-de14.vercel.app',
-  'https://bluesense.onrender.com'
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true
-}));
+// 🔴 SIMPLIFIED - Allows ESP32, mobile apps, any client to connect
+app.use(cors());
 
 // Apply urlencoded and json AFTER cors
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
