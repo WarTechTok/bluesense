@@ -5,7 +5,13 @@ import "./DiagonalCalendar.css";
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
+function DiagonalCalendar({
+  selectedDate,
+  onDateChange,
+  oasis,
+  packageName,
+  minDate,
+}) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [bookedDates, setBookedDates] = useState({});
   const [loading, setLoading] = useState(false);
@@ -33,7 +39,6 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
 
       setLoading(true);
       try {
-        // Use environment variable instead of hardcoded localhost
         const url = `${API_BASE_URL}/api/bookings/booked-dates?oasis=${encodeURIComponent(oasis)}&package=${encodeURIComponent(packageName)}&email=${encodeURIComponent(currentUserEmail)}`;
 
         console.log("📅 Fetching booked dates from:", url);
@@ -79,14 +84,21 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
   };
 
   const handlePrevMonth = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const minAllowedDate =
+      minDate ||
+      (() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow;
+      })();
+
     const prev = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth() - 1,
     );
     const firstDayOfPrev = new Date(prev.getFullYear(), prev.getMonth(), 1);
-    if (firstDayOfPrev >= today) {
+    if (firstDayOfPrev >= minAllowedDate) {
       setCurrentMonth(prev);
     }
   };
@@ -103,38 +115,87 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
     }
   };
 
-  const handleDateClick = (day) => {
-  const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  if (clickedDate >= tomorrow) {
+  const isDateDisabled = (day) => {
+    const date = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day,
+    );
+    date.setHours(0, 0, 0, 0);
+
+    // Get min allowed date (from prop or default to tomorrow)
+    const minAllowedDate =
+      minDate ||
+      (() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow;
+      })();
+    minAllowedDate.setHours(0, 0, 0, 0);
+
+    // Disable dates before minAllowedDate
+    if (date < minAllowedDate) return true;
+
+    // Disable dates beyond 3 months
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
-    if (clickedDate <= maxDate) {
-      const dateStr = getLocalDateString(clickedDate);
-      const status = bookedDates[dateStr];
-      
-      // ← Check if user already has a booking on this date
-      if (status && status.userHasBooking === true) {
-        setShowOwnBookingModal(true);
-        return; // Don't select the date
-      }
-      
-      // Check if date is fully booked (Day and Night both booked by others)
-      if (status && status.Day?.booked && status.Night?.booked) {
-        setShowDuplicateModal(true);
-        return; // Don't select the date
-      }
-      
-      // Only select date if available
-      onDateChange(clickedDate);
+    maxDate.setHours(0, 0, 0, 0);
+    if (date > maxDate) return true;
+
+    return false;
+  };
+
+  const handleDateClick = (day) => {
+    const clickedDate = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth(),
+      day,
+    );
+    clickedDate.setHours(0, 0, 0, 0);
+
+    // Get min allowed date
+    const minAllowedDate =
+      minDate ||
+      (() => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        return tomorrow;
+      })();
+    minAllowedDate.setHours(0, 0, 0, 0);
+
+    // Check if date is before min allowed date
+    if (clickedDate < minAllowedDate) {
+      return;
     }
-  }
-};
+
+    // Check if date is beyond 3 months
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    maxDate.setHours(0, 0, 0, 0);
+    if (clickedDate > maxDate) {
+      return;
+    }
+
+    const dateStr = getLocalDateString(clickedDate);
+    const status = bookedDates[dateStr];
+
+    // Check if user already has a booking on this date
+    if (status && status.userHasBooking === true) {
+      setShowOwnBookingModal(true);
+      return;
+    }
+
+    // Check if date is fully booked (Day and Night both booked by others)
+    if (status && status.Day?.booked && status.Night?.booked) {
+      setShowDuplicateModal(true);
+      return;
+    }
+
+    // Only select date if available
+    onDateChange(clickedDate);
+  };
 
   const getDateStatus = (day) => {
     const date = new Date(
@@ -152,25 +213,6 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
     }
 
     return status;
-  };
-
-  const isDateDisabled = (day) => {
-    const date = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      day,
-    );
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Disable today and past dates
-    if (date <= today) return true;
-
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    if (date > maxDate) return true;
-
-    return false;
   };
 
   const isDateSelected = (day) => {
@@ -233,7 +275,15 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
               cy="50"
               r="7"
               className={`session-indicator ${status.Day?.booked ? "booked" : "available"}`}
-              fill={status.Day?.booked ? "#dc2626" : "#10b981"}
+              fill={
+                !status.Day?.booked
+                  ? "#10b981"
+                  : status.Day?.status === "confirmed"
+                    ? "#dc2626"
+                    : status.Day?.status === "pending"
+                      ? "#f59e0b"
+                      : "#dc2626"
+              }
               opacity="1"
             />
 
@@ -242,7 +292,15 @@ function DiagonalCalendar({ selectedDate, onDateChange, oasis, packageName }) {
               cy="50"
               r="7"
               className={`session-indicator ${status.Night?.booked ? "booked" : "available"}`}
-              fill={status.Night?.booked ? "#dc2626" : "#10b981"}
+              fill={
+                !status.Night?.booked
+                  ? "#10b981"
+                  : status.Night?.status === "confirmed"
+                    ? "#dc2626"
+                    : status.Night?.status === "pending"
+                      ? "#f59e0b"
+                      : "#dc2626"
+              }
               opacity="1"
             />
           </svg>

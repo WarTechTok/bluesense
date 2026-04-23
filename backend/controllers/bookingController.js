@@ -714,12 +714,12 @@ const deleteBooking = async (req, res) => {
 };
 
 // ============================================
-// GET BOOKED DATES WITH SESSION INFO
+// GET BOOKED DATES WITH SESSION INFO (with status colors)
 // ============================================
 
 const getBookedDatesWithSessions = async (req, res) => {
   try {
-    const { oasis, package: packageName, email } = req.query;
+    const { oasis, email } = req.query;
 
     if (!oasis) {
       return res.status(400).json({
@@ -736,42 +736,83 @@ const getBookedDatesWithSessions = async (req, res) => {
     };
 
     // Fetch ALL bookings for this OASIS (Confirmed AND Pending)
-    // This ensures users can see their pending bookings as already booked
     const bookings = await Booking.find({
       oasis,
       status: { $in: ["Confirmed", "Pending"] },
     }).lean();
 
-    console.log(`📅 Found ${bookings.length} bookings for ${oasis} (Confirmed + Pending)`);
+    console.log(`📅 Found ${bookings.length} bookings for ${oasis}`);
 
-    // Group bookings by date and session
+    // Group bookings by date and session with status tracking
     const bookedDatesMap = {};
 
     bookings.forEach((booking) => {
       const dateStr = getLocalDateString(booking.bookingDate);
+      const session = booking.session || "Day";
+      const isConfirmed = booking.status === "Confirmed";
+      const isPending = booking.status === "Pending";
 
       if (!bookedDatesMap[dateStr]) {
         bookedDatesMap[dateStr] = {
           date: dateStr,
-          Day: { booked: false, count: 0, names: [] },
-          Night: { booked: false, count: 0, names: [] },
-          "22hrs": { booked: false, count: 0, names: [] },
+          Day: { 
+            booked: false, 
+            status: "available", 
+            count: 0, 
+            names: [],
+            hasConfirmed: false,
+            hasPending: false
+          },
+          Night: { 
+            booked: false, 
+            status: "available", 
+            count: 0, 
+            names: [],
+            hasConfirmed: false,
+            hasPending: false
+          },
+          "22hrs": { 
+            booked: false, 
+            status: "available", 
+            count: 0, 
+            names: [],
+            hasConfirmed: false,
+            hasPending: false
+          },
           userHasBooking: false,
           userBookingSession: null,
+          userBookingStatus: null,
         };
       }
 
-      const session = booking.session || "Day";
       if (bookedDatesMap[dateStr][session]) {
         const sessionInfo = bookedDatesMap[dateStr][session];
         sessionInfo.count += 1;
         sessionInfo.names.push(booking.customerName);
         
+        // Track if there are confirmed or pending bookings
+        if (isConfirmed) {
+          sessionInfo.hasConfirmed = true;
+        }
+        if (isPending) {
+          sessionInfo.hasPending = true;
+        }
+        
+        // Determine the status priority: confirmed > pending > available
+        if (sessionInfo.hasConfirmed) {
+          sessionInfo.status = "confirmed";
+          sessionInfo.booked = true;
+        } else if (sessionInfo.hasPending) {
+          sessionInfo.status = "pending";
+          sessionInfo.booked = true;
+        }
+        
         // Check if this booking belongs to the current user
         if (email && booking.customerEmail === email) {
           bookedDatesMap[dateStr].userHasBooking = true;
           bookedDatesMap[dateStr].userBookingSession = session;
-          console.log(`✅ User ${email} has booking on ${dateStr} for ${session} session`);
+          bookedDatesMap[dateStr].userBookingStatus = booking.status;
+          console.log(`✅ User ${email} has ${booking.status} booking on ${dateStr} for ${session} session`);
         }
       }
     });
@@ -779,28 +820,19 @@ const getBookedDatesWithSessions = async (req, res) => {
     // Process each date to determine availability for new bookings
     Object.keys(bookedDatesMap).forEach((dateStr) => {
       const dayInfo = bookedDatesMap[dateStr];
-      const sessionConfig = OASIS_CONFIG[oasis]?.sessions;
 
-      if (!sessionConfig) {
-        console.warn(`⚠️ No session config for ${oasis}`);
-        return;
-      }
-
+      // 22hrs blocks both Day and Night
       if (dayInfo["22hrs"].count > 0) {
         dayInfo["22hrs"].booked = true;
+        dayInfo["22hrs"].status = dayInfo["22hrs"].hasConfirmed ? "confirmed" : "pending";
         dayInfo.Day.booked = true;
+        dayInfo.Day.status = dayInfo["22hrs"].status;
         dayInfo.Night.booked = true;
-      } else {
-        if (dayInfo.Day.count > 0) {
-          dayInfo.Day.booked = true;
-        }
-        if (dayInfo.Night.count > 0) {
-          dayInfo.Night.booked = true;
-        }
+        dayInfo.Night.status = dayInfo["22hrs"].status;
       }
     });
 
-    console.log("📤 Returning booked dates:", Object.keys(bookedDatesMap));
+    console.log("📤 Returning booked dates with status:", Object.keys(bookedDatesMap));
 
     res.json({
       success: true,
