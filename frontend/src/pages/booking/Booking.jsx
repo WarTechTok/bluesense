@@ -11,6 +11,7 @@ import { createBooking } from '../../services/api';
 import BookingSuccessModal from '../../components/modals/BookingSuccessModal';
 import PendingBookingModal from '../../components/modals/PendingBookingModal';
 import LimitReachedModal from '../../components/modals/LimitReachedModal';
+import DoubleBookingModal from '../../components/modals/DoubleBookingModal';
 import StepIndicator from './StepIndicator';
 import BookingSummary from './BookingSummary';
 import GuestInfoStep from './GuestInfoStep';
@@ -20,7 +21,6 @@ import ReviewStep from './ReviewStep';
 import AddonsSelector from '../../components/booking/AddonsSelector';
 import { getPackagePrice, getDownpayment, oasisPackages, getMaxCapacity } from '../../config/packageData';
 import './Booking.css';
-import DoubleBookingModal from '../../components/modals/DoubleBookingModal';
 
 function Booking() {
   const location = useLocation();
@@ -31,6 +31,7 @@ function Booking() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showDoubleBookingModal, setShowDoubleBookingModal] = useState(false);
   const [bookingDetails, setBookingDetails] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({});
   const [infoConfirmed, setInfoConfirmed] = useState(false);
@@ -289,102 +290,105 @@ function Booking() {
     navigate('/my-bookings');
   };
 
-  const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateStep()) return;
-  setIsSubmitting(true);
-  
-  try {
-    // Helper function to map payment method to proper casing
-    const mapPaymentMethod = (method) => {
-      const mapping = {
-        'cash': 'Cash',
-        'gcash': 'GCash',
-        'maya': 'Maya',
-        'seabank': 'SeaBank',
-        'gotyme': 'GoTyme'
-      };
-      return mapping[method] || method;
-    };
+  const handleDoubleBookingClose = () => {
+    setShowDoubleBookingModal(false);
+    setStep(2);
+    window.scrollTo(0, 0);
+  };
 
-    // Create FormData to handle file upload
-    const formDataToSend = new FormData();
-    formDataToSend.append('customerName', formData.fullName);
-    formDataToSend.append('customerContact', formData.phone);
-    formDataToSend.append('customerEmail', formData.email);
-    formDataToSend.append('oasis', selectedOasis);
-    formDataToSend.append('package', selectedPackage);
-    formDataToSend.append('session', selectedSession);
-    formDataToSend.append('bookingDate', formData.reservationDate);
-    formDataToSend.append('pax', Number(formData.guestCount));
-    formDataToSend.append('totalPrice', getTotalPrice());
-    formDataToSend.append('downpayment', getDownpaymentAmount());
-    formDataToSend.append('paymentType', formData.paymentType);
-    formDataToSend.append('paymentMethod', mapPaymentMethod(formData.paymentMethod));
-    formDataToSend.append('specialRequests', formData.specialRequests || '');
-    formDataToSend.append('addons', JSON.stringify(selectedAddons || {}));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateStep()) return;
+    setIsSubmitting(true);
     
-    // Add payment proof file if uploaded
-    if (formData.paymentProof) {
-      formDataToSend.append('paymentProof', formData.paymentProof);
+    try {
+      // Helper function to map payment method to proper casing
+      const mapPaymentMethod = (method) => {
+        const mapping = {
+          'cash': 'Cash',
+          'gcash': 'GCash',
+          'maya': 'Maya',
+          'seabank': 'SeaBank',
+          'gotyme': 'GoTyme'
+        };
+        return mapping[method] || method;
+      };
+
+      // Create FormData to handle file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('customerName', formData.fullName);
+      formDataToSend.append('customerContact', formData.phone);
+      formDataToSend.append('customerEmail', formData.email);
+      formDataToSend.append('oasis', selectedOasis);
+      formDataToSend.append('package', selectedPackage);
+      formDataToSend.append('session', selectedSession);
+      formDataToSend.append('bookingDate', formData.reservationDate);
+      formDataToSend.append('pax', Number(formData.guestCount));
+      formDataToSend.append('totalPrice', getTotalPrice());
+      formDataToSend.append('downpayment', getDownpaymentAmount());
+      formDataToSend.append('paymentType', formData.paymentType);
+      formDataToSend.append('paymentMethod', mapPaymentMethod(formData.paymentMethod));
+      formDataToSend.append('specialRequests', formData.specialRequests || '');
+      formDataToSend.append('addons', JSON.stringify(selectedAddons || {}));
+      
+      // Add payment proof file if uploaded
+      if (formData.paymentProof) {
+        formDataToSend.append('paymentProof', formData.paymentProof);
+      }
+      
+      // Debug log
+      console.log('📤 Booking with file:', formData.paymentProof);
+      console.log('💰 Total Price:', getTotalPrice());
+      console.log('💰 Downpayment:', getDownpaymentAmount());
+      
+      const result = await createBooking(formDataToSend);
+      
+      console.log('✅ Booking Response:', result);
+      
+      if (result.booking) {
+        setBookingDetails({
+          bookingId: result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase(),
+          oasis: selectedOasis,
+          package: selectedPackage,
+          session: selectedSession,
+          checkIn: new Date(formData.reservationDate).toLocaleDateString(),
+          guests: formData.guestCount,
+          totalAmount: getTotalPrice(),
+          downpayment: getDownpaymentAmount(),
+          paymentType: formData.paymentType
+        });
+        setShowSuccessModal(true);
+      } else {
+        console.error('❌ Booking failed:', result);
+        alert(result.message || 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      console.error('❌ Booking error:', error);
+      
+      // Get error message and status from the error object
+      const errorMsg = error?.data?.message || error?.message || 'Failed to submit booking. Please try again.';
+      const errorStatus = error?.status;
+      
+      // ============================================
+      // HANDLE DOUBLE BOOKING ERROR (409 Conflict)
+      // ============================================
+      if (errorStatus === 409 || errorMsg.includes('already booked')) {
+        setShowDoubleBookingModal(true);
+        return;
+      }
+      
+      // Check for other error types
+      if (errorMsg.includes('pending booking') || errorMsg.includes('complete your payment first')) {
+        setShowPendingModal(true);
+      } else if (errorMsg.includes('2 upcoming bookings') || errorMsg.includes('booking limit')) {
+        setShowLimitModal(true);
+      } else if (!errorMsg.includes('already have a booking on this date')) {
+        alert(errorMsg);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // Debug log
-    console.log('📤 Booking with file:', formData.paymentProof);
-    console.log('💰 Total Price:', getTotalPrice());
-    console.log('💰 Downpayment:', getDownpaymentAmount());
-    
-    const result = await createBooking(formDataToSend);
-    
-    console.log('✅ Booking Response:', result);
-    
-    if (result.booking) {
-      setBookingDetails({
-        bookingId: result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase() || Math.random().toString(36).substr(2, 6).toUpperCase(),
-        oasis: selectedOasis,
-        package: selectedPackage,
-        session: selectedSession,
-        checkIn: new Date(formData.reservationDate).toLocaleDateString(),
-        guests: formData.guestCount,
-        totalAmount: getTotalPrice(),
-        downpayment: getDownpaymentAmount(),
-        paymentType: formData.paymentType
-      });
-      setShowSuccessModal(true);
-    } else {
-      console.error('❌ Booking failed:', result);
-      alert(result.message || 'Something went wrong. Please try again.');
-    }
-  } catch (error) {
-    console.error('❌ Booking error:', error);
-    
-    // Get error message and status from the error object
-    const errorMsg = error?.data?.message || error?.message || 'Failed to submit booking. Please try again.';
-    const errorStatus = error?.status;
-    
-    // ============================================
-    // HANDLE DOUBLE BOOKING ERROR (409 Conflict)
-    // ============================================
-    if (errorStatus === 409 || errorMsg.includes('already booked')) {
-      alert('⚠️ Sorry! This date and session was just booked by another customer.\n\nPlease select another date or session.');
-      // Go back to date selection step (step 2)
-      setStep(2);
-      window.scrollTo(0, 0);
-      return;
-    }
-    
-    // Check for other error types
-    if (errorMsg.includes('pending booking') || errorMsg.includes('complete your payment first')) {
-      setShowPendingModal(true);
-    } else if (errorMsg.includes('2 upcoming bookings') || errorMsg.includes('booking limit')) {
-      setShowLimitModal(true);
-    } else if (!errorMsg.includes('already have a booking on this date')) {
-      alert(errorMsg);
-    }
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
   const pricePerNight = calculatePrice();
   const totalPrice = getTotalPrice();
@@ -558,6 +562,11 @@ function Booking() {
         isOpen={showLimitModal}
         onClose={() => setShowLimitModal(false)}
         onViewBookings={handleViewBookings}
+      />
+      <DoubleBookingModal 
+        isOpen={showDoubleBookingModal}
+        onClose={() => setShowDoubleBookingModal(false)}
+        onSelectAnotherDate={handleDoubleBookingClose}
       />
     </div>
   );
