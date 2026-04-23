@@ -15,7 +15,14 @@ const StaffSchema = new mongoose.Schema({
     index: true
   }, // Auto-generated sequential ID (STF-0001, ADM-001, etc.)
   name: { type: String, required: true }, // Staff member's full name
-  email: { type: String, required: true, unique: true }, // Unique email for login
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true, // Always store emails in lowercase
+    trim: true,
+    index: true
+  }, // Unique email for login
   role: { 
     type: String, 
     enum: ['admin', 'staff'], 

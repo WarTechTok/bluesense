@@ -25,18 +25,6 @@ export async function login(email, password) {
   return res.json();
 }
 
-// Staff login - for staff members managed in Staff Management system
-export async function staffLogin(email, password) {
-  const res = await fetch(`${API_BASE_URL}/api/auth/staff-login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ email, password }),
-  });
-  return res.json();
-}
-
 // Register user
 export async function register(userData) {
   const res = await fetch(`${API_BASE_URL}/api/auth/register`, {

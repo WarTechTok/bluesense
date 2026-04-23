@@ -267,170 +267,156 @@ const resendVerificationEmail = async (req, res) => {
 // ============================================
 // LOGIN - with email verification check
 // ============================================
+// ============================================
+// UNIFIED LOGIN - handles both customers and staff
+// ============================================
+// Tries to authenticate as customer first (User model)
+// If not found, tries to authenticate as staff (Staff model)
+// Routes based on account type
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid email or password" });
-    }
-
-    // Check if email is verified (skip for Google OAuth users and admins)
-    if (!user.googleId && !user.isEmailVerified && user.role !== "admin") {
-      return res.status(401).json({ 
-        message: "Please verify your email first. Check your inbox.",
-        needsVerification: true,
-        email: user.email
-      });
-    }
-
-    // Check cooldown
-    if (user.lastFailedAttempt) {
-      const now = Date.now();
-      const lastAttempt = new Date(user.lastFailedAttempt).getTime();
-      const secondsSinceLastAttempt = Math.floor((now - lastAttempt) / 1000);
-
-      let cooldownSeconds = 0;
-      if (user.failedAttempts >= 5) cooldownSeconds = 120;
-      else if (user.failedAttempts >= 4) cooldownSeconds = 60;
-      else if (user.failedAttempts >= 3) cooldownSeconds = 30;
-
-      if (cooldownSeconds > 0 && secondsSinceLastAttempt < cooldownSeconds) {
-        const waitTimeRemaining = cooldownSeconds - secondsSinceLastAttempt;
-        return res.status(429).json({
-          message: `Too many failed attempts. Please wait ${waitTimeRemaining} seconds.`,
-        });
-      }
-    }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-
-    if (!isMatch) {
-      user.failedAttempts += 1;
-      user.lastFailedAttempt = Date.now();
-      await user.save();
-
-      if (user.failedAttempts < 3) {
-        const attemptsLeft = 3 - user.failedAttempts;
-        return res.status(400).json({
-          message: `Invalid email or password. ${attemptsLeft} attempts remaining.`,
-          attemptsLeft,
-        });
-      } else {
-        return res.status(400).json({
-          message: "Invalid email or password. Too many attempts will trigger cooldown.",
-          failedAttempts: user.failedAttempts,
-        });
-      }
-    }
-
-    user.failedAttempts = 0;
-    user.lastFailedAttempt = null;
-    await user.save();
-
-    // If staff user, look up their Staff record and include staffId in token
-    let staffId = null;
-    if (user.role === 'staff') {
-      const Staff = require('../models/Staff');
-      // Use case-insensitive email lookup
-      const staffRecord = await Staff.findOne({ 
-        email: { $regex: `^${user.email}$`, $options: 'i' } 
-      });
-      if (staffRecord) {
-        console.log(`✅ Staff login: Found Staff record for ${user.email} with ID: ${staffRecord._id}`);
-        staffId = staffRecord._id;
-      } else {
-        console.warn(`⚠️ Staff login: NO Staff record found for ${user.email}`);
-        // Log all staff emails for debugging
-        const allStaff = await Staff.find({}).select('email _id staffId');
-        console.log('Available staff emails:', allStaff.map(s => s.email));
-      }
-    }
-
-    const token = jwt.sign(
-      { 
-        id: user._id, 
-        email: user.email, 
-        role: user.role,
-        staffId: staffId  // Include staffId for staff users
-      },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-      { expiresIn: "7d" },
-    );
-
-    res.json({
-      message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        address: user.address,
-        avatar: user.avatar,
-        googleAvatar: user.googleAvatar
-      },
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// ============================================
-// STAFF LOGIN - staff authentication with status check
-// ============================================
-// Authenticates staff members created in the Staff Management system
-// Checks if status is "Active" before allowing login
-// Disabled accounts cannot login
-const staffLogin = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Require the Staff model for this endpoint
     const Staff = require('../models/Staff');
 
-    // Find staff member by email
-    const staff = await Staff.findOne({ email: email.toLowerCase() });
-    if (!staff) {
-      return res.status(400).json({ message: "Invalid email or password" });
-    }
+    console.log("🔍 LOGIN ATTEMPT: Email =", email, "Password length =", password?.length);
 
-    // Check if account is disabled
-    if (staff.status === 'Disabled') {
-      return res.status(403).json({ 
-        message: "Account is disabled. Please contact your administrator.",
-        accountDisabled: true
+    // STEP 1: Try to find customer account
+    let user = await User.findOne({ email });
+    console.log("🔍 Checked User model - Found:", user ? "YES" : "NO");
+    
+    if (user) {
+      // ===== CUSTOMER LOGIN =====
+      
+      // Check if email is verified (skip for Google OAuth users and admins)
+      if (!user.googleId && !user.isEmailVerified && user.role !== "admin") {
+        return res.status(401).json({ 
+          message: "Please verify your email first. Check your inbox.",
+          needsVerification: true,
+          email: user.email
+        });
+      }
+
+      // Check cooldown
+      if (user.lastFailedAttempt) {
+        const now = Date.now();
+        const lastAttempt = new Date(user.lastFailedAttempt).getTime();
+        const secondsSinceLastAttempt = Math.floor((now - lastAttempt) / 1000);
+
+        let cooldownSeconds = 0;
+        if (user.failedAttempts >= 5) cooldownSeconds = 120;
+        else if (user.failedAttempts >= 4) cooldownSeconds = 60;
+        else if (user.failedAttempts >= 3) cooldownSeconds = 30;
+
+        if (cooldownSeconds > 0 && secondsSinceLastAttempt < cooldownSeconds) {
+          const waitTimeRemaining = cooldownSeconds - secondsSinceLastAttempt;
+          return res.status(429).json({
+            message: `Too many failed attempts. Please wait ${waitTimeRemaining} seconds.`,
+          });
+        }
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+
+      if (!isMatch) {
+        user.failedAttempts += 1;
+        user.lastFailedAttempt = Date.now();
+        await user.save();
+
+        if (user.failedAttempts < 3) {
+          const attemptsLeft = 3 - user.failedAttempts;
+          return res.status(400).json({
+            message: `Invalid email or password. ${attemptsLeft} attempts remaining.`,
+            attemptsLeft,
+          });
+        } else {
+          return res.status(400).json({
+            message: "Invalid email or password. Too many attempts will trigger cooldown.",
+            failedAttempts: user.failedAttempts,
+          });
+        }
+      }
+
+      user.failedAttempts = 0;
+      user.lastFailedAttempt = null;
+      await user.save();
+
+      const token = jwt.sign(
+        { 
+          id: user._id, 
+          email: user.email, 
+          role: user.role
+        },
+        process.env.JWT_SECRET || "your_jwt_secret_key",
+        { expiresIn: "7d" },
+      );
+
+      return res.json({
+        message: "Login successful",
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          address: user.address,
+          avatar: user.avatar,
+          googleAvatar: user.googleAvatar
+        },
       });
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, staff.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: "Invalid email or password" });
+    // STEP 2: Try to find staff account
+    const emailLower = email.toLowerCase();
+    console.log("🔍 Checking Staff model for email:", emailLower);
+    const staff = await Staff.findOne({ email: emailLower });
+    console.log("🔍 Staff lookup result:", staff ? `Found staff: ${staff.name} (${staff.staffId})` : "NOT FOUND");
+    
+    if (staff) {
+      // ===== STAFF LOGIN =====
+      console.log("✅ Staff account found. Status:", staff.status);
+      
+      // Check if account is disabled
+      if (staff.status === 'Disabled') {
+        return res.status(403).json({ 
+          message: "Account is disabled. Please contact your administrator.",
+          accountDisabled: true
+        });
+      }
+
+      // Compare password
+      const isMatch = await bcrypt.compare(password, staff.password);
+      console.log("🔐 Password comparison result:", isMatch ? "MATCH ✅" : "MISMATCH ❌");
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: staff._id, email: staff.email, role: staff.role, staffId: staff.staffId },
+        process.env.JWT_SECRET || "your_jwt_secret_key",
+        { expiresIn: "7d" }
+      );
+
+      return res.json({
+        message: "Login successful",
+        token,
+        user: {
+          id: staff._id,
+          staffId: staff.staffId,
+          name: staff.name,
+          email: staff.email,
+          role: staff.role,
+          position: staff.position,
+          status: staff.status
+        }
+      });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: staff._id, email: staff.email, role: staff.role, staffId: staff.staffId },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-      { expiresIn: "7d" }
-    );
+    // STEP 3: Account not found in either model
+    console.log("❌ Account not found in User or Staff models for email:", emailLower);
+    return res.status(400).json({ message: "Invalid email or password" });
 
-    res.json({
-      message: "Login successful",
-      token,
-      staff: {
-        id: staff._id,
-        staffId: staff.staffId,
-        name: staff.name,
-        email: staff.email,
-        role: staff.role,
-        position: staff.position,
-        status: staff.status
-      }
-    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -445,7 +431,7 @@ const registerStaff = async (req, res) => {
       return res.status(403).json({ message: "Access denied. Admin only." });
     }
 
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, position } = req.body;
 
     const passwordCheck = validatePassword(password);
     if (!passwordCheck.valid) {
@@ -456,17 +442,33 @@ const registerStaff = async (req, res) => {
       return res.status(403).json({ message: "Cannot create admin account" });
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+    const Staff = require("../models/Staff");
+
+    // Check if email already exists in Staff model
+    const existingStaff = await Staff.findOne({ email: email.toLowerCase() });
+    if (existingStaff) {
+      return res.status(400).json({ message: "Staff account with this email already exists" });
     }
 
-    const newStaff = new User({
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Generate sequential staff ID
+    const lastStaff = await Staff.findOne().sort({ createdAt: -1 });
+    let staffId = "STF-0001";
+    if (lastStaff && lastStaff.staffId) {
+      const lastNum = parseInt(lastStaff.staffId.split("-")[1]) || 0;
+      staffId = `STF-${String(lastNum + 1).padStart(4, "0")}`;
+    }
+
+    const newStaff = new Staff({
+      staffId,
       name,
-      email,
-      password,
+      email: email.toLowerCase(),
+      password: hashedPassword,
       role: role || "staff",
-      isEmailVerified: true, // Staff accounts are auto-verified
+      position: position || "Housekeeper",
+      status: "Active"
     });
 
     await newStaff.save();
@@ -475,9 +477,11 @@ const registerStaff = async (req, res) => {
       message: "Staff created successfully",
       user: {
         id: newStaff._id,
+        staffId: newStaff.staffId,
         name: newStaff.name,
         email: newStaff.email,
         role: newStaff.role,
+        position: newStaff.position
       },
     });
   } catch (error) {
@@ -784,7 +788,6 @@ const changePassword = async (req, res) => {
 module.exports = {
   register,
   login,
-  staffLogin,
   verifyEmail,
   resendVerificationEmail,
   registerStaff,

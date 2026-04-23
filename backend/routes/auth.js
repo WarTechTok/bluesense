@@ -12,7 +12,6 @@ const passport = require('passport');
 const { 
   register, 
   login,
-  staffLogin,
   registerStaff, 
   getAllCustomers, 
   getAllStaff, 
@@ -95,7 +94,6 @@ router.post('/resend-verification', resendVerificationEmail);
 // ============================================
 router.post("/register", register);
 router.post("/login", login);
-router.post("/staff-login", staffLogin);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 

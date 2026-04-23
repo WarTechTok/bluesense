@@ -4,12 +4,60 @@
  * Provides real-time data for staff members
  */
 
+const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const TaskAssignment = require('../models/TaskAssignment');
 const Staff = require('../models/Staff');
 const Room = require('../models/Room');
 const InspectionRecord = require('../models/InspectionRecord');
 const User = require('../models/User');
+
+/**
+ * Helper: Get staff MongoDB _id from various possible formats in token
+ * @param {Object} user - The user object from req.user
+ * @returns {Object} - Staff document or null
+ */
+const getStaffDocument = async (user) => {
+  console.log('🔍 Getting staff document for user:', { id: user.id, email: user.email, staffId: user.staffId });
+  
+  // Method 1: Try to find by MongoDB _id if it's a valid ObjectId
+  if (user.id && mongoose.Types.ObjectId.isValid(user.id)) {
+    const staff = await Staff.findById(user.id);
+    if (staff) {
+      console.log('✅ Found staff by MongoDB _id:', staff._id);
+      return staff;
+    }
+  }
+  
+  // Method 2: Try to find by custom staffId string (e.g., "STF-001")
+  if (user.staffId) {
+    const staff = await Staff.findOne({ staffId: user.staffId });
+    if (staff) {
+      console.log('✅ Found staff by custom staffId:', staff.staffId);
+      return staff;
+    }
+  }
+  
+  // Method 3: Try to find by email
+  if (user.email) {
+    const staff = await Staff.findOne({ email: { $regex: `^${user.email}$`, $options: 'i' } });
+    if (staff) {
+      console.log('✅ Found staff by email:', staff.email);
+      return staff;
+    }
+  }
+  
+  console.log('❌ No staff document found');
+  return null;
+};
+
+/**
+ * Helper: Get staff MongoDB _id string
+ */
+const getStaffId = async (user) => {
+  const staff = await getStaffDocument(user);
+  return staff ? staff._id : null;
+};
 
 /**
  * GET /api/staff/notifications
@@ -21,14 +69,19 @@ exports.getNotifications = async (req, res) => {
     const userId = req.user.id;
     const { limit = 20, skip = 0, isRead, type } = req.query;
 
-    // Get staff record by email
-    const staff = await Staff.findOne({ email: req.user.email });
+    // Get staff record to ensure we have the correct user ID
+    const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
 
+    // Use the user ID from the token (this should be the MongoDB _id)
+    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
+      ? userId 
+      : staff._id;
+
     // Build query filter
-    const filter = { userId };
+    const filter = { userId: effectiveUserId };
     if (isRead !== undefined) filter.isRead = isRead === 'true';
     if (type) filter.type = type;
 
@@ -40,7 +93,7 @@ exports.getNotifications = async (req, res) => {
 
     // Total count
     const totalCount = await Notification.countDocuments(filter);
-    const unreadCount = await Notification.countDocuments({ userId, isRead: false });
+    const unreadCount = await Notification.countDocuments({ userId: effectiveUserId, isRead: false });
 
     res.json({
       notifications,
@@ -62,8 +115,18 @@ exports.getNotifications = async (req, res) => {
 exports.getUnreadCount = async (req, res) => {
   try {
     const userId = req.user.id;
+    
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
+      ? userId 
+      : staff._id;
+
     const unreadCount = await Notification.countDocuments({ 
-      userId, 
+      userId: effectiveUserId, 
       isRead: false 
     });
 
@@ -83,23 +146,29 @@ exports.markNotificationAsRead = async (req, res) => {
     const { notificationId } = req.params;
     const userId = req.user.id;
 
-    const notification = await Notification.findByIdAndUpdate(
-      notificationId,
-      { 
-        isRead: true, 
-        readAt: new Date() 
-      },
-      { new: true }
-    );
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
+      ? userId 
+      : staff._id;
+
+    const notification = await Notification.findById(notificationId);
 
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
     // Verify ownership
-    if (notification.userId.toString() !== userId) {
+    if (notification.userId.toString() !== effectiveUserId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
+
+    notification.isRead = true;
+    notification.readAt = new Date();
+    await notification.save();
 
     res.json(notification);
   } catch (error) {
@@ -115,9 +184,18 @@ exports.markNotificationAsRead = async (req, res) => {
 exports.markAllNotificationsAsRead = async (req, res) => {
   try {
     const userId = req.user.id;
+    
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
+      ? userId 
+      : staff._id;
 
     await Notification.updateMany(
-      { userId, isRead: false },
+      { userId: effectiveUserId, isRead: false },
       { isRead: true, readAt: new Date() }
     );
 
@@ -136,13 +214,22 @@ exports.deleteNotification = async (req, res) => {
   try {
     const { notificationId } = req.params;
     const userId = req.user.id;
+    
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
+      ? userId 
+      : staff._id;
 
     const notification = await Notification.findById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.userId.toString() !== userId) {
+    if (notification.userId.toString() !== effectiveUserId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -163,17 +250,17 @@ exports.getTasks = async (req, res) => {
   try {
     const { status, limit = 20, skip = 0 } = req.query;
 
-    // Get staff ID from token (most reliable)
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      // Fallback: look up by email
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
+    // Get staff document to get MongoDB _id
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
     }
 
+    // Use the MongoDB _id for querying TaskAssignment
+    const staffMongoId = staff._id;
+
     // Build filter
-    const filter = { staffId: staffId };
+    const filter = { staffId: staffMongoId };
     if (status) filter.status = status;
 
     // Fetch tasks with room details
@@ -185,9 +272,9 @@ exports.getTasks = async (req, res) => {
       .skip(parseInt(skip));
 
     // Count by status
-    const pendingCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'Pending' });
-    const inProgressCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'In Progress' });
-    const completedCount = await TaskAssignment.countDocuments({ staffId: staffId, status: 'Completed' });
+    const pendingCount = await TaskAssignment.countDocuments({ staffId: staffMongoId, status: 'Pending' });
+    const inProgressCount = await TaskAssignment.countDocuments({ staffId: staffMongoId, status: 'In Progress' });
+    const completedCount = await TaskAssignment.countDocuments({ staffId: staffMongoId, status: 'Completed' });
 
     res.json({
       tasks,
@@ -209,13 +296,13 @@ exports.getTaskDetails = async (req, res) => {
   try {
     const { taskId } = req.params;
 
-    // Get staff ID from token
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
     }
+
+    const staffMongoId = staff._id;
 
     const task = await TaskAssignment.findById(taskId)
       .populate('roomId')
@@ -225,8 +312,8 @@ exports.getTaskDetails = async (req, res) => {
       return res.status(404).json({ error: 'Task not found' });
     }
 
-    // Verify ownership
-    if (task.staffId.toString() !== staffId.toString()) {
+    // Verify ownership - staffId should be MongoDB ObjectId
+    if (task.staffId.toString() !== staffMongoId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -247,13 +334,13 @@ exports.updateTaskStatus = async (req, res) => {
     const { taskId } = req.params;
     const { status, notes, actualHours } = req.body;
 
-    // Get staff ID from token
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
     }
+
+    const staffMongoId = staff._id;
 
     const task = await TaskAssignment.findById(taskId);
     if (!task) {
@@ -261,7 +348,7 @@ exports.updateTaskStatus = async (req, res) => {
     }
 
     // Verify ownership
-    if (task.staffId.toString() !== staffId.toString()) {
+    if (task.staffId.toString() !== staffMongoId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -283,16 +370,15 @@ exports.updateTaskStatus = async (req, res) => {
 
     // Create notification for admin when task is completed
     if (status === 'Completed') {
-      // Get staff info for notification
-      const staffRecord = await Staff.findById(staffId);
+      // Get admin user
       const admin = await User.findOne({ role: 'admin' });
-      if (admin && staffRecord) {
+      if (admin && staff) {
         await Notification.create({
           userId: admin._id,
-          staffId: staffId,
+          staffId: staffMongoId,
           type: 'Task Update',
           title: 'Task Completed',
-          message: `${staffRecord.name} has completed task: "${task.title}"`,
+          message: `${staff.name} has completed task: "${task.title}"`,
           relatedId: task._id,
           relatedType: 'Task',
           priority: 'High',
@@ -315,35 +401,9 @@ exports.updateTaskStatus = async (req, res) => {
 exports.getDashboardStats = async (req, res) => {
   try {
     console.log('\n=== 📊 getDashboardStats called ===');
-    console.log('User info:', {
-      userId: req.user.id,
-      email: req.user.email,
-      role: req.user.role,
-      staffId: req.user.staffId
-    });
-
-    // Use staffId from token (most reliable), fallback to email lookup
-    let staff = null;
     
-    if (req.user.staffId) {
-      console.log('✅ Method 1: Looking up staff by staffId:', req.user.staffId);
-      staff = await Staff.findById(req.user.staffId);
-      if (staff) {
-        console.log('✅ Found staff by ID:', { id: staff._id, name: staff.name, email: staff.email });
-      } else {
-        console.warn('❌ Staff not found by ID:', req.user.staffId);
-      }
-    } else {
-      console.log('⚠️  Method 2: No staffId in token, looking up by email:', req.user.email);
-      staff = await Staff.findOne({ 
-        email: { $regex: `^${req.user.email}$`, $options: 'i' } 
-      });
-      if (staff) {
-        console.log('✅ Found staff by email:', { id: staff._id, name: staff.name });
-      } else {
-        console.warn('❌ Staff not found by email:', req.user.email);
-      }
-    }
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
     
     if (!staff) {
       console.error('❌ Staff record not found for user:', req.user.email);
@@ -362,28 +422,36 @@ exports.getDashboardStats = async (req, res) => {
       });
     }
 
-    console.log('✅ Staff found, fetching stats...');
+    console.log('✅ Staff found:', { id: staff._id, name: staff.name, staffId: staff.staffId });
+    
+    const staffMongoId = staff._id;
+    const userId = req.user.id && mongoose.Types.ObjectId.isValid(req.user.id) 
+      ? req.user.id 
+      : staffMongoId;
 
+    // Get task counts
     const pendingTasks = await TaskAssignment.countDocuments({ 
-      staffId: staff._id, 
+      staffId: staffMongoId, 
       status: 'Pending' 
     });
     const inProgressTasks = await TaskAssignment.countDocuments({ 
-      staffId: staff._id, 
+      staffId: staffMongoId, 
       status: 'In Progress' 
     });
     const completedTasks = await TaskAssignment.countDocuments({ 
-      staffId: staff._id, 
+      staffId: staffMongoId, 
       status: 'Completed' 
     });
+    
+    // Get notification count
     const unreadNotifications = await Notification.countDocuments({ 
-      userId: req.user.id, 
+      userId: userId, 
       isRead: false 
     });
 
     // Get assigned rooms for this staff member
     const assignedRooms = await Room.find({
-      'assignedStaff.staffId': staff._id
+      'assignedStaff.staffId': staffMongoId
     }).select('name capacity status');
 
     console.log('✅ Stats calculated:', { 
@@ -414,21 +482,21 @@ exports.getDashboardStats = async (req, res) => {
 
 /**
  * GET /api/staff/dashboard/assigned-rooms
- * Get all rooms assigned to the staff member (with status field for filtering)
+ * Get all rooms assigned to the staff member
  */
 exports.getAssignedRooms = async (req, res) => {
   try {
-    // Get staff ID from token
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
     }
+
+    const staffMongoId = staff._id;
 
     // Get all rooms assigned to this staff
     const rooms = await Room.find({
-      'assignedStaff.staffId': staffId
+      'assignedStaff.staffId': staffMongoId
     }).select('_id name capacity price status description');
 
     res.json({
@@ -450,17 +518,17 @@ exports.getMyInspections = async (req, res) => {
   try {
     const { limit = 50, skip = 0 } = req.query;
 
-    // Get staff ID from token
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
     }
+
+    const staffMongoId = staff._id;
 
     // Get all inspections created by this staff
     const inspections = await InspectionRecord.find({
-      inspectedBy: staffId
+      inspectedBy: staffMongoId
     })
       .populate('room', 'name capacity status')
       .sort({ inspectionDate: -1 })
@@ -468,7 +536,7 @@ exports.getMyInspections = async (req, res) => {
       .skip(parseInt(skip));
 
     const totalCount = await InspectionRecord.countDocuments({
-      inspectedBy: staffId
+      inspectedBy: staffMongoId
     });
 
     res.json({
@@ -506,19 +574,13 @@ exports.createInspectionRecord = async (req, res) => {
       return res.status(400).json({ error: 'Room ID is required' });
     }
 
-    // Get staff ID from token
-    let staffId = req.user.staffId;
-    if (!staffId) {
-      const staff = await Staff.findOne({ email: req.user.email });
-      if (!staff) return res.status(404).json({ error: 'Staff record not found' });
-      staffId = staff._id;
-    }
-
-    // Get staff record for creating inspection
-    const staff = await Staff.findById(staffId);
+    // Get staff document
+    const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
+
+    const staffMongoId = staff._id;
 
     // Verify room exists and staff is assigned
     const room = await Room.findById(roomId);
@@ -528,7 +590,7 @@ exports.createInspectionRecord = async (req, res) => {
 
     // Check if staff is assigned to this room
     const isAssigned = room.assignedStaff.some(
-      (assignment) => assignment.staffId.toString() === staffId.toString()
+      (assignment) => assignment.staffId.toString() === staffMongoId.toString()
     );
     if (!isAssigned) {
       return res.status(403).json({ error: 'You are not assigned to this room' });
@@ -537,7 +599,7 @@ exports.createInspectionRecord = async (req, res) => {
     // Create inspection record
     const inspection = new InspectionRecord({
       room: roomId,
-      inspectedBy: staff._id,
+      inspectedBy: staffMongoId,
       cleanliness: condition,
       furnitureCondition: condition,
       damageFound: damageFound === 'Yes',
@@ -552,10 +614,11 @@ exports.createInspectionRecord = async (req, res) => {
     // If damages found, create notification for admin
     if (damageFound === 'Yes') {
       // Create notification for all admins
-      const admins = await Staff.find({ role: 'admin' });
+      const admins = await User.find({ role: 'admin' });
       for (const admin of admins) {
         await Notification.create({
-          staffId: admin._id,
+          userId: admin._id,
+          staffId: staffMongoId,
           type: 'inspection_damage',
           title: '🚨 Damage Found in Room',
           message: `Staff member ${staff.name} found damages in ${room.name}. ${damageDescription}`,

@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import * as staffApi from '../../services/staffDashboardApi';
-import NotificationBell from '../../components/staff/NotificationBell';
-import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
-import './Tasks.css';
+import NotificationBell from '../staff/NotificationBell';
+import LogoutConfirmModal from '../modals/LogoutConfirmModal';
+import '../admin/AdminLayout.css';
 
 /**
- * Staff Tasks Page
- * Displays all assigned tasks with filtering and status updates
- * Staff can:
- * - View assigned tasks
- * - Filter by status (Pending, In Progress, Completed)
- * - Update task status
- * - View task details
+ * Receptionist Layout - Similar to Admin Layout but with limited menu
+ * Receptionists can access: Dashboard, Bookings, Rooms, Inventory, Sales, Reports
  */
-const Tasks = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+const ReceptionistLayout = ({ children }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -27,15 +19,8 @@ const Tasks = () => {
   const [userData, setUserData] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', phone: '', address: '' });
   const [message, setMessage] = useState('');
-  
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('');
-  const [selectedTask, setSelectedTask] = useState(null);
-
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Load user data
   useEffect(() => {
@@ -48,7 +33,7 @@ const Tasks = () => {
     });
   }, []);
 
-  // Handle window resize
+  // Handle window resize to track mobile state
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth <= 768;
@@ -62,12 +47,19 @@ const Tasks = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar on mobile
+  // Close sidebar when navigation changes on mobile
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
     }
-  }, [isMobile]);
+  }, [location.pathname, isMobile]);
+
+  useEffect(() => {
+    document.body.classList.add('no-navbar');
+    return () => {
+      document.body.classList.remove('no-navbar');
+    };
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -80,22 +72,25 @@ const Tasks = () => {
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
+  // Receptionist menu - limited to specific pages
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/staff/dashboard' },
-    { id: 'tasks', label: 'My Tasks', icon: 'fas fa-tasks', path: '/staff/tasks' },
-    { id: 'rooms', label: 'Assigned Rooms', icon: 'fas fa-door-open', path: '/staff/rooms' },
-    { id: 'inspections', label: 'Room Inspections', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/receptionist/dashboard' },
+    { id: 'bookings', label: 'Bookings', icon: 'fas fa-calendar-alt', path: '/receptionist/bookings' },
+    { id: 'rooms', label: 'Rooms', icon: 'fas fa-bed', path: '/receptionist/rooms' },
+    { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/receptionist/inventory' },
+    { id: 'sales', label: 'Sales', icon: 'fas fa-chart-simple', path: '/receptionist/sales' },
+    { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/receptionist/reports' },
   ];
-
-  const isActive = (path) => location.pathname === path;
-
-  const getInitial = userData?.name?.charAt(0).toUpperCase() || 'S';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
   };
+
+  const isActive = (path) => location.pathname === path;
+
+  const getInitial = userData?.name?.charAt(0).toUpperCase() || 'R';
 
   const handleUpdateProfile = async () => {
     try {
@@ -105,7 +100,7 @@ const Tasks = () => {
         { name: editForm.name, phone: editForm.phone, address: editForm.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       if (response.data.user) {
         const updatedUser = { ...userData, ...response.data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -120,74 +115,11 @@ const Tasks = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async (status = '') => {
-    try {
-      setLoading(true);
-      const data = await staffApi.getTasks(status ? { status } : {});
-      setTasks(data.tasks || []);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFilterChange = (status) => {
-    setFilter(status);
-    fetchTasks(status);
-  };
-
-  const handleStatusChange = async (taskId, newStatus) => {
-    try {
-      await staffApi.updateTaskStatus(taskId, { status: newStatus });
-      alert('✅ Task status updated successfully!');
-      fetchTasks(filter);
-      setSelectedTask(null);
-    } catch (error) {
-      console.error('Error updating task:', error);
-      alert('❌ Error updating task');
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Pending':
-        return '#ffc107';
-      case 'In Progress':
-        return '#17a2b8';
-      case 'Completed':
-        return '#28a745';
-      case 'Cancelled':
-        return '#6c757d';
-      default:
-        return '#6c757d';
-    }
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'Urgent':
-        return '#dc3545';
-      case 'High':
-        return '#ff6b6b';
-      case 'Medium':
-        return '#ffc107';
-      case 'Low':
-        return '#17a2b8';
-      default:
-        return '#6c757d';
-    }
-  };
-
   return (
     <div className="admin-layout">
       {/* Mobile Overlay */}
       {isMobile && (
-        <div 
+        <div
           className={`mobile-overlay ${sidebarOpen ? 'open' : ''}`}
           onClick={() => setSidebarOpen(false)}
         ></div>
@@ -197,12 +129,12 @@ const Tasks = () => {
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <div className="logo-area">
-            <img 
-              src="/images/logo/Logo-NoBackground.png" 
-              alt="Catherine's Oasis" 
+            <img
+              src="/images/logo/Logo-NoBackground.png"
+              alt="Catherine's Oasis"
               className="sidebar-logo"
             />
-            {sidebarOpen && <span className="logo-text">Staff</span>}
+            {sidebarOpen && <span className="logo-text">Receptionist</span>}
           </div>
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
             {isMobile ? (
@@ -236,29 +168,29 @@ const Tasks = () => {
       <main className="admin-main">
         <div className="admin-header">
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             className="mobile-menu-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle menu"
           >
             <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
           </button>
-          
+
           <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'My Tasks'}</h1>
-            <p>Welcome back, {userData?.name || 'Staff'}</p>
+            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Receptionist Dashboard'}</h1>
+            <p>Welcome back, {userData?.name || 'Receptionist'}</p>
           </div>
-          
+
           {/* Notification Bell */}
           <NotificationBell refreshInterval={10000} />
-          
+
           {/* Profile Dropdown */}
           <div className="admin-profile">
-            <button 
+            <button
               className="profile-btn"
               onClick={() => setShowDropdown(!showDropdown)}
             >
-              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Staff'}</span>
+              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Receptionist'}</span>
               <div className="admin-avatar">
                 {userData?.avatar ? (
                   <img src={userData.avatar} alt="avatar" />
@@ -271,7 +203,7 @@ const Tasks = () => {
 
             {showDropdown && (
               <div className="admin-dropdown">
-                <button 
+                <button
                   className="dropdown-item"
                   onClick={() => {
                     setShowDropdown(false);
@@ -281,7 +213,7 @@ const Tasks = () => {
                   <i className="fas fa-user"></i>
                   View Profile
                 </button>
-                <button 
+                <button
                   className="dropdown-item logout"
                   onClick={() => {
                     setShowDropdown(false);
@@ -295,179 +227,8 @@ const Tasks = () => {
             )}
           </div>
         </div>
-        
-        <div className="admin-content">
-      <div className="page-header">
-        <h1>My Tasks</h1>
-        <p>View and manage your assigned cleaning tasks</p>
-      </div>
 
-      {/* Filter Section */}
-      <div className="filter-section">
-        <select
-          value={filter}
-          onChange={(e) => handleFilterChange(e.target.value)}
-          className="filter-select"
-        >
-          <option value="">All Tasks</option>
-          <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
-        </select>
-      </div>
-
-      {/* Tasks Grid */}
-      <div className="tasks-container">
-        {loading ? (
-          <div className="loading">Loading tasks...</div>
-        ) : tasks.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-inbox"></i>
-            <h2>No tasks assigned</h2>
-            <p>Check back later for new cleaning assignments</p>
-          </div>
-        ) : (
-          tasks.map((task) => (
-            <div key={task._id} className="task-card">
-              <div className="task-card-header">
-                <div className="task-title-badge">
-                  <h3>{task.title}</h3>
-                  <div className="badges">
-                    <span
-                      className="badge status-badge"
-                      style={{ backgroundColor: getStatusColor(task.status) }}
-                    >
-                      {task.status}
-                    </span>
-                    <span
-                      className="badge priority-badge"
-                      style={{ backgroundColor: getPriorityColor(task.priority) }}
-                    >
-                      {task.priority}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="task-details">
-                <div className="detail-item">
-                  <i className="fas fa-door-open"></i>
-                  <div>
-                    <label>Room:</label>
-                    <span>{task.roomId?.name || 'Unknown Room'}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-calendar"></i>
-                  <div>
-                    <label>Due Date:</label>
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-tag"></i>
-                  <div>
-                    <label>Task Type:</label>
-                    <span>{task.taskType}</span>
-                  </div>
-                </div>
-
-                {task.description && (
-                  <div className="detail-item full-width">
-                    <i className="fas fa-file-alt"></i>
-                    <div>
-                      <label>Description:</label>
-                      <span>{task.description}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="task-actions">
-                {task.status === 'Pending' && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleStatusChange(task._id, 'In Progress')}
-                  >
-                    <i className="fas fa-play"></i> Start Work
-                  </button>
-                )}
-                {task.status === 'In Progress' && (
-                  <button
-                    className="btn btn-success"
-                    onClick={() => handleStatusChange(task._id, 'Completed')}
-                  >
-                    <i className="fas fa-check"></i> Mark Complete
-                  </button>
-                )}
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedTask(task)}
-                >
-                  <i className="fas fa-eye"></i> View Details
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Task Details Modal */}
-      {selectedTask && (
-        <div className="modal-overlay" onClick={() => setSelectedTask(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedTask(null)}
-            >
-              ✕
-            </button>
-            <h2>{selectedTask.title}</h2>
-            <div className="modal-details">
-              <p>
-                <strong>Room:</strong> {selectedTask.roomId?.name}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedTask.taskType}
-              </p>
-              <p>
-                <strong>Status:</strong>{' '}
-                <span
-                  style={{
-                    color: getStatusColor(selectedTask.status),
-                    fontWeight: '600',
-                  }}
-                >
-                  {selectedTask.status}
-                </span>
-              </p>
-              <p>
-                <strong>Priority:</strong>{' '}
-                <span
-                  style={{
-                    color: getPriorityColor(selectedTask.priority),
-                    fontWeight: '600',
-                  }}
-                >
-                  {selectedTask.priority}
-                </span>
-              </p>
-              <p>
-                <strong>Due Date:</strong>{' '}
-                {new Date(selectedTask.dueDate).toLocaleDateString()}
-              </p>
-              {selectedTask.description && (
-                <p>
-                  <strong>Description:</strong> {selectedTask.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-        </div>
+        <div className="admin-content">{children}</div>
       </main>
 
       {/* View Profile Modal */}
@@ -508,8 +269,8 @@ const Tasks = () => {
                   <p>{userData?.role}</p>
                 </div>
               </div>
-              
-              <button 
+
+              <button
                 className="edit-profile-inside-btn"
                 onClick={() => {
                   setShowProfileModal(false);
@@ -581,11 +342,11 @@ const Tasks = () => {
       {/* Logout Confirmation Modal */}
       <LogoutConfirmModal
         isOpen={showLogoutConfirm}
-        onClose={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
       />
     </div>
   );
 };
 
-export default Tasks;
+export default ReceptionistLayout;

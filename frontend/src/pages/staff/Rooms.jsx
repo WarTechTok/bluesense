@@ -1,15 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import * as staffApi from '../services/staffDashboardApi';
-import NotificationBell from '../components/staff/NotificationBell';
-import LogoutConfirmModal from '../components/modals/LogoutConfirmModal';
-import './StaffDashboard.css';
+import * as staffApi from '../../services/staffDashboardApi';
+import NotificationBell from '../../components/staff/NotificationBell';
+import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
+import './Rooms.css';
 
 /**
- * Staff Dashboard Component - Professional Layout (Admin Style)
+ * Staff Assigned Rooms Page
+ * Displays all rooms assigned to the staff member
+ * Staff can:
+ * - View assigned rooms
+ * - See room details
+ * - View room status and cleanliness rating
  */
-const StaffDashboard = () => {
+const Rooms = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -22,38 +27,24 @@ const StaffDashboard = () => {
   const [editForm, setEditForm] = useState({ name: '', phone: '', address: '' });
   const [message, setMessage] = useState('');
   
-  const [stats, setStats] = useState({
-    staffName: '',
-    position: '',
-    totalTasks: 0,
-    pendingTasks: 0,
-    inProgressTasks: 0,
-    completedTasks: 0,
-    cancelledTasks: 0,
-    assignedRoomsCount: 0,
-    unreadNotifications: 0
-  });
-  const [tasks, setTasks] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
-  // Load user data from localStorage
+  useEffect(() => {
+    fetchRooms();
+  }, []);
+
+  // Load user data
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    
-    // Check if user is a receptionist - redirect to receptionist dashboard
-    if (user.position === 'Receptionist') {
-      navigate('/receptionist/dashboard', { replace: true });
-      return;
-    }
-    
     setUserData(user);
     setEditForm({
       name: user.name || '',
       phone: user.phone || '',
       address: user.address || ''
     });
-  }, [navigate]);
+  }, []);
 
   // Handle window resize
   useEffect(() => {
@@ -127,69 +118,38 @@ const StaffDashboard = () => {
     }
   };
 
-  const loadDashboard = useCallback(async () => {
+  const fetchRooms = async () => {
     try {
       setLoading(true);
-      setError(null);
-
-      const statsRes = await staffApi.getDashboardStats();
-      setStats(statsRes);
-
-      const tasksRes = await staffApi.getTasks();
-      setTasks(tasksRes.tasks || []);
-    } catch (err) {
-      console.error('❌ Dashboard error:', err);
-      setError(err.response?.data?.error || err.message || 'Failed to load dashboard');
+      const data = await staffApi.getAssignedRooms?.();
+      setRooms(data?.rooms || []);
+    } catch (error) {
+      console.error('Error fetching rooms:', error);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
-
-  const getStatusColor = (status) => {
-    const colors = {
-      'Pending': '#f59e0b',
-      'In Progress': '#3b82f6',
-      'Completed': '#10b981',
-      'Cancelled': '#ef4444'
-    };
-    return colors[status] || '#6b7583';
   };
 
-  const getPriorityColor = (priority) => {
-    const colors = {
-      'Urgent': '#ef4444',
-      'High': '#f97316',
-      'Medium': '#f59e0b',
-      'Low': '#10b981'
-    };
-    return colors[priority] || '#6b7583';
+  const getRoomStatusColor = (status) => {
+    switch (status) {
+      case 'Available':
+        return '#10b981';
+      case 'Occupied':
+        return '#3b82f6';
+      case 'Maintenance':
+        return '#f59e0b';
+      case 'Cleaning':
+        return '#8b5cf6';
+      default:
+        return '#6b7583';
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="dashboard-loading">
-        <div className="spinner"></div>
-        <p>Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="dashboard-loading">
-        <div className="error-container">
-          <i className="fas fa-exclamation-circle"></i>
-          <h3>Error Loading Dashboard</h3>
-          <p>{error}</p>
-          <button onClick={loadDashboard} className="retry-btn">Retry</button>
-        </div>
-      </div>
-    );
-  }
+  const getRatingColor = (rating) => {
+    if (rating >= 4) return '#10b981';
+    if (rating >= 3) return '#f59e0b';
+    return '#ef4444';
+  };
 
   return (
     <div className="admin-layout">
@@ -253,8 +213,8 @@ const StaffDashboard = () => {
           </button>
           
           <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Staff Dashboard'}</h1>
-            <p>Welcome back, {stats.staffName || userData?.name || 'Staff'}</p>
+            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Assigned Rooms'}</h1>
+            <p>Welcome back, {userData?.name || 'Staff'}</p>
           </div>
           
           {/* Notification Bell */}
@@ -305,232 +265,151 @@ const StaffDashboard = () => {
         </div>
         
         <div className="admin-content">
-
-      {/* Task Stats - Professional Grid */}
-      <div className="stats-section">
-        <h2 className="section-title">Task Overview</h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
-              <i className="fas fa-tasks"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Total Tasks</h3>
-              <div className="stat-value">{stats.totalTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
-              <i className="fas fa-clock"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Pending</h3>
-              <div className="stat-value">{stats.pendingTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#dbeafe', color: '#3b82f6' }}>
-              <i className="fas fa-spinner"></i>
-            </div>
-            <div className="stat-info">
-              <h3>In Progress</h3>
-              <div className="stat-value">{stats.inProgressTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#d1fae5', color: '#10b981' }}>
-              <i className="fas fa-check-circle"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Completed</h3>
-              <div className="stat-value">{stats.completedTasks || 0}</div>
-            </div>
-          </div>
-        </div>
+      <div className="page-header">
+        <h1>My Assigned Rooms</h1>
+        <p>View all rooms assigned to you for cleaning and maintenance</p>
       </div>
 
-      {/* Task Summary Table */}
-      <div className="stats-section">
-        <h2 className="section-title">Task Summary</h2>
-        <div className="financial-table">
-          <div className="financial-row header">
-            <div className="financial-cell">Metric</div>
-            <div className="financial-cell text-right">Count</div>
-            <div className="financial-cell text-right">Percentage</div>
-            <div className="financial-cell text-right">Status</div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">Pending Tasks</div>
-            <div className="financial-cell text-right">{stats.pendingTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.pendingTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#f59e0b' }}>Pending</span>
-            </div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">In Progress</div>
-            <div className="financial-cell text-right">{stats.inProgressTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.inProgressTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#3b82f6' }}>In Progress</span>
-            </div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">Completed</div>
-            <div className="financial-cell text-right">{stats.completedTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Completed</span>
-            </div>
-          </div>
-
-          <div className="financial-row">
-            <div className="financial-cell label">Cancelled</div>
-            <div className="financial-cell text-right">{stats.cancelledTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.cancelledTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#ef4444' }}>Cancelled</span>
-            </div>
-          </div>
-
-          <div className="financial-row highlight">
-            <div className="financial-cell label">Completion Rate</div>
-            <div className="financial-cell text-right amount-profit">
-              {stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%
-            </div>
-            <div className="financial-cell text-right amount-profit">
-              {stats.totalTasks > 0 ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100) : 0}% Active
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Tracking</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Room Assignments & Performance Info Cards */}
-      <div className="stats-section">
-        <h2 className="section-title">Performance Metrics</h2>
-        <div className="quick-stats">
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
-            <ul>
-              <li>
-                <span>Assigned Rooms:</span>
-                <strong>{stats.assignedRoomsCount || 0}</strong>
-              </li>
-            </ul>
-          </div>
-
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-chart-line"></i> Performance</h4>
-            <ul>
-              <li>
-                <span>Completion Rate:</span>
-                <strong>
-                  {stats.totalTasks > 0 
-                    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
-                    : 0}%
-                </strong>
-              </li>
-              <li>
-                <span>Productivity:</span>
-                <strong>
-                  {stats.totalTasks > 0 
-                    ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100)
-                    : 0}%
-                </strong>
-              </li>
-            </ul>
-          </div>
-
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-bell"></i> Notifications</h4>
-            <ul>
-              <li>
-                <span>Unread:</span>
-                <strong>{stats.unreadNotifications || 0}</strong>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks List */}
-      <div className="stats-section">
-        <h2 className="section-title">My Tasks</h2>
-        {tasks.length === 0 ? (
+      {/* Rooms Grid */}
+      <div className="rooms-container">
+        {loading ? (
+          <div className="loading">Loading assigned rooms...</div>
+        ) : rooms.length === 0 ? (
           <div className="empty-state">
-            <i className="fas fa-inbox"></i>
-            <p>No tasks assigned</p>
+            <i className="fas fa-door-open"></i>
+            <h2>No rooms assigned</h2>
+            <p>You don't have any rooms assigned yet</p>
           </div>
         ) : (
-          <div className="tasks-list">
-            {tasks.map((task) => (
-              <div key={task._id} className="task-item">
-                <div className="task-header">
-                  <div className="task-title-section">
-                    <h4>{task.title}</h4>
-                    <div className="task-badges">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
-                      >
-                        {task.status}
-                      </span>
-                      <span 
-                        className="priority-badge"
-                        style={{ backgroundColor: getPriorityColor(task.priority) }}
-                      >
-                        {task.priority}
-                      </span>
-                    </div>
+          rooms.map((room) => (
+            <div key={room._id} className="room-card">
+              <div className="room-card-header">
+                <div className="room-title-section">
+                  <h3>{room.name}</h3>
+                  <span 
+                    className="room-status-badge"
+                    style={{ backgroundColor: getRoomStatusColor(room.status) }}
+                  >
+                    {room.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="room-details">
+                <div className="detail-item">
+                  <i className="fas fa-tag"></i>
+                  <div>
+                    <label>Room Number:</label>
+                    <span>{room.roomNumber}</span>
                   </div>
                 </div>
-                <div className="task-details">
-                  {task.roomId && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-door-open"></i>
-                      <span>{task.roomId.name}</span>
-                    </div>
-                  )}
-                  {task.taskType && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-tag"></i>
-                      <span>{task.taskType}</span>
-                    </div>
-                  )}
-                  {task.dueDate && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-calendar"></i>
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-                    </div>
-                  )}
+
+                <div className="detail-item">
+                  <i className="fas fa-bed"></i>
+                  <div>
+                    <label>Type:</label>
+                    <span>{room.roomType || 'Standard'}</span>
+                  </div>
                 </div>
-                {task.description && (
-                  <div className="task-description">
-                    <p>{task.description}</p>
+
+                <div className="detail-item">
+                  <i className="fas fa-star"></i>
+                  <div>
+                    <label>Cleanliness Rating:</label>
+                    <span style={{ color: getRatingColor(room.rating) }}>
+                      {room.rating}/5 <i className="fas fa-star"></i>
+                    </span>
+                  </div>
+                </div>
+
+                {room.floor && (
+                  <div className="detail-item">
+                    <i className="fas fa-layer-group"></i>
+                    <div>
+                      <label>Floor:</label>
+                      <span>{room.floor}</span>
+                    </div>
+                  </div>
+                )}
+
+                {room.lastCleaned && (
+                  <div className="detail-item">
+                    <i className="fas fa-calendar"></i>
+                    <div>
+                      <label>Last Cleaned:</label>
+                      <span>{new Date(room.lastCleaned).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                {room.notes && (
+                  <div className="detail-item full-width">
+                    <i className="fas fa-sticky-note"></i>
+                    <div>
+                      <label>Notes:</label>
+                      <span>{room.notes}</span>
+                    </div>
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+
+              <div className="room-actions">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setSelectedRoom(room)}
+                >
+                  <i className="fas fa-eye"></i> View Details
+                </button>
+              </div>
+            </div>
+          ))
         )}
+      </div>
+
+      {/* Room Details Modal */}
+      {selectedRoom && (
+        <div className="modal-overlay" onClick={() => setSelectedRoom(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal-close"
+              onClick={() => setSelectedRoom(null)}
+            >
+              ✕
+            </button>
+            <h2>{selectedRoom.name} ({selectedRoom.roomNumber})</h2>
+            <div className="modal-details">
+              <p>
+                <strong>Status:</strong>{' '}
+                <span style={{ color: getRoomStatusColor(selectedRoom.status) }}>
+                  {selectedRoom.status}
+                </span>
+              </p>
+              <p>
+                <strong>Type:</strong> {selectedRoom.roomType || 'Standard'}
+              </p>
+              <p>
+                <strong>Floor:</strong> {selectedRoom.floor || 'N/A'}
+              </p>
+              <p>
+                <strong>Cleanliness Rating:</strong>{' '}
+                <span style={{ color: getRatingColor(selectedRoom.rating) }}>
+                  {selectedRoom.rating}/5 <i className="fas fa-star"></i>
+                </span>
+              </p>
+              {selectedRoom.lastCleaned && (
+                <p>
+                  <strong>Last Cleaned:</strong> {new Date(selectedRoom.lastCleaned).toLocaleDateString()}
+                </p>
+              )}
+              {selectedRoom.notes && (
+                <p>
+                  <strong>Notes:</strong> {selectedRoom.notes}
+                </p>
+              )}
+            </div>
+          </div>
         </div>
+      )}
         </div>
       </main>
 
@@ -652,4 +531,4 @@ const StaffDashboard = () => {
   );
 };
 
-export default StaffDashboard;
+export default Rooms;

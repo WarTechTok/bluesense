@@ -1,4 +1,5 @@
 const Staff = require('../models/Staff');
+const User = require('../models/User');
 const bcrypt = require('bcrypt');
 
 /**
@@ -124,8 +125,31 @@ exports.createStaffAccount = async (req, res) => {
       profilePicture: req.file ? `/uploads/staff-avatars/${req.file.filename}` : null
     });
 
-        await staff.save();
+    await staff.save();
     console.log('✅ Staff created successfully:', staff.staffId);
+
+    // ============================================
+    // ALSO CREATE USER RECORD FOR AUTHENTICATION
+    // ============================================
+    // Check if User already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    let user;
+    if (!existingUser) {
+      user = new User({
+        name: name.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+        role: 'staff', // Staff login uses 'staff' role
+        phone: address || null,
+        address: address || null,
+        isEmailVerified: true, // Admin-created accounts are auto-verified
+      });
+      await user.save();
+      console.log('✅ User created successfully for staff:', email);
+    } else {
+      console.log('⚠️ User already exists for:', email);
+      user = existingUser;
+    }
     
     // Don't return password in response
     res.status(201).json({ 
@@ -138,7 +162,8 @@ exports.createStaffAccount = async (req, res) => {
       address: staff.address, 
       status: staff.status, 
       profilePicture: staff.profilePicture, 
-      permissions: staff.permissions 
+      permissions: staff.permissions,
+      message: '✅ Staff account created successfully. Account is ready to use.' 
     });
   } catch (error) {
     console.error('❌ Error creating staff:', error.message);
@@ -216,6 +241,25 @@ exports.updateStaff = async (req, res) => {
 
     const staff = await Staff.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-password');
     if (!staff) return res.status(404).json({ error: 'Staff not found' });
+    
+    // ============================================
+    // SYNC CHANGES TO USER MODEL
+    // ============================================
+    const userUpdateData = {};
+    if (name) userUpdateData.name = name.trim();
+    if (email) userUpdateData.email = email.toLowerCase().trim();
+    if (address) userUpdateData.address = address;
+    
+    // Update corresponding User record
+    const updatedUser = await User.findOneAndUpdate(
+      { email: staff.email }, // Find by old email
+      userUpdateData,
+      { new: true }
+    );
+    if (updatedUser) {
+      console.log('✅ User record also updated:', staff.email);
+    }
+    
     res.json(staff);
   } catch (error) {
     console.error('Staff update error:', error);

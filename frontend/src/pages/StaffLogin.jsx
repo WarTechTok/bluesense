@@ -1,19 +1,18 @@
-// frontend/src/pages/Login.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { login } from "../services/api";
-import GoogleLoginButton from "../components/auth/GoogleLoginButton";
 import "./Login.css";
 
-function Login() {
+/**
+ * Staff Login Page - For Receptionists, Housekeepers, and other staff members
+ */
+function StaffLogin() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
-  const [attemptsLeft, setAttemptsLeft] = useState(null);
 
   // Add no-navbar class when on login page
   useEffect(() => {
@@ -52,49 +51,40 @@ function Login() {
 
     try {
       const data = await login(form.email, form.password);
+      
+      console.log("🔍 Login Response:", data);
 
-      if (data.token) {
+      if (data.token && data.user) {
+        console.log("✅ Login successful! Staff data:", data.user);
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        const userRole = data.user.role;
-        const userPosition = data.user.position;
-
-        const urlParams = new URLSearchParams(location.search);
-        const redirectUrl = urlParams.get('redirect');
-
-        if (redirectUrl) {
-          navigate(redirectUrl);
-        } 
-        else if (userRole === "admin") {
-          navigate("/admin/dashboard");
-        } 
-        else if (userRole === "staff") {
-          // Route staff based on their position
-          if (userPosition === "Receptionist") {
-            navigate("/receptionist/dashboard");
-          } else {
-            navigate("/staff/dashboard");
-          }
-        } 
-        else {
-          // Customer
-          navigate("/");
+        // Route based on role/position
+        const role = data.user.role;
+        const position = data.user.position;
+        
+        console.log("📍 Routing - Role:", role, "Position:", position);
+        
+        if (position === "Receptionist") {
+          console.log("→ Redirecting to receptionist/dashboard");
+          navigate("/receptionist/dashboard");
+        } else if (position === "Housekeeper" || position === "Maintenance" || position === "Chef") {
+          console.log("→ Redirecting to staff/dashboard");
+          navigate("/staff/dashboard");
+        } else if (role === "staff") {
+          console.log("→ Redirecting to staff/dashboard (role-based)");
+          navigate("/staff/dashboard");
+        } else {
+          console.log("→ Redirecting to staff/dashboard (default)");
+          navigate("/staff/dashboard");
         }
       } else {
+        console.log("❌ Login failed - No token or user data:", data);
         setError(data.message || "Login failed");
       }
     } catch (err) {
-      if (err.response?.status === 429 && err.response.data?.waitTime) {
-        setCooldown(err.response.data.waitTime);
-        setError(err.response.data.message);
-        setAttemptsLeft(null);
-      } else if (err.response?.data?.attemptsLeft !== undefined) {
-        setAttemptsLeft(err.response.data.attemptsLeft);
-        setError(err.response.data.message);
-      } else {
-        setError(err.response?.data?.message || "Login failed");
-      }
+      console.error("❌ Login error:", err);
+      setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -131,10 +121,9 @@ function Login() {
                 className="promo-img stacked-img img2"
               />
             </div>
-            <h2 className="promo-title">Experience Paradise</h2>
+            <h2 className="promo-title">Staff Portal</h2>
             <p className="promo-text">
-              Two stunning oases, crystal-clear pools, and cozy cottages waiting
-              for you.
+              Access your staff dashboard to manage tasks, bookings, and operations at Catherine's Oasis.
             </p>
           </div>
         </div>
@@ -142,19 +131,13 @@ function Login() {
         {/* Right side - Login Form */}
         <div className="login-form-wrapper">
           <div className="login-form-card">
-            <h1 className="form-title">Welcome back</h1>
-            <p className="form-subtitle">Sign in to continue</p>
+            <h1 className="form-title">Staff Login</h1>
+            <p className="form-subtitle">Sign in to your staff account</p>
 
             {error && (
               <div className="login-error">
                 {error}
                 {cooldown > 0 && <span className="error-timer">{cooldown}s</span>}
-              </div>
-            )}
-
-            {attemptsLeft !== null && attemptsLeft > 0 && !error && (
-              <div className="login-attempts">
-                {attemptsLeft} attempt{attemptsLeft > 1 ? "s" : ""} remaining
               </div>
             )}
 
@@ -201,34 +184,23 @@ function Login() {
                     )}
                   </button>
                 </div>
-
-                <div className="forgot-wrapper">
-                  <Link to="/forgot-password" className="forgot-link">
-                    Forgot password?
-                  </Link>
-                </div>
               </div>
 
               <button
                 type="submit"
-                className={`login-submit-btn ${loading || cooldown > 0 ? "disabled" : ""}`}
+                className="login-button"
                 disabled={loading || cooldown > 0}
               >
-                {loading ? "Signing in..." : cooldown > 0 ? `Wait ${cooldown}s` : "Sign in"}
+                {loading ? "Signing in..." : "Sign In"}
               </button>
             </form>
 
-            <div className="login-divider">
-              <span className="divider-line"></span>
-              <span className="divider-text">or</span>
-              <span className="divider-line"></span>
-            </div>
-
-            <GoogleLoginButton buttonText="Sign in with Google" />
-
             <div className="login-footer">
               <p>
-                Don't have an account? <Link to="/register">Sign up</Link>
+                Customer login?{" "}
+                <Link to="/login" className="login-link">
+                  Go to customer login
+                </Link>
               </p>
             </div>
           </div>
@@ -238,4 +210,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default StaffLogin;

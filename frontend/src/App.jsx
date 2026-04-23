@@ -3,11 +3,13 @@ import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AdminLayout from "./components/admin/AdminLayout";
-import StaffLayout from "./components/staff/StaffLayout";
+import ReceptionistLayout from "./components/receptionist/ReceptionistLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
+import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
 import Tasks from "./pages/staff/Tasks";
 import Inspections from "./pages/staff/Inspections";
+import Rooms from "./pages/staff/Rooms";
 import RoomManagement from "./pages/admin/RoomManagement";
 import StaffManagement from "./pages/admin/StaffManagement";
 import InventoryManagement from "./pages/admin/InventoryManagement";
@@ -118,9 +120,7 @@ function App() {
           path="/staff/dashboard" 
           element={
             <ProtectedRoute allowedRoles={['staff']}>
-              <StaffLayout>
-                <StaffDashboard />
-              </StaffLayout>
+              <StaffDashboard />
             </ProtectedRoute>
           } 
         />
@@ -130,9 +130,7 @@ function App() {
           path="/staff/tasks" 
           element={
             <ProtectedRoute allowedRoles={['staff']}>
-              <StaffLayout>
-                <Tasks />
-              </StaffLayout>
+              <Tasks />
             </ProtectedRoute>
           } 
         />
@@ -142,9 +140,17 @@ function App() {
           path="/staff/inspections" 
           element={
             <ProtectedRoute allowedRoles={['staff']}>
-              <StaffLayout>
-                <Inspections />
-              </StaffLayout>
+              <Inspections />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Staff Assigned Rooms - Staff ONLY (With Sidebar) */}
+        <Route 
+          path="/staff/rooms" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <Rooms />
             </ProtectedRoute>
           } 
         />
@@ -235,6 +241,75 @@ function App() {
               <AdminLayout>
                 <MaintenanceManagement />
               </AdminLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ============================================
+            RECEPTIONIST ROUTES - Role: staff, Position: Receptionist
+            ============================================ */}
+        <Route 
+          path="/receptionist/dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <ReceptionistDashboard />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/receptionist/bookings" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <BookingManagement />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/receptionist/rooms" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <RoomManagement />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/receptionist/inventory" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <InventoryManagement />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/receptionist/sales" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <SalesTracking />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/receptionist/reports" 
+          element={
+            <ProtectedRoute allowedRoles={['staff']}>
+              <ReceptionistLayout>
+                <Reports />
+              </ReceptionistLayout>
             </ProtectedRoute>
           } 
         />
