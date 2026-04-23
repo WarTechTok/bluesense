@@ -90,16 +90,26 @@ export async function updateProfile(formData) {
 }
 
 // ============================================
-// SENSOR DATA API CALLS
+// SENSOR DATA API CALLS (POOL MONITORING)
 // ============================================
 
-export async function getLatestReading() {
-  const res = await fetch(`${API_BASE_URL}/api/readings/latest`);
+// Get latest reading for a specific oasis
+export async function getLatestReading(oasis) {
+  const url = oasis 
+    ? `${API_BASE_URL}/api/readings/latest?oasis=${oasis}`
+    : `${API_BASE_URL}/api/readings/latest`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch latest reading');
   return res.json();
 }
 
-export async function getHistory() {
-  const res = await fetch(`${API_BASE_URL}/api/readings/history`);
+// Get history readings for a specific oasis
+export async function getHistory(oasis) {
+  const url = oasis 
+    ? `${API_BASE_URL}/api/readings/history?oasis=${oasis}`
+    : `${API_BASE_URL}/api/readings/history`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch history');
   return res.json();
 }
 
@@ -107,7 +117,6 @@ export async function getHistory() {
 // BOOKING API CALLS
 // ============================================
 
-// Create a new booking (customer submits reservation)
 // Create a new booking (customer submits reservation)
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
