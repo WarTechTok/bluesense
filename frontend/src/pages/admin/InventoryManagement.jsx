@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import { validateInventoryItem, validateInventoryUsage } from '../../utils/adminValidation';
 import './ManagementPages.css';
 
 const InventoryManagement = () => {
   const [inventory, setInventory] = useState([]);
+  const [filteredInventory, setFilteredInventory] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -30,10 +32,25 @@ const InventoryManagement = () => {
     fetchLowStockItems();
   }, []);
 
+  useEffect(() => {
+    if (searchTerm.trim() === "") {
+      setFilteredInventory(inventory);
+    } else {
+      const term = searchTerm.toLowerCase().trim();
+      const filtered = inventory.filter(item => 
+        item.item?.toLowerCase().includes(term) ||
+        item.itemId?.toLowerCase().includes(term) ||
+        item.unit?.toLowerCase().includes(term)
+      );
+      setFilteredInventory(filtered);
+    }
+  }, [searchTerm, inventory]);
+
   const fetchInventory = async () => {
     try {
       const data = await adminApi.getAllInventory();
       setInventory(data);
+      setFilteredInventory(data);
     } catch (error) {
       console.error('Error fetching inventory:', error);
     }
@@ -69,9 +86,6 @@ const InventoryManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      // ============================================
-      // FORM VALIDATION USING UTILITY
-      // ============================================
       const validation = validateInventoryItem(formData);
       if (!validation.isValid) {
         alert(validation.error);
@@ -100,9 +114,6 @@ const InventoryManagement = () => {
 
   const handleSubmitUsage = async () => {
     try {
-      // ============================================
-      // FORM VALIDATION USING UTILITY
-      // ============================================
       const validation = validateInventoryUsage(usageData);
       if (!validation.isValid) {
         alert(validation.error);
@@ -184,9 +195,28 @@ const InventoryManagement = () => {
         </div>
       )}
 
+      {/* Search Bar */}
+      <div className="search-container">
+        <div className="search-wrapper">
+          <i className="fas fa-search search-icon"></i>
+          <input
+            type="text"
+            placeholder="Search by Item Name, Item ID, or Unit..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {searchTerm && (
+            <button className="clear-search-btn" onClick={() => setSearchTerm("")}>
+              <i className="fas fa-times"></i>
+            </button>
+          )}
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={inventory}
+        data={filteredInventory}
         onEdit={handleOpenModal}
         onDelete={handleDelete}
         actions={actions}

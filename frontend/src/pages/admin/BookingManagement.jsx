@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/admin/Modal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import PaymentVerificationModal from "../../components/admin/PaymentVerificationModal";
-import * as adminApi from "../../services/admin/adminApi";
+import * as adminApi from '../../services/admin';
 import "./BookingManagement.css";
 
 const BookingManagement = () => {

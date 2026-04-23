@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 // import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import { validateRoom } from '../../utils/adminValidation';
 import './ManagementPages.css';
 import './RoomCards.css';

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import { validateStaffMember, validatePasswordReset } from '../../utils/adminValidation';
 import './ManagementPages.css';
 
 const StaffManagement = () => {
   const [staff, setStaff] = useState([]);
+  const [filteredStaff, setFilteredStaff] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
@@ -38,10 +41,37 @@ const StaffManagement = () => {
     fetchStaff();
   }, []);
 
+  useEffect(() => {
+    let filtered = [...staff];
+    
+    // Filter by search query
+    if (searchQuery.trim() !== '') {
+      const term = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(s => 
+        s.name.toLowerCase().includes(term) ||
+        s.email.toLowerCase().includes(term) ||
+        (s.staffId && s.staffId.toLowerCase().includes(term))
+      );
+    }
+    
+    // Filter by role
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(s => s.role === roleFilter);
+    }
+    
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(s => s.status === statusFilter);
+    }
+    
+    setFilteredStaff(filtered);
+  }, [staff, searchQuery, roleFilter, statusFilter]);
+
   const fetchStaff = async () => {
     try {
       const data = await adminApi.getAllStaff();
       setStaff(data);
+      setFilteredStaff(data);
     } catch (error) {
       console.error('Error fetching staff:', error);
     }
@@ -96,19 +126,12 @@ const StaffManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      // ============================================
-      // FORM VALIDATION USING UTILITY
-      // ============================================
       const validation = validateStaffMember(formData, !!editingStaff);
       if (!validation.isValid) {
         alert(validation.error);
         return;
       }
 
-      // ============================================
-      // PREPARE DATA FOR SUBMISSION
-      // ============================================
-      // Always use FormData to support file uploads
       const submitData = new FormData();
       submitData.append('name', formData.name);
       submitData.append('email', formData.email);
@@ -116,18 +139,15 @@ const StaffManagement = () => {
       submitData.append('position', formData.position);
       submitData.append('address', formData.address);
       
-      // Add permissions for admin role
       if (formData.role === 'admin') {
         submitData.append('permissions', JSON.stringify(permissions));
       }
       
-      // Only append password fields for new staff (creation)
       if (!editingStaff) {
         if (formData.password) submitData.append('password', formData.password);
         if (formData.confirmPassword) submitData.append('confirmPassword', formData.confirmPassword);
       }
       
-      // Only append file if a new file was selected
       if (formData.profilePicture && typeof formData.profilePicture === 'object' && formData.profilePicture instanceof File) {
         submitData.append('profilePicture', formData.profilePicture);
       }
@@ -155,9 +175,6 @@ const StaffManagement = () => {
 
   const handleSubmitPassword = async () => {
     try {
-      // ============================================
-      // FORM VALIDATION USING UTILITY
-      // ============================================
       const validation = validatePasswordReset(passwordData.newPassword);
       if (!validation.isValid) {
         alert(validation.error);
@@ -199,6 +216,12 @@ const StaffManagement = () => {
         alert('Error deleting user');
       }
     }
+  };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setRoleFilter('all');
+    setStatusFilter('all');
   };
 
   const columns = [
@@ -325,13 +348,6 @@ const StaffManagement = () => {
     { label: 'Toggle Status', type: 'toggle', handler: handleToggleStatus }
   ];
 
-  // Filter staff based on search query
-  const filteredStaff = staff.filter(s => 
-    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (s.staffId && s.staffId.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-
   return (
     <div className="management-page">
       <div className="page-header">
@@ -339,38 +355,89 @@ const StaffManagement = () => {
         <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add User</button>
       </div>
 
-      {/* Search Bar at Top */}
-      <div style={{
-        display: 'flex',
-        gap: '10px',
-        marginBottom: '25px',
-        alignItems: 'center'
-      }}>
-        <input
-          type="text"
-          placeholder="Search User"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '10px 16px',
-            border: '1px solid #d1d5db',
-            borderRadius: '6px',
-            fontSize: '14px',
-            boxSizing: 'border-box'
-          }}
-        />
-        <button style={{
-          padding: '10px 16px',
-          background: 'none',
-          border: '1px solid #d1d5db',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '18px'
-        }}>🔍</button>
+      {/* Filters Section */}
+      <div className="filters-section">
+        <div className="filters-row">
+          {/* Search */}
+          <div className="filter-group search-group">
+            <label>🔍 Search</label>
+            <div className="search-wrapper">
+              <i className="fas fa-search search-icon"></i>
+              <input
+                type="text"
+                placeholder="Search by Name, Email, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
+              {searchQuery && (
+                <button className="clear-search-btn" onClick={() => setSearchQuery("")}>
+                  <i className="fas fa-times"></i>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Role Filter */}
+          <div className="filter-group">
+            <label>👥 Role</label>
+            <select 
+              value={roleFilter} 
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="staff">Staff</option>
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="filter-group">
+            <label>⚡ Status</label>
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {(searchQuery || roleFilter !== 'all' || statusFilter !== 'all') && (
+            <div className="filter-group" style={{ justifyContent: 'flex-end' }}>
+              <button className="btn-clear-filters" onClick={clearFilters}>
+                <i className="fas fa-eraser"></i> Clear Filters
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Table with Pagination */}
+      {/* Stats Summary */}
+      <div className="stats-row">
+        <div className="stat-card">
+          <h3>Total Users</h3>
+          <p className="stat-number">{filteredStaff.length}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Admins</h3>
+          <p className="stat-number">{filteredStaff.filter(s => s.role === 'admin').length}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Staff</h3>
+          <p className="stat-number">{filteredStaff.filter(s => s.role === 'staff').length}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Active</h3>
+          <p className="stat-number">{filteredStaff.filter(s => s.status === 'Active').length}</p>
+        </div>
+      </div>
+
+      {/* Table */}
       <DataTable
         columns={columns}
         data={filteredStaff}
@@ -379,6 +446,7 @@ const StaffManagement = () => {
         actions={actions}
       />
 
+      {/* Add/Edit Modal */}
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
           <div className="modal-header">
@@ -523,6 +591,7 @@ const StaffManagement = () => {
         </Modal>
       )}
 
+      {/* Password Reset Modal */}
       {isPasswordModalOpen && (
         <Modal onClose={() => setIsPasswordModalOpen(false)}>
           <div className="modal-header">

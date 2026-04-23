@@ -4,7 +4,7 @@ import StatCard from "../../components/admin/StatCard";
 import PoolMonitoring from "../../components/admin/PoolMonitoring";
 import SalesChart from "../../components/admin/SalesChart";
 import "./Dashboard.css";
-import * as adminApi from "../../services/admin/adminApi";
+import * as adminApi from '../../services/admin';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
@@ -111,7 +111,7 @@ const Dashboard = () => {
 
       <PoolMonitoring />
 
-      {/* Financial Summary - Professional Table Format */}
+      {/* Financial Summary - Professional Table Format (Margin column removed) */}
       <div className="stats-section">
         <h2 className="section-title">Financial Summary</h2>
         <div className="financial-table">
@@ -119,23 +119,18 @@ const Dashboard = () => {
             <div className="financial-cell">Metric</div>
             <div className="financial-cell text-right">Total</div>
             <div className="financial-cell text-right">Monthly</div>
-            <div className="financial-cell text-right">Margin</div>
           </div>
           
           <div className="financial-row">
             <div className="financial-cell label">Revenue</div>
             <div className="financial-cell text-right amount-positive">₱{stats.totalRevenue.toLocaleString()}</div>
             <div className="financial-cell text-right amount-positive">₱{stats.monthlyRevenue.toLocaleString()}</div>
-            <div className="financial-cell text-right">—</div>
           </div>
           
           <div className="financial-row">
             <div className="financial-cell label">Expenses</div>
             <div className="financial-cell text-right amount-negative">₱{stats.totalExpenses.toLocaleString()}</div>
             <div className="financial-cell text-right amount-negative">₱{stats.monthlyExpenses.toLocaleString()}</div>
-            <div className="financial-cell text-right">
-              {stats.totalRevenue > 0 ? `${((stats.totalExpenses / stats.totalRevenue) * 100).toFixed(1)}%` : '0%'}
-            </div>
           </div>
           
           <div className="financial-row highlight">
@@ -145,9 +140,6 @@ const Dashboard = () => {
             </div>
             <div className={`financial-cell text-right ${stats.netMonthlyRevenue >= 0 ? 'amount-profit' : 'amount-loss'}`}>
               ₱{stats.netMonthlyRevenue.toLocaleString()}
-            </div>
-            <div className="financial-cell text-right profit-margin">
-              {stats.totalRevenue > 0 ? `${((stats.netTotalRevenue / stats.totalRevenue) * 100).toFixed(1)}%` : '0%'}
             </div>
           </div>
         </div>

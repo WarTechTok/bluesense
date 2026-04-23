@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import "./ManagementPages.css";
-import * as adminApi from "../../services/admin/adminApi";
+import * as adminApi from '../../services/admin';
 import * as XLSX from "xlsx";
 
 const Reports = () => {

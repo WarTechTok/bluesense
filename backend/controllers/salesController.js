@@ -188,6 +188,73 @@ exports.getMonthlySales = async (req, res) => {
   }
 };
 
+// backend/controllers/salesController.js
+// ============================================
+// GET SALES BY DATE RANGE
+// ============================================
+
+/**
+ * GET /api/admin/sales/date-range?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+ * Get sales for a custom date range
+ * Query: startDate, endDate (format: YYYY-MM-DD)
+ * Returns: sales array with reference codes, locations, and total for the date range
+ */
+exports.getSalesByDateRange = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    console.log('📅 Sales date range request:', { startDate, endDate });
+    
+    // Parse dates
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    
+    const salesInRange = await Sale.find({
+      date: { $gte: start, $lte: end }
+    })
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
+      .populate('reservation', 'room guestName')
+      .sort({ date: -1 });
+    
+    // Filter to only include confirmed or completed bookings
+    const completedSales = salesInRange.filter(sale => {
+      if (sale.booking) {
+        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+      }
+      return true;
+    });
+    
+    // Format sales with reference code and location
+    const formattedSales = completedSales.map(sale => ({
+      _id: sale._id,
+      amount: sale.amount,
+      date: sale.date,
+      bookingNumber: sale.bookingNumber || sale.booking?.bookingNumber || 'N/A',
+      referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
+      location: sale.location || sale.booking?.oasis || 'N/A',
+      customerName: sale.booking?.customerName || 'N/A',
+      type: sale.booking ? 'Booking' : 'Reservation',
+      booking: sale.booking,
+      reservation: sale.reservation,
+    }));
+    
+    const total = formattedSales.reduce((sum, sale) => sum + sale.amount, 0);
+    
+    res.json({
+      success: true,
+      sales: formattedSales,
+      total,
+      period: { startDate, endDate }
+    });
+  } catch (error) {
+    console.error('Error fetching sales by date range:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 /**
  * POST /api/admin/sales
  * Create a new sale record (Admin only)

@@ -16,7 +16,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import './SalesChart.css';
 
 const SalesChart = () => {

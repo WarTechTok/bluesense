@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import '../admin/ManagementPages.css';
 
 /**

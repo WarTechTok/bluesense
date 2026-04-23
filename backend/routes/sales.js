@@ -1,10 +1,7 @@
+// backend/routes/sales.js
 // ============================================
-// SALES TRACKING ROUTES
+// SALES TRACKING ROUTES - Revenue tracking and sales reporting
 // ============================================
-// Revenue tracking and sales reporting
-// Auto-created when reservations are confirmed
-// Admin-only access for all operations
-// Supports daily/weekly/monthly aggregation
 
 const express = require('express');
 const router = express.Router();
@@ -32,8 +29,12 @@ router.get('/weekly', authenticate, authorize('admin'), salesController.getWeekl
 router.get('/monthly', authenticate, authorize('admin'), salesController.getMonthlySales);
 
 // ============================================
+// GET SALES BY DATE RANGE - custom date range (Admin only)
+// ============================================
+router.get('/date-range', authenticate, authorize('admin'), salesController.getSalesByDateRange);
+
+// ============================================
 // RECORD SALE - manually create sale record (Admin only)
-// Usually auto-created with reservation confirmation
 // ============================================
 router.post('/', authenticate, authorize('admin'), salesController.recordSale);
 

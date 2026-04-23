@@ -1,6 +1,6 @@
 // frontend/src/pages/admin/MaintenanceManagement.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import * as adminApi from '../../services/admin/adminApi';
+import * as adminApi from '../../services/admin';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import './ManagementPages.css';
