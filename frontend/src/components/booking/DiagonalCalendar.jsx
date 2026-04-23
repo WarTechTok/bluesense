@@ -84,23 +84,11 @@ function DiagonalCalendar({
   };
 
   const handlePrevMonth = () => {
-    const minAllowedDate =
-      minDate ||
-      (() => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        return tomorrow;
-      })();
-
     const prev = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth() - 1,
     );
-    const firstDayOfPrev = new Date(prev.getFullYear(), prev.getMonth(), 1);
-    if (firstDayOfPrev >= minAllowedDate) {
-      setCurrentMonth(prev);
-    }
+    setCurrentMonth(prev);
   };
 
   const handleNextMonth = () => {
