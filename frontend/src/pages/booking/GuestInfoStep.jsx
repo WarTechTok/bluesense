@@ -3,7 +3,7 @@
 // GUEST INFO STEP - Read-only with confirm button
 // ============================================
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 const GuestInfoStep = ({
   formData,
@@ -11,12 +11,29 @@ const GuestInfoStep = ({
   handleChange,
   onConfirm,
   isConfirmed,
+  selectedOasis,
+  selectedPackage,
 }) => {
   const [userInfo, setUserInfo] = useState({
     fullName: formData.fullName || "",
     email: formData.email || "",
     phone: formData.phone || "",
   });
+
+  // Get minimum capacity for selected package
+  const getMinCapacity = useCallback(() => {
+    if (selectedOasis === "Oasis 1" && selectedPackage === "Package 5+") return 30;
+    if (selectedOasis === "Oasis 2" && selectedPackage === "Package C") return 50;
+    return 0;
+  }, [selectedOasis, selectedPackage]);
+
+  // Auto-set guest count to minimum when Package 5+ or Package C is selected
+  useEffect(() => {
+    const minCapacity = getMinCapacity();
+    if (minCapacity > 0 && formData.guestCount < minCapacity) {
+      handleChange({ target: { name: "guestCount", value: minCapacity } });
+    }
+  }, [selectedOasis, selectedPackage, getMinCapacity, handleChange, formData.guestCount]);
 
   // Listen for profile updates from navbar
   useEffect(() => {
@@ -64,8 +81,11 @@ const GuestInfoStep = ({
     });
   }, [formData.fullName, formData.email, formData.phone]);
 
-  // Check if guests exceed 100
+  // Get min and max capacity
+  const minCapacity = getMinCapacity();
   const isGuestCountValid = formData.guestCount <= 100;
+  const isGuestCountAboveMin = minCapacity === 0 || formData.guestCount >= minCapacity;
+  const isConfirmDisabled = isConfirmed || !isGuestCountValid || !isGuestCountAboveMin;
 
   return (
     <div className="step-card">
@@ -135,16 +155,31 @@ const GuestInfoStep = ({
                 name="guestCount"
                 value={formData.guestCount}
                 onChange={handleChange}
-                min="1"
+                min={minCapacity > 0 ? minCapacity : 1}
+                max="100"
                 className={errors?.guestCount ? "error" : ""}
               />
             )}
           </div>
 
-          {/* Warning when guests exceed 100 */}
+          {/* Minimum capacity warning */}
+          {minCapacity > 0 && formData.guestCount < minCapacity && (
+            <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
+              ⚠️ Minimum {minCapacity} guests required for this package.
+            </div>
+          )}
+
+          {/* Maximum capacity warning */}
           {formData.guestCount > 100 && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
               Maximum 100 guests only. Please reduce to 100 or less to confirm.
+            </div>
+          )}
+
+          {/* Info message for auto-filled packages */}
+          {minCapacity > 0 && (
+            <div style={{ color: "#0284c7", fontSize: "11px", marginTop: "4px" }}>
+              ℹ️ This package requires minimum {minCapacity} guests. Auto-set to {minCapacity}.
             </div>
           )}
 
@@ -159,8 +194,8 @@ const GuestInfoStep = ({
           type="button"
           className={`confirm-info-btn ${isConfirmed ? "confirmed" : ""}`}
           onClick={onConfirm}
-          disabled={isConfirmed || !isGuestCountValid}
-          style={{ opacity: (!isGuestCountValid && !isConfirmed) ? 0.5 : 1 }}
+          disabled={isConfirmDisabled}
+          style={{ opacity: isConfirmDisabled ? 0.5 : 1 }}
         >
           {isConfirmed ? (
             <>
