@@ -6,7 +6,7 @@ require('dotenv').config();
 const roomsToAdd = [
   // OASIS 1 - Packages 2 to 5+
   {
-    name: 'Oasis 1 - Package 2',
+    name: 'Oasis 1 - Superior Room',
     capacity: 4,
     price: 9000,
     description: '1 AC Room (Superior - 2-4 pax)',
@@ -18,12 +18,15 @@ const roomsToAdd = [
       'Smart TV with Netflix',
       'Free WiFi',
       'Portable Griller',
-      'All Outside Amenities'
+      'All Outside Amenities',
+      'Pillows - 2',
+      'Bed - 1',
+      'Remote - 1'
     ],
     status: 'Available'
   },
   {
-    name: 'Oasis 1 - Package 3',
+    name: 'Oasis 1 - Family Room',
     capacity: 12,
     price: 9500,
     description: '1 AC Room (Family - 8-12 pax)',
@@ -37,12 +40,12 @@ const roomsToAdd = [
       'Free WiFi',
       'Portable Griller',
       'Cooler',
-      'All Outside Amenities'
+      'All Outside Amenities',
+      'Pillows - 4',
+      'Bed - 4',
+      'Remote - 1'
     ],
-    status: 'Available'
-  },
-  {
-    name: 'Oasis 1 - Package 4',
+    status: 'AvailablFamily Room X Superior',
     capacity: 15,
     price: 10000,
     description: '2 AC Rooms (Family + Superior - 12-15 pax)',
@@ -56,12 +59,15 @@ const roomsToAdd = [
       'Free WiFi',
       'Portable Griller',
       'Cooler',
+      'All Outside Amenities',
+      'Pillows - 6',
+      'Bed - 5',
+      'Remote - 1
+      'Portable Griller',
+      'Cooler',
       'All Outside Amenities'
     ],
-    status: 'Available'
-  },
-  {
-    name: 'Oasis 1 - Package 5',
+    status: 'AvailablFamily Room X Superior',
     capacity: 25,
     price: 14200,
     description: '4 AC Rooms (2 Family + 2 Superior - 22-25 pax)',
@@ -75,12 +81,12 @@ const roomsToAdd = [
       'Free WiFi',
       'Portable Griller',
       'Cooler',
-      'All Outside Amenities'
-    ],
-    status: 'Available'
-  },
-  {
-    name: 'Oasis 1 - Package 5+',
+      'All Outside Amenities',
+      'Pillows - 6',
+      'Bed - 7',
+      'Remote - 1
+      'Portable Griller',
+      'Cooler',Caseras 3',
     capacity: 100,
     price: 17000,
     description: '4 AC Rooms + Extra Space (30-100 pax)',
@@ -94,18 +100,32 @@ const roomsToAdd = [
       'Free WiFi',
       'Portable Griller',
       'Cooler',
-      'All Outside Amenities'
-    ],
-    status: 'Available'
-  },
-  // OASIS 2 - Package B only
-  {
-    name: 'Oasis 2 - Package B',
+      'All Outside Amenities',
+      'Pillows - 8',
+      'Mattress - 4',
+      'Remote - 1',
+      'Fly Racket - 1',
+      'Bed Sheets - 4
+      'Smart TV with Netflix',
+      'Fridge',
+      'Free WiFi',
+      'Portable GrillKamar Tedur Pertama',
     capacity: 30,
     price: 9000,
     description: '1 AC Family Room',
     oasis: 'Oasis 2',
     packageName: 'Package B',
+    image: '/images/packages/oasis2/package-b.jpg',
+    appliances: [
+      'Air Conditioning',
+      'Smart TV with Netflix',
+      'Refrigerator',
+      'Free WiFi',
+      'Griller',
+      'All Outside Amenities',
+      'Pillows - 8',
+      'Bed - 4',
+      'Remote - 1,
     image: '/images/packages/oasis2/package-b.jpg',
     appliances: [
       'Air Conditioning',

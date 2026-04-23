@@ -9,29 +9,29 @@ const salesController = require('../controllers/salesController');
 const { authenticate, authorize } = require('../middleware/role');
 
 // ============================================
-// GET ALL SALES - retrieve all transactions (Admin only)
+// GET ALL SALES - retrieve all transactions (Admin & Staff/Receptionist)
 // ============================================
-router.get('/', authenticate, authorize('admin'), salesController.getAllSales);
+router.get('/', authenticate, authorize('admin', 'staff'), salesController.getAllSales);
 
 // ============================================
-// GET DAILY SALES - today's revenue (Admin only)
+// GET DAILY SALES - today's revenue (Admin & Staff/Receptionist)
 // ============================================
-router.get('/daily', authenticate, authorize('admin'), salesController.getDailySales);
+router.get('/daily', authenticate, authorize('admin', 'staff'), salesController.getDailySales);
 
 // ============================================
-// GET WEEKLY SALES - this week's revenue (Admin only)
+// GET WEEKLY SALES - this week's revenue (Admin & Staff/Receptionist)
 // ============================================
-router.get('/weekly', authenticate, authorize('admin'), salesController.getWeeklySales);
+router.get('/weekly', authenticate, authorize('admin', 'staff'), salesController.getWeeklySales);
 
 // ============================================
-// GET MONTHLY SALES - this month's revenue (Admin only)
+// GET MONTHLY SALES - this month's revenue (Admin & Staff/Receptionist)
 // ============================================
-router.get('/monthly', authenticate, authorize('admin'), salesController.getMonthlySales);
+router.get('/monthly', authenticate, authorize('admin', 'staff'), salesController.getMonthlySales);
 
 // ============================================
-// GET SALES BY DATE RANGE - custom date range (Admin only)
+// GET SALES BY DATE RANGE - custom date range (Admin & Staff/Receptionist)
 // ============================================
-router.get('/date-range', authenticate, authorize('admin'), salesController.getSalesByDateRange);
+router.get('/date-range', authenticate, authorize('admin', 'staff'), salesController.getSalesByDateRange);
 
 // ============================================
 // RECORD SALE - manually create sale record (Admin only)

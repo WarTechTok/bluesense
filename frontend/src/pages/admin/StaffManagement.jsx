@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
+import MessageModal from '../../components/modals/MessageModal';
 import * as adminApi from '../../services/admin';
 import { validateStaffMember, validatePasswordReset } from '../../utils/adminValidation';
 import './ManagementPages.css';
@@ -35,6 +36,12 @@ const StaffManagement = () => {
     inventory: false,
     sales: false,
     reports: false
+  });
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
   });
 
   useEffect(() => {
@@ -128,7 +135,12 @@ const StaffManagement = () => {
     try {
       const validation = validateStaffMember(formData, !!editingStaff);
       if (!validation.isValid) {
-        alert(validation.error);
+        setMessageModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Validation Error',
+          message: validation.error
+        });
         return;
       }
 
@@ -159,11 +171,21 @@ const StaffManagement = () => {
       }
       setIsModalOpen(false);
       fetchStaff();
-      alert('✅ Staff member saved successfully!');
+      setMessageModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Staff account was successfully created!'
+      });
     } catch (error) {
       console.error('Error saving staff:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error saving staff';
-      alert('❌ ' + errorMsg);
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: errorMsg
+      });
     }
   };
 
@@ -177,18 +199,33 @@ const StaffManagement = () => {
     try {
       const validation = validatePasswordReset(passwordData.newPassword);
       if (!validation.isValid) {
-        alert(validation.error);
+        setMessageModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Validation Error',
+          message: validation.error
+        });
         return;
       }
 
       await adminApi.resetPassword(editingStaff._id, passwordData.newPassword);
       setIsPasswordModalOpen(false);
       fetchStaff();
-      alert('✅ Password reset successfully!');
+      setMessageModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Password reset successfully!'
+      });
     } catch (error) {
       console.error('Error resetting password:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error resetting password';
-      alert('❌ ' + errorMsg);
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: errorMsg
+      });
     }
   };
 
@@ -202,7 +239,12 @@ const StaffManagement = () => {
       fetchStaff();
     } catch (error) {
       console.error('Error toggling staff status:', error);
-      alert('Error toggling staff status');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Error toggling staff status'
+      });
     }
   };
 
@@ -213,7 +255,12 @@ const StaffManagement = () => {
         fetchStaff();
       } catch (error) {
         console.error('Error deleting user:', error);
-        alert('Error deleting user');
+        setMessageModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Error',
+          message: 'Error deleting user'
+        });
       }
     }
   };
@@ -620,6 +667,15 @@ const StaffManagement = () => {
           </div>
         </Modal>
       )}
+
+      {/* Message Modal - Global */}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        onClose={() => setMessageModal({ ...messageModal, isOpen: false })}
+        type={messageModal.type}
+        title={messageModal.title}
+        message={messageModal.message}
+      />
     </div>
   );
 };

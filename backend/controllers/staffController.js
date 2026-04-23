@@ -128,29 +128,6 @@ exports.createStaffAccount = async (req, res) => {
     await staff.save();
     console.log('✅ Staff created successfully:', staff.staffId);
 
-    // ============================================
-    // ALSO CREATE USER RECORD FOR AUTHENTICATION
-    // ============================================
-    // Check if User already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
-    let user;
-    if (!existingUser) {
-      user = new User({
-        name: name.trim(),
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        role: 'staff', // Staff login uses 'staff' role
-        phone: address || null,
-        address: address || null,
-        isEmailVerified: true, // Admin-created accounts are auto-verified
-      });
-      await user.save();
-      console.log('✅ User created successfully for staff:', email);
-    } else {
-      console.log('⚠️ User already exists for:', email);
-      user = existingUser;
-    }
-    
     // Don't return password in response
     res.status(201).json({ 
       _id: staff._id, 

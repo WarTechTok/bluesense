@@ -33,14 +33,15 @@ const ReceptionistDashboard = () => {
       
       // Fetch all data in parallel
       const [bookingsRes, roomsRes, salesRes] = await Promise.all([
-        adminApi.getAllBookings().catch(() => ({ bookings: [] })),
-        adminApi.getAllRooms().catch(() => ({ rooms: [] })),
-        adminApi.getAllSales().catch(() => ({ sales: [] })),
+        adminApi.getAllBookings().catch(() => []),
+        adminApi.getAllRooms().catch(() => []),
+        adminApi.getAllSales().catch(() => []),
       ]);
 
-      const bookings = bookingsRes.bookings || [];
-      const rooms = roomsRes.rooms || [];
-      const sales = salesRes.sales || [];
+      // Backend returns arrays directly, not nested objects
+      const bookings = Array.isArray(bookingsRes) ? bookingsRes : [];
+      const rooms = Array.isArray(roomsRes) ? roomsRes : [];
+      const sales = Array.isArray(salesRes) ? salesRes : [];
 
       // Calculate stats
       const pendingCount = bookings.filter(b => b.status === 'Pending').length;
@@ -48,7 +49,7 @@ const ReceptionistDashboard = () => {
       const completedCount = bookings.filter(b => b.status === 'Completed').length;
       const availableCount = rooms.filter(r => r.status === 'Available').length;
       const occupiedCount = rooms.filter(r => r.status === 'Occupied').length;
-      const totalSales = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+      const totalSales = sales.reduce((sum, s) => sum + (s.totalAmount || s.amount || 0), 0);
 
       setStats({
         totalBookings: bookings.length,
@@ -131,7 +132,7 @@ const ReceptionistDashboard = () => {
           </div>
           <div className="stat-content">
             <h3>Total Sales</h3>
-            <p className="stat-number">${stats.totalSales.toFixed(2)}</p>
+            <p className="stat-number">₱{stats.totalSales.toFixed(2)}</p>
             <span className="stat-label">All time sales</span>
           </div>
         </div>
@@ -179,7 +180,7 @@ const ReceptionistDashboard = () => {
                         {booking.status}
                       </span>
                     </td>
-                    <td>${booking.totalAmount?.toFixed(2) || '0.00'}</td>
+                    <td>₱{booking.totalAmount?.toFixed(2) || '0.00'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -224,7 +225,7 @@ const ReceptionistDashboard = () => {
                     <td>{sale.booking?.customerName || 'N/A'}</td>
                     <td>{sale.booking?.packageType || 'N/A'}</td>
                     <td>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                    <td><strong>${sale.totalAmount?.toFixed(2) || '0.00'}</strong></td>
+                    <td><strong>₱{sale.totalAmount?.toFixed(2) || '0.00'}</strong></td>
                   </tr>
                 ))}
               </tbody>

@@ -270,19 +270,67 @@ const resendVerificationEmail = async (req, res) => {
 // ============================================
 // UNIFIED LOGIN - handles both customers and staff
 // ============================================
-// Tries to authenticate as customer first (User model)
-// If not found, tries to authenticate as staff (Staff model)
+// REORDERED: Check Staff model FIRST (for receptionists with position field)
+// Then check User model (for customers)
 // Routes based on account type
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     const Staff = require('../models/Staff');
+    const emailLower = email.toLowerCase();
 
     console.log("🔍 LOGIN ATTEMPT: Email =", email, "Password length =", password?.length);
 
-    // STEP 1: Try to find customer account
-    let user = await User.findOne({ email });
-    console.log("🔍 Checked User model - Found:", user ? "YES" : "NO");
+    // STEP 1: Try to find STAFF account FIRST (to properly identify receptionists with position)
+    console.log("🔍 Checking Staff model for email:", emailLower);
+    const staff = await Staff.findOne({ email: emailLower });
+    console.log("🔍 Staff lookup result:", staff ? `Found staff: ${staff.name} (${staff.staffId})` : "NOT FOUND");
+    
+    if (staff) {
+      // ===== STAFF LOGIN =====
+      console.log("✅ Staff account found. Status:", staff.status);
+      
+      // Check if account is disabled
+      if (staff.status === 'Disabled') {
+        return res.status(403).json({ 
+          message: "Account is disabled. Please contact your administrator.",
+          accountDisabled: true
+        });
+      }
+
+      // Compare password
+      const isMatch = await bcrypt.compare(password, staff.password);
+      console.log("🔐 Password comparison result:", isMatch ? "MATCH ✅" : "MISMATCH ❌");
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { id: staff._id, email: staff.email, role: staff.role, staffId: staff.staffId },
+        process.env.JWT_SECRET || "your_jwt_secret_key",
+        { expiresIn: "7d" }
+      );
+
+      return res.json({
+        message: "Login successful",
+        token,
+        user: {
+          id: staff._id,
+          staffId: staff.staffId,
+          name: staff.name,
+          email: staff.email,
+          role: staff.role,
+          position: staff.position,
+          status: staff.status
+        }
+      });
+    }
+
+    // STEP 2: Try to find CUSTOMER account (User model)
+    console.log("🔍 Checking User model for customer account - Email:", emailLower);
+    let user = await User.findOne({ email: emailLower });
+    console.log("🔍 User model result:", user ? "FOUND" : "NOT FOUND");
     
     if (user) {
       // ===== CUSTOMER LOGIN =====
@@ -366,55 +414,8 @@ const login = async (req, res) => {
       });
     }
 
-    // STEP 2: Try to find staff account
-    const emailLower = email.toLowerCase();
-    console.log("🔍 Checking Staff model for email:", emailLower);
-    const staff = await Staff.findOne({ email: emailLower });
-    console.log("🔍 Staff lookup result:", staff ? `Found staff: ${staff.name} (${staff.staffId})` : "NOT FOUND");
-    
-    if (staff) {
-      // ===== STAFF LOGIN =====
-      console.log("✅ Staff account found. Status:", staff.status);
-      
-      // Check if account is disabled
-      if (staff.status === 'Disabled') {
-        return res.status(403).json({ 
-          message: "Account is disabled. Please contact your administrator.",
-          accountDisabled: true
-        });
-      }
-
-      // Compare password
-      const isMatch = await bcrypt.compare(password, staff.password);
-      console.log("🔐 Password comparison result:", isMatch ? "MATCH ✅" : "MISMATCH ❌");
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid email or password" });
-      }
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { id: staff._id, email: staff.email, role: staff.role, staffId: staff.staffId },
-        process.env.JWT_SECRET || "your_jwt_secret_key",
-        { expiresIn: "7d" }
-      );
-
-      return res.json({
-        message: "Login successful",
-        token,
-        user: {
-          id: staff._id,
-          staffId: staff.staffId,
-          name: staff.name,
-          email: staff.email,
-          role: staff.role,
-          position: staff.position,
-          status: staff.status
-        }
-      });
-    }
-
     // STEP 3: Account not found in either model
-    console.log("❌ Account not found in User or Staff models for email:", emailLower);
+    console.log("❌ Account not found in Staff or User models for email:", emailLower);
     return res.status(400).json({ message: "Invalid email or password" });
 
   } catch (error) {
