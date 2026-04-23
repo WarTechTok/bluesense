@@ -20,6 +20,7 @@ import ReviewStep from './ReviewStep';
 import AddonsSelector from '../../components/booking/AddonsSelector';
 import { getPackagePrice, getDownpayment, oasisPackages, getMaxCapacity } from '../../config/packageData';
 import './Booking.css';
+import DoubleBookingModal from '../../components/modals/DoubleBookingModal';
 
 function Booking() {
   const location = useLocation();
