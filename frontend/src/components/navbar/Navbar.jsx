@@ -220,7 +220,7 @@ function Navbar() {
           {/* LEFT - Logo */}
           <Link to="/" className="navbar-logo">
             <img
-              src="/images/logo/resort-logo.jpg"
+              src="/images/logo/resort-logo.png"
               alt="Catherine's Oasis"
               className="navbar-logo-img"
             />
