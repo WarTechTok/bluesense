@@ -280,10 +280,29 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // ============================================
-    // 3. CHECK EXISTING BOOKINGS ON SAME DATE
+        // ============================================
+    // 3. CHECK EXISTING BOOKINGS ON SAME DATE & SESSION (DOUBLE BOOKING PREVENTION)
     // ============================================
 
+    // FIRST: Check if EXACT same date + session + oasis + package is already booked
+    const exactMatchBooking = await Booking.findOne({
+      oasis,
+      package: packageName,
+      session: session,
+      bookingDate: { $gte: start, $lt: end },
+      status: { $in: ["Pending", "Confirmed"] },
+    });
+
+    if (exactMatchBooking) {
+      console.log(`❌ DOUBLE BOOKING DETECTED: ${oasis} - ${packageName} - ${session}`);
+      return res.status(409).json({
+        success: false,
+        message: "This date and session is already booked. Please select another date or session.",
+        error: "DUPLICATE_BOOKING"
+      });
+    }
+
+    // SECOND: Check all bookings on this date (for daily limits)
     const existingBookings = await Booking.find({
       oasis,
       bookingDate: { $gte: start, $lt: end },

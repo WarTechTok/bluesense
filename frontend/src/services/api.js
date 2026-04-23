@@ -108,6 +108,7 @@ export async function getHistory() {
 // ============================================
 
 // Create a new booking (customer submits reservation)
+// Create a new booking (customer submits reservation)
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
   
@@ -131,7 +132,11 @@ export async function createBooking(bookingData) {
   const data = await res.json();
   
   if (!res.ok) {
-    throw new Error(data.message || 'Booking failed');
+    // Preserve status code for error handling (409 for duplicate booking)
+    const error = new Error(data.message || 'Booking failed');
+    error.status = res.status;
+    error.data = data;
+    throw error;
   }
   
   return data;

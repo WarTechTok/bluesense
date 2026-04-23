@@ -163,4 +163,15 @@ const bookingSchema = new mongoose.Schema({
   
 }, { timestamps: true });
 
+// ============================================
+// PREVENT DOUBLE BOOKING - Compound Index
+// ============================================
+bookingSchema.index(
+  { bookingDate: 1, session: 1, oasis: 1, package: 1 },
+  { 
+    unique: true,
+    partialFilterExpression: { status: { $nin: ['Cancelled', 'Completed'] } }
+  }
+);
+
 module.exports = mongoose.model("Booking", bookingSchema);
