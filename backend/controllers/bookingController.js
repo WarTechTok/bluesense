@@ -133,7 +133,8 @@ const getDayRange = (date) => {
 };
 
 // ============================================
-// CREATE BOOKING - with all validation limits
+// CREATE BOOKING - NO LIMITS VERSION
+// Customers can book as many as they want as long as they pay
 // ============================================
 
 const createBooking = async (req, res) => {
@@ -163,7 +164,6 @@ const createBooking = async (req, res) => {
     if (req.file) {
       paymentProof = `/uploads/payment-proofs/${req.file.filename}`;
       console.log("✅ Payment proof file received:", req.file.filename);
-      console.log("✅ Payment proof path:", paymentProof);
     } else {
       console.log("⚠️ No payment proof file received");
     }
@@ -201,8 +201,7 @@ const createBooking = async (req, res) => {
     if (!bookingDate || !pax || !totalPrice || !downpayment) {
       return res.status(400).json({
         success: false,
-        message:
-          "Booking date, number of guests, total price, and downpayment are required",
+        message: "Booking date, number of guests, total price, and downpayment are required",
       });
     }
 
@@ -230,9 +229,7 @@ const createBooking = async (req, res) => {
       selectedDate = new Date(bookingDate);
     }
 
-    console.log(
-      `📅 Parsed booking date: ${bookingDate} → ${selectedDate.toISOString()}`,
-    );
+    console.log(`📅 Parsed booking date: ${bookingDate}`);
     const { start, end } = getDayRange(selectedDate);
 
     // ============================================
@@ -241,10 +238,8 @@ const createBooking = async (req, res) => {
 
     const packageLimit = PACKAGE_CAPACITY[oasis]?.[packageName];
     if (packageLimit) {
-      const maxAllowed =
-        typeof packageLimit === "object" ? packageLimit.max : packageLimit;
-      const baseCapacity =
-        typeof packageLimit === "object" ? packageLimit.base : packageLimit;
+      const maxAllowed = typeof packageLimit === "object" ? packageLimit.max : packageLimit;
+      const baseCapacity = typeof packageLimit === "object" ? packageLimit.base : packageLimit;
 
       if (pax > maxAllowed) {
         return res.status(400).json({
@@ -255,9 +250,7 @@ const createBooking = async (req, res) => {
 
       if (pax > baseCapacity) {
         const extraGuests = pax - baseCapacity;
-        console.log(
-          `✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * 150}`,
-        );
+        console.log(`✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * 150}`);
       }
     }
 
@@ -280,11 +273,10 @@ const createBooking = async (req, res) => {
       });
     }
 
-        // ============================================
-    // 3. CHECK EXISTING BOOKINGS ON SAME DATE & SESSION (DOUBLE BOOKING PREVENTION)
+    // ============================================
+    // 3. CHECK FOR DOUBLE BOOKING (SAME DATE + SESSION)
     // ============================================
 
-    // FIRST: Check if EXACT same date + session + oasis + package is already booked
     const exactMatchBooking = await Booking.findOne({
       oasis,
       package: packageName,
@@ -302,116 +294,19 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // SECOND: Check all bookings on this date (for daily limits)
-    const existingBookings = await Booking.find({
-      oasis,
-      bookingDate: { $gte: start, $lt: end },
-      status: { $in: ["Pending", "Confirmed"] },
-    });
+    // ============================================
+    // 4. CHECK DATE ADVANCE LIMITS
+    // ============================================
 
-    const customerExistingBooking = existingBookings.find(
-      (b) => b.customerEmail === customerEmail,
-    );
+    // const maxAdvanceDate = new Date();
+    // maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
 
-    if (customerExistingBooking) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You already have a booking on this date. Please choose another date.",
-      });
-    }
-
-    if (existingBookings.length >= OASIS_CONFIG[oasis].maxBookingsPerDay) {
-      return res.status(400).json({
-        success: false,
-        message: `${oasis} is fully booked for this date. Please choose another date.`,
-      });
-    }
-
-    // const totalPaxForDay = existingBookings.reduce((sum, b) => sum + b.pax, 0);
-    // if (totalPaxForDay + pax > OASIS_CONFIG[oasis].maxPaxPerDay) {
+    // if (selectedDate > maxAdvanceDate) {
     //   return res.status(400).json({
     //     success: false,
-    //     message: `Daily capacity reached for ${oasis}. Maximum ${OASIS_CONFIG[oasis].maxPaxPerDay} persons per day.`,
+    //     message: "You can only book up to 3 months in advance.",
     //   });
     // }
-
-    // ============================================
-    // 4. CHECK SESSION-SPECIFIC AVAILABILITY
-    // ============================================
-
-    console.log(`🔍 Checking if ${session} is available on ${bookingDate}`);
-    console.log(
-      `   Date range: ${start.toISOString()} to ${end.toISOString()}`,
-    );
-
-    const confirmedSessionBooking = await Booking.findOne({
-      oasis,
-      session,
-      bookingDate: { $gte: start, $lt: end },
-      status: "Confirmed",
-      paymentStatus: "Paid",
-    });
-
-    if (confirmedSessionBooking) {
-      console.log(`❌ Found conflicting booking:`, confirmedSessionBooking);
-      return res.status(400).json({
-        success: false,
-        message: `${session} session is already booked on this date. Please choose a different session (Day, Night, or 22hrs).`,
-      });
-    }
-
-    console.log(`✅ ${session} session is available on this date`);
-
-    // ============================================
-    // 5. CHECK PENDING BOOKING LIMIT (per customer)
-    // ============================================
-
-    const existingPendingBooking = await Booking.findOne({
-      customerEmail,
-      status: "Pending",
-      createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-    });
-
-    if (existingPendingBooking) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You have a pending booking. Please complete your payment first.",
-      });
-    }
-
-    // ============================================
-    // 6. CHECK FUTURE BOOKINGS LIMIT (per customer)
-    // ============================================
-
-    const futureBookingsCount = await Booking.countDocuments({
-      customerEmail,
-      bookingDate: { $gte: new Date() },
-      status: { $in: ["Pending", "Confirmed"] },
-    });
-
-    if (futureBookingsCount >= 2) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You already have 2 upcoming bookings. Please complete or cancel one first.",
-      });
-    }
-
-    // ============================================
-    // 7. CHECK DATE ADVANCE LIMITS
-    // ============================================
-
-    const maxAdvanceDate = new Date();
-    maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
-
-    if (selectedDate > maxAdvanceDate) {
-      return res.status(400).json({
-        success: false,
-        message: "You can only book up to 3 months in advance.",
-      });
-    }
 
     const minAdvanceDate = new Date();
     minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
@@ -428,8 +323,6 @@ const createBooking = async (req, res) => {
     // CREATE BOOKING - ALL CHECKS PASSED
     // ============================================
 
-    // FIXED: All payments start as Pending - no auto-confirmation
-    // Staff must verify payment proof before confirming
     const paymentStatusForBooking = "Pending";
 
     // Generate unique booking reference
@@ -477,11 +370,10 @@ const createBooking = async (req, res) => {
     console.log(`✅ Booking created successfully:`);
     console.log(`   - Booking ID: ${newBooking._id}`);
     console.log(`   - Payment Proof Saved: ${newBooking.paymentProof || 'NONE'}`);
-    console.log(`   - Payment Status: ${newBooking.paymentStatus}`);
 
     res.status(201).json({
       success: true,
-      message: "Booking submitted successfully. Please wait for staff to verify your payment and confirm your booking.",
+      message: "Booking submitted successfully. Please wait for staff to verify your payment.",
       booking: newBooking,
     });
   } catch (error) {
