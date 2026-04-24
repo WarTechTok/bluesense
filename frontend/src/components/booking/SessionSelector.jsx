@@ -180,7 +180,7 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     if (oasis === 'Oasis 1' && packageName === 'Package 1') {
       return [
         { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-        { id: 'Night', name: 'Night Session', time: '6:00 PM - 6:00 AM' },
+        { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
       ];
     }
     
@@ -188,15 +188,15 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     if (oasis === 'Oasis 2' && packageName === 'Package A') {
       return [
         { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-        { id: 'Night', name: 'Night Session', time: '6:00 PM - 6:00 AM' },
+        { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
       ];
     }
     
     // Most packages have all three sessions
     return [
       { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-      { id: 'Night', name: 'Night Session', time: '6:00 PM - 6:00 AM' },
-      { id: '22hrs', name: '22-Hour Session', time: 'Flexible schedule' },
+      { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
+      { id: '22hrs', name: '22-Hour Session', time: 'Fixed 22-hour schedule' }, // 🔴 UPDATED
     ];
   };
 
