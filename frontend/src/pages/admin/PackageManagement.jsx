@@ -21,8 +21,8 @@ const PackageManagement = () => {
     oasis: 'Oasis 1',
     name: '',
     description: '',
-    baseCapacity: 20,
-    maxCapacity: 200,
+    maxCapacity: 20,
+    minCapacity: 0,
     inclusions: [],
     pricing: {},
     availableSessions: ['Day', 'Night'],
@@ -128,7 +128,6 @@ const PackageManagement = () => {
     try {
       let imageUrl = formData.image;
       
-      // Upload image if a new file was selected
       if (imageFile) {
         imageUrl = await uploadImage();
       }
@@ -156,8 +155,8 @@ const PackageManagement = () => {
       oasis: pkg.oasis,
       name: pkg.name,
       description: pkg.description || '',
-      baseCapacity: pkg.baseCapacity,
-      maxCapacity: pkg.maxCapacity,
+      maxCapacity: pkg.maxCapacity || 20,
+      minCapacity: pkg.minCapacity || 0,
       inclusions: pkg.inclusions || [],
       pricing: pkg.pricing || {},
       availableSessions: pkg.availableSessions || ['Day', 'Night'],
@@ -189,8 +188,8 @@ const PackageManagement = () => {
       oasis: 'Oasis 1',
       name: '',
       description: '',
-      baseCapacity: 20,
-      maxCapacity: 200,
+      maxCapacity: 20,
+      minCapacity: 0,
       inclusions: [],
       pricing: {},
       availableSessions: ['Day', 'Night'],
@@ -201,6 +200,13 @@ const PackageManagement = () => {
     setImagePreview(null);
     setImageFile(null);
     setInclusionInput('');
+  };
+
+  const getCapacityDisplay = (pkg) => {
+    if (pkg.minCapacity && pkg.minCapacity > 0) {
+      return `${pkg.minCapacity} - ${pkg.maxCapacity} pax`;
+    }
+    return `Up to ${pkg.maxCapacity} pax`;
   };
 
   const filteredPackages = packages.filter(p => p.oasis === selectedOasis);
@@ -267,7 +273,7 @@ const PackageManagement = () => {
                 <div className="package-details">
                   <div className="detail-item">
                     <span className="label">Capacity:</span>
-                    <span className="value">{pkg.baseCapacity} - {pkg.maxCapacity} pax</span>
+                    <span className="value">{getCapacityDisplay(pkg)}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Sessions:</span>
@@ -327,12 +333,13 @@ const PackageManagement = () => {
                   </div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Base Capacity</label>
-                      <input type="number" value={formData.baseCapacity} onChange={(e) => setFormData({ ...formData, baseCapacity: parseInt(e.target.value) })} min="1" />
+                      <label>Maximum Capacity *</label>
+                      <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
                     </div>
                     <div className="form-group">
-                      <label>Max Capacity</label>
-                      <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
+                      <label>Minimum Capacity (if required)</label>
+                      <input type="number" value={formData.minCapacity} onChange={(e) => setFormData({ ...formData, minCapacity: parseInt(e.target.value) })} min="0" />
+                      <small>Leave 0 for no minimum requirement</small>
                     </div>
                     <div className="form-group">
                       <label>Display Order</label>
