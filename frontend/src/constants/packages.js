@@ -12,7 +12,8 @@ let dataCache = {
   addons: [],
   sessions: [],
   isLoading: false,
-  lastFetch: null
+  lastFetch: null,
+  loadPromise: null
 };
 
 // Fetch add-ons from API (public)
@@ -73,7 +74,7 @@ const transformPackageData = (apiPackage) => {
   return {
     id: apiPackage._id,
     name: apiPackage.name,
-    image: `/images/packages/${apiPackage.oasis === 'Oasis 1' ? 'oasis1' : 'oasis2'}/${apiPackage.name.toLowerCase().replace(/ /g, '-')}.jpg`,
+    image: apiPackage.image || `/images/packages/${apiPackage.oasis === 'Oasis 1' ? 'oasis1' : 'oasis2'}/${apiPackage.name.toLowerCase().replace(/ /g, '-')}.jpg`,
     subtitle: apiPackage.description?.substring(0, 50) || apiPackage.name,
     capacity: `${apiPackage.baseCapacity} - ${apiPackage.maxCapacity} pax`,
     baseCapacity: apiPackage.baseCapacity,
@@ -88,78 +89,94 @@ const transformPackageData = (apiPackage) => {
 
 // Fetch all packages from API using PUBLIC endpoint
 export const fetchAllPackages = async () => {
-  if (dataCache.isLoading) return dataCache;
+  // If already loading, return the existing promise
+  if (dataCache.loadPromise) {
+    return dataCache.loadPromise;
+  }
+  
+  // If we have cached data less than 5 minutes old, use it
+  if (dataCache.lastFetch && (Date.now() - dataCache.lastFetch < 300000) && dataCache.Oasis1Packages.length > 0) {
+    return dataCache;
+  }
   
   dataCache.isLoading = true;
   
-  try {
-    // 🔴 USING PUBLIC ENDPOINT - no token required
-    const response = await fetch(`${API_BASE_URL}/api/admin/packages/public`);
-    
-    if (!response.ok) {
-      console.warn('Failed to fetch packages, using empty array');
+  dataCache.loadPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/packages/public`);
+      
+      if (!response.ok) {
+        console.warn('Failed to fetch packages, using empty array');
+        dataCache.Oasis1Packages = [];
+        dataCache.Oasis2Packages = [];
+        return dataCache;
+      }
+      
+      const data = await response.json();
+      
+      const oasis1Packages = data
+        .filter(pkg => pkg.oasis === 'Oasis 1' && pkg.isActive === true)
+        .map(pkg => transformPackageData(pkg));
+      
+      const oasis2Packages = data
+        .filter(pkg => pkg.oasis === 'Oasis 2' && pkg.isActive === true)
+        .map(pkg => transformPackageData(pkg));
+      
+      dataCache.Oasis1Packages = oasis1Packages;
+      dataCache.Oasis2Packages = oasis2Packages;
+      dataCache.lastFetch = Date.now();
+      
+      console.log('✅ Packages loaded:', { oasis1: oasis1Packages.length, oasis2: oasis2Packages.length });
+      
+      return dataCache;
+    } catch (error) {
+      console.error('Error fetching packages:', error);
       dataCache.Oasis1Packages = [];
       dataCache.Oasis2Packages = [];
       return dataCache;
+    } finally {
+      dataCache.isLoading = false;
+      dataCache.loadPromise = null;
     }
-    
-    const data = await response.json();
-    
-    const oasis1Packages = data
-      .filter(pkg => pkg.oasis === 'Oasis 1' && pkg.isActive === true)
-      .map(pkg => transformPackageData(pkg));
-    
-    const oasis2Packages = data
-      .filter(pkg => pkg.oasis === 'Oasis 2' && pkg.isActive === true)
-      .map(pkg => transformPackageData(pkg));
-    
-    dataCache.Oasis1Packages = oasis1Packages;
-    dataCache.Oasis2Packages = oasis2Packages;
-    dataCache.lastFetch = Date.now();
-    
-    console.log('✅ Packages loaded:', { oasis1: oasis1Packages.length, oasis2: oasis2Packages.length });
-    
-    return dataCache;
-  } catch (error) {
-    console.error('Error fetching packages:', error);
-    dataCache.Oasis1Packages = [];
-    dataCache.Oasis2Packages = [];
-    return dataCache;
-  } finally {
-    dataCache.isLoading = false;
-  }
+  })();
+  
+  return dataCache.loadPromise;
 };
 
-// Export getters
+// Export getters that return the current cached data
 export const getOasis1Packages = () => dataCache.Oasis1Packages || [];
 export const getOasis2Packages = () => dataCache.Oasis2Packages || [];
 export const getAddons = () => dataCache.addons || [];
 export const getSessions = () => dataCache.sessions || [];
 
-// Default exports
-export let OASIS1_PACKAGES = [];
-export let OASIS2_PACKAGES = [];
-export let ADDONS = [];
-export let SESSIONS = [];
-
-// Initialize
+// Refresh all data (use this in components)
 export const refreshAllData = async () => {
   await Promise.all([
     fetchAddons(),
     fetchSessions(),
     fetchAllPackages()
   ]);
-  
-  OASIS1_PACKAGES = dataCache.Oasis1Packages;
-  OASIS2_PACKAGES = dataCache.Oasis2Packages;
-  ADDONS = dataCache.addons;
-  SESSIONS = dataCache.sessions;
-  
-  return { OASIS1_PACKAGES, OASIS2_PACKAGES, ADDONS, SESSIONS };
+  return {
+    OASIS1_PACKAGES: dataCache.Oasis1Packages,
+    OASIS2_PACKAGES: dataCache.Oasis2Packages,
+    ADDONS: dataCache.addons,
+    SESSIONS: dataCache.sessions
+  };
 };
 
-// Auto-initialize
-refreshAllData();
+// Default exports - will be populated after refresh
+export let OASIS1_PACKAGES = [];
+export let OASIS2_PACKAGES = [];
+export let ADDONS = [];
+export let SESSIONS = [];
+
+// Auto-initialize and update exports
+refreshAllData().then(result => {
+  OASIS1_PACKAGES = result.OASIS1_PACKAGES;
+  OASIS2_PACKAGES = result.OASIS2_PACKAGES;
+  ADDONS = result.ADDONS;
+  SESSIONS = result.SESSIONS;
+});
 
 export const PAYMENT_METHODS = ["GCash", "Maya", "GoTyme", "SeaBank", "Cash"];
 
