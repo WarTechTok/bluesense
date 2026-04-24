@@ -244,217 +244,119 @@ const PackageManagement = () => {
   };
 
   const renderPricingFields = () => {
-    if (isPackageC()) {
-      return (
-        <div className="form-section">
-          <h4>Pricing (₱)</h4>
-
-          {/* Option 1: PAX-based Pricing */}
-          <div className="pricing-group">
-            <h5 style={{ margin: "16px 0 8px 0", color: "#0284c7" }}>
-              📊 PAX-Based Pricing
-            </h5>
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#64748b",
-                marginBottom: "12px",
-              }}
-            >
-              Use this for pricing based on guest count (50 PAX / 100 PAX)
-            </p>
-
-            {/* 50 PAX */}
-            <div style={{ marginBottom: "16px" }}>
-              <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>50 PAX</h6>
+  if (isPackageC()) {
+    // Generate PAX levels dynamically based on min and max capacity
+    // For Package C, minCapacity = 50, maxCapacity = 100
+    // This could generate levels like: 50, 60, 70, 80, 90, 100
+    // Or just the min and max values
+    const paxLevels = [];
+    const minPax = formData.minCapacity || 50;
+    const maxPax = formData.maxCapacity || 100;
+    
+    // You can customize how many levels to show
+    // Option 1: Only show min and max
+    paxLevels.push(minPax, maxPax);
+    
+    // Option 2: Show every 10 pax (50, 60, 70, 80, 90, 100)
+    // for (let i = minPax; i <= maxPax; i += 10) {
+    //   paxLevels.push(i);
+    // }
+    
+    return (
+      <div className="form-section">
+        <h4>Pricing (₱)</h4>
+        
+        {/* PAX-Based Pricing - Dynamic based on min/max capacity */}
+        <div className="pricing-group">
+          <h5 style={{ margin: '16px 0 8px 0', color: '#0284c7' }}>📊 PAX-Based Pricing</h5>
+          <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>
+            Based on min capacity ({minPax} PAX) and max capacity ({maxPax} PAX)
+          </p>
+          
+          {paxLevels.map((paxLevel) => (
+            <div key={paxLevel} style={{ marginBottom: '16px' }}>
+              <h6 style={{ margin: '0 0 8px 0', color: '#1e293b' }}>{paxLevel} PAX</h6>
               <div className="pricing-table">
                 <div className="pricing-header">
                   <div className="pricing-cell">Session</div>
                   <div className="pricing-cell">Price</div>
                 </div>
-                {["Day", "Night", "22hrs"].map(
-                  (session) =>
-                    formData.availableSessions.includes(session) && (
-                      <div key={session} className="pricing-row">
-                        <div className="pricing-cell">{session}</div>
-                        <div className="pricing-cell">
-                          <input
-                            type="number"
-                            value={
-                              formData.pricing["50pax"]?.[session]?.weekday ||
-                              ""
-                            }
-                            onChange={(e) =>
-                              handlePricingChange(
-                                session,
-                                "50pax",
-                                "weekday",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Price for 50 PAX"
-                          />
-                        </div>
-                      </div>
-                    ),
-                )}
-              </div>
-            </div>
-
-            {/* 100 PAX */}
-            <div>
-              <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>100 PAX</h6>
-              <div className="pricing-table">
-                <div className="pricing-header">
-                  <div className="pricing-cell">Session</div>
-                  <div className="pricing-cell">Price</div>
-                </div>
-                {["Day", "Night", "22hrs"].map(
-                  (session) =>
-                    formData.availableSessions.includes(session) && (
-                      <div key={session} className="pricing-row">
-                        <div className="pricing-cell">{session}</div>
-                        <div className="pricing-cell">
-                          <input
-                            type="number"
-                            value={
-                              formData.pricing["100pax"]?.[session]?.weekday ||
-                              ""
-                            }
-                            onChange={(e) =>
-                              handlePricingChange(
-                                session,
-                                "100pax",
-                                "weekday",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Price for 100 PAX"
-                          />
-                        </div>
-                      </div>
-                    ),
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Option 2: Weekday/Weekend Pricing */}
-          <div className="pricing-group" style={{ marginTop: "24px" }}>
-            <h5 style={{ margin: "0 0 8px 0", color: "#f59e0b" }}>
-              📅 Weekday / Weekend Pricing (Alternative)
-            </h5>
-            <p
-              style={{
-                fontSize: "12px",
-                color: "#64748b",
-                marginBottom: "12px",
-              }}
-            >
-              Use this for standard pricing based on day of week
-            </p>
-            <div className="pricing-table">
-              <div className="pricing-header">
-                <div className="pricing-cell">Session</div>
-                <div className="pricing-cell">Monday - Thursday</div>
-                <div className="pricing-cell">Friday - Sunday</div>
-              </div>
-              {["Day", "Night", "22hrs"].map(
-                (session) =>
+                {['Day', 'Night', '22hrs'].map(session => (
                   formData.availableSessions.includes(session) && (
                     <div key={session} className="pricing-row">
                       <div className="pricing-cell">{session}</div>
                       <div className="pricing-cell">
-                        <input
-                          type="number"
-                          value={formData.pricing[session]?.weekday || ""}
-                          onChange={(e) =>
-                            handlePricingChange(
-                              session,
-                              null,
-                              "weekday",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="Weekday"
-                        />
-                      </div>
-                      <div className="pricing-cell">
-                        <input
-                          type="number"
-                          value={formData.pricing[session]?.weekend || ""}
-                          onChange={(e) =>
-                            handlePricingChange(
-                              session,
-                              null,
-                              "weekend",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="Weekend"
+                        <input 
+                          type="number" 
+                          value={formData.pricing[`${paxLevel}pax`]?.[session]?.weekday || ''} 
+                          onChange={(e) => handlePricingChange(session, `${paxLevel}pax`, 'weekday', e.target.value)} 
+                          placeholder={`Price for ${paxLevel} PAX`}
                         />
                       </div>
                     </div>
-                  ),
-              )}
+                  )
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-      );
-    } else {
-      // Regular packages - only Weekday/Weekend pricing
-      return (
-        <div className="form-section">
-          <h4>Pricing (₱)</h4>
+
+        {/* Weekday/Weekend Pricing (Alternative) */}
+        <div className="pricing-group" style={{ marginTop: '24px' }}>
+          <h5 style={{ margin: '0 0 8px 0', color: '#f59e0b' }}>📅 Weekday / Weekend Pricing (Alternative)</h5>
+          <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '12px' }}>Use this for standard pricing based on day of week</p>
           <div className="pricing-table">
             <div className="pricing-header">
               <div className="pricing-cell">Session</div>
               <div className="pricing-cell">Monday - Thursday</div>
               <div className="pricing-cell">Friday - Sunday</div>
             </div>
-            {["Day", "Night", "22hrs"].map(
-              (session) =>
-                formData.availableSessions.includes(session) && (
-                  <div key={session} className="pricing-row">
-                    <div className="pricing-cell">{session}</div>
-                    <div className="pricing-cell">
-                      <input
-                        type="number"
-                        value={formData.pricing[session]?.weekday || ""}
-                        onChange={(e) =>
-                          handlePricingChange(
-                            session,
-                            null,
-                            "weekday",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Weekday"
-                      />
-                    </div>
-                    <div className="pricing-cell">
-                      <input
-                        type="number"
-                        value={formData.pricing[session]?.weekend || ""}
-                        onChange={(e) =>
-                          handlePricingChange(
-                            session,
-                            null,
-                            "weekend",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="Weekend"
-                      />
-                    </div>
+            {['Day', 'Night', '22hrs'].map(session => (
+              formData.availableSessions.includes(session) && (
+                <div key={session} className="pricing-row">
+                  <div className="pricing-cell">{session}</div>
+                  <div className="pricing-cell">
+                    <input type="number" value={formData.pricing[session]?.weekday || ''} onChange={(e) => handlePricingChange(session, null, 'weekday', e.target.value)} placeholder="Weekday" />
                   </div>
-                ),
-            )}
+                  <div className="pricing-cell">
+                    <input type="number" value={formData.pricing[session]?.weekend || ''} onChange={(e) => handlePricingChange(session, null, 'weekend', e.target.value)} placeholder="Weekend" />
+                  </div>
+                </div>
+              )
+            ))}
           </div>
         </div>
-      );
-    }
-  };
+      </div>
+    );
+  } else {
+    // Regular packages - only Weekday/Weekend pricing
+    return (
+      <div className="form-section">
+        <h4>Pricing (₱)</h4>
+        <div className="pricing-table">
+          <div className="pricing-header">
+            <div className="pricing-cell">Session</div>
+            <div className="pricing-cell">Monday - Thursday</div>
+            <div className="pricing-cell">Friday - Sunday</div>
+          </div>
+          {['Day', 'Night', '22hrs'].map(session => (
+            formData.availableSessions.includes(session) && (
+              <div key={session} className="pricing-row">
+                <div className="pricing-cell">{session}</div>
+                <div className="pricing-cell">
+                  <input type="number" value={formData.pricing[session]?.weekday || ''} onChange={(e) => handlePricingChange(session, null, 'weekday', e.target.value)} placeholder="Weekday" />
+                </div>
+                <div className="pricing-cell">
+                  <input type="number" value={formData.pricing[session]?.weekend || ''} onChange={(e) => handlePricingChange(session, null, 'weekend', e.target.value)} placeholder="Weekend" />
+                </div>
+              </div>
+            )
+          ))}
+        </div>
+      </div>
+    );
+  }
+};
 
   const filteredPackages = packages.filter((p) => p.oasis === selectedOasis);
 
