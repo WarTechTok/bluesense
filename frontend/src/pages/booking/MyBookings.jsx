@@ -3,7 +3,7 @@
 // MY BOOKINGS - Shows logged-in user's bookings
 // ============================================
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import "./MyBookings.css";
@@ -12,15 +12,11 @@ import "./MyBookings.css";
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const MyBookings = () => {
-  const [proofFile, setProofFile] = useState(null);
-  const [proofPreview, setProofPreview] = useState(null);
-  const proofInputRef = useRef(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  // Cancel modal completely removed - customers cannot cancel bookings
   const navigate = useNavigate();
 
   useEffect(() => {
