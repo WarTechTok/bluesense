@@ -20,10 +20,7 @@ const MyBookings = () => {
   const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [isEmergency, setIsEmergency] = useState(false);
+  // Cancel modal completely removed - customers cannot cancel bookings
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -86,106 +83,6 @@ const MyBookings = () => {
     setSelectedBooking(null);
   };
 
-  const handleCancelClick = (booking) => {
-    setSelectedBooking(booking);
-    setCancelReason("");
-    setIsEmergency(false);
-    setProofFile(null);
-    setProofPreview(null);
-    setShowCancelModal(true);
-    setShowModal(false);
-  };
-
-  const handleProofChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setProofFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProofPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeProof = () => {
-    setProofFile(null);
-    setProofPreview(null);
-    if (proofInputRef.current) {
-      proofInputRef.current.value = "";
-    }
-  };
-
-  const handleConfirmCancel = async () => {
-    if (!cancelReason.trim()) {
-      alert("Please provide a reason for cancellation");
-      return;
-    }
-
-    if (isEmergency && !proofFile) {
-      alert("Please upload proof for your emergency refund request");
-      return;
-    }
-
-    setCancelling(true);
-
-    try {
-      const token = localStorage.getItem("token");
-
-      const formData = new FormData();
-      formData.append("reason", cancelReason);
-      formData.append("isEmergency", isEmergency ? "true" : "false");
-      if (proofFile) {
-        formData.append("proof", proofFile);
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/bookings/${selectedBooking._id}/cancel`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        },
-      );
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Show success message based on cancellation type
-        if (isEmergency) {
-          alert(
-            "✅ Cancellation Submitted!\n\nYour refund request will be reviewed within 3-5 business days.",
-          );
-        } else {
-          alert(
-            "✅ Booking Cancelled!\n\nPlease note that the downpayment is non-refundable.",
-          );
-        }
-
-        setShowCancelModal(false);
-        // Reset form
-        setCancelReason("");
-        setIsEmergency(false);
-        setProofFile(null);
-        setProofPreview(null);
-        // Refresh bookings
-        const user = JSON.parse(localStorage.getItem("user") || "{}");
-        fetchBookings(user.email);
-      } else {
-        alert(data.message || "Failed to cancel booking");
-      }
-    } catch (error) {
-      console.error("Cancel error:", error);
-      alert(
-        "Unable to cancel booking. Please check your connection and try again.",
-      );
-    } finally {
-      setCancelling(false);
-    }
-  };
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -223,9 +120,8 @@ const MyBookings = () => {
     }
   };
 
-  const canCancel = (booking) => {
-    return booking.status === "Pending" || booking.status === "Confirmed";
-  };
+  // 🔴 CANCEL BUTTON REMOVED - Customers cannot cancel bookings
+  // They must contact the resort directly for any cancellation requests
 
   return (
     <>
@@ -317,14 +213,7 @@ const MyBookings = () => {
                       >
                         View Details
                       </button>
-                      {canCancel(booking) && (
-                        <button
-                          className="btn-cancel"
-                          onClick={() => handleCancelClick(booking)}
-                        >
-                          Cancel Booking
-                        </button>
-                      )}
+                      {/* 🔴 CANCEL BUTTON REMOVED */}
                     </div>
                   </div>
                 ))}
@@ -496,155 +385,6 @@ const MyBookings = () => {
             <div className="modal-footer">
               <button className="btn-close-modal" onClick={handleCloseModal}>
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel Confirmation Modal */}
-      {showCancelModal && selectedBooking && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowCancelModal(false)}
-        >
-          <div
-            className="modal-container cancel-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modal-header">
-              <h3>Cancel Booking</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowCancelModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="warning-box">
-                <i className="fas fa-exclamation-triangle"></i>
-                <p>
-                  <strong>⚠️ Important Notice:</strong> Downpayment is{" "}
-                  <strong>NON-REFUNDABLE</strong> for regular cancellations.
-                </p>
-              </div>
-
-              <div className="cancel-options">
-                <label className="cancel-option">
-                  <input
-                    type="radio"
-                    name="cancelType"
-                    checked={!isEmergency}
-                    onChange={() => setIsEmergency(false)}
-                  />
-                  <div>
-                    <strong>Regular Cancellation</strong>
-                    <p>
-                      Downpayment is non-refundable. No refund will be issued.
-                    </p>
-                  </div>
-                </label>
-
-                <label className="cancel-option">
-                  <input
-                    type="radio"
-                    name="cancelType"
-                    checked={isEmergency}
-                    onChange={() => setIsEmergency(true)}
-                  />
-                  <div>
-                    <strong>
-                      Emergency Cancellation (with Refund Request)
-                    </strong>
-                    <p>
-                      For emergencies like fire, flood, medical emergencies.
-                      Refund will be reviewed.
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="form-group">
-                <label>Reason for cancellation:</label>
-                <textarea
-                  rows="3"
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder={
-                    isEmergency
-                      ? "Please describe the emergency situation..."
-                      : "Please tell us why you're cancelling..."
-                  }
-                  className="cancel-reason-input"
-                />
-              </div>
-
-              {/* File Upload for Proof - Only show for Emergency */}
-              {isEmergency && (
-                <div className="form-group proof-upload">
-                  <label>Upload Proof (Required for Refund Request):</label>
-                  <p className="proof-help-text">
-                    Please upload a photo of the emergency situation (fire,
-                    flood, medical certificate, etc.)
-                  </p>
-
-                  {/* Hidden file input */}
-                  <input
-                    type="file"
-                    ref={proofInputRef}
-                    onChange={handleProofChange}
-                    accept="image/jpeg,image/png,image/jpg,image/gif"
-                    className="proof-file-input-hidden"
-                    id="proof-file-input"
-                  />
-
-                  {/* Icon button to trigger file upload */}
-                  <label
-                    htmlFor="proof-file-input"
-                    className="proof-upload-btn"
-                  >
-                    <i className="fas fa-camera"></i>
-                    <span>{proofFile ? "Change Photo" : "Upload Photo"}</span>
-                  </label>
-
-                  {proofFile && (
-                    <div className="proof-file-name">
-                      <i className="fas fa-image"></i>
-                      <span>{proofFile.name}</span>
-                      <button
-                        type="button"
-                        onClick={removeProof}
-                        className="remove-proof-icon"
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </div>
-                  )}
-
-                  {proofPreview && (
-                    <div className="proof-preview-mini">
-                      <img src={proofPreview} alt="Proof preview" />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowCancelModal(false)}
-              >
-                Go Back
-              </button>
-              <button
-                className="btn-danger"
-                onClick={handleConfirmCancel}
-                disabled={cancelling || (isEmergency && !proofFile)}
-              >
-                {cancelling ? "Processing..." : "Confirm Cancellation"}
               </button>
             </div>
           </div>
