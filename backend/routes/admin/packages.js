@@ -8,7 +8,36 @@ const router = express.Router();
 const Package = require('../../models/Package');
 const { verifyToken, isStaff } = require('../../middleware/auth');
 
-// GET all packages
+// ============================================
+// PUBLIC ROUTES - No authentication required
+// ============================================
+
+// GET active packages for customers (public)
+router.get('/public', async (req, res) => {
+  try {
+    const packages = await Package.find({ isActive: true }).sort({ oasis: 1, displayOrder: 1 });
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET packages by oasis (public)
+router.get('/public/oasis/:oasis', async (req, res) => {
+  try {
+    const { oasis } = req.params;
+    const packages = await Package.find({ oasis, isActive: true }).sort({ displayOrder: 1 });
+    res.json(packages);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// ADMIN ROUTES - Authentication required
+// ============================================
+
+// GET all packages (admin only)
 router.get('/', verifyToken, isStaff, async (req, res) => {
   try {
     const packages = await Package.find().sort({ oasis: 1, displayOrder: 1 });
@@ -18,7 +47,7 @@ router.get('/', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// GET packages by oasis
+// GET packages by oasis (admin only)
 router.get('/oasis/:oasis', verifyToken, isStaff, async (req, res) => {
   try {
     const { oasis } = req.params;
@@ -32,9 +61,9 @@ router.get('/oasis/:oasis', verifyToken, isStaff, async (req, res) => {
 // GET single package
 router.get('/:id', verifyToken, isStaff, async (req, res) => {
   try {
-    const package = await Package.findById(req.params.id);
-    if (!package) return res.status(404).json({ error: 'Package not found' });
-    res.json(package);
+    const pkg = await Package.findById(req.params.id);
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+    res.json(pkg);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
