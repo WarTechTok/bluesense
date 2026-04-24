@@ -1,6 +1,6 @@
 /* frontend/src/pages/admin/AddOnManagement.css */
 /* ============================================ */
-/* ADD-ON MANAGEMENT - Same theme as Oasis pages */
+/* ADD-ON MANAGEMENT - Same card style as Package Management */
 /* ============================================ */
 
 .addon-hero {
@@ -52,23 +52,25 @@
   transform: translateY(-2px);
 }
 
+/* Add-ons Grid - Same style as Packages Grid */
 .addons-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 24px;
 }
 
+/* Add-on Card - Same style as Package Card */
 .addon-card {
   background: white;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   transition: all 0.3s ease;
 }
 
 .addon-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }
 
 .addon-card.inactive {
@@ -76,15 +78,17 @@
   background: #f8fafc;
 }
 
+/* Card Header - Same as Package header */
 .addon-header {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 1px solid #e2e8f0;
 }
 
+/* Icon styling */
 .addon-icon {
   width: 48px;
   height: 48px;
@@ -103,7 +107,7 @@
 
 .addon-name {
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #1e293b;
   margin: 0 0 4px;
 }
@@ -114,11 +118,43 @@
   margin: 0;
 }
 
+/* Action Buttons - Same as Package */
 .addon-actions {
   display: flex;
   gap: 8px;
 }
 
+.btn-icon {
+  background: white;
+  border: 1px solid #e2e8f0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon i {
+  font-size: 14px;
+}
+
+.btn-icon.edit:hover {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: white;
+}
+
+.btn-icon.delete:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+/* Card Details - Same as Package details */
 .addon-details {
   padding: 16px 20px;
 }
@@ -150,6 +186,24 @@
   font-size: 1rem;
 }
 
+/* Status Badges */
+.status-badge.active {
+  color: #10b981;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+.status-badge.inactive {
+  color: #ef4444;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+}
+
+/* Modal */
 .addon-modal {
   max-width: 500px;
 }
@@ -167,7 +221,8 @@
 }
 
 .addon-form .form-group input,
-.addon-form .form-group textarea {
+.addon-form .form-group textarea,
+.addon-form .form-group select {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #e2e8f0;
@@ -175,12 +230,48 @@
   font-size: 0.9rem;
 }
 
-.addon-form .checkbox-group {
+.checkbox-group {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
 }
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.checkbox-label input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  text-align: center;
+  padding: 60px;
+  color: #64748b;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .addons-grid {
     grid-template-columns: 1fr;

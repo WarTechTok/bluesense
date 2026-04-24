@@ -1,12 +1,13 @@
 // frontend/src/pages/admin/PackageManagement.jsx
 // ============================================
-// PACKAGE MANAGEMENT - Admin only
-// Same theme as Oasis 1 & Oasis 2 pages
+// PACKAGE MANAGEMENT - Admin only with image upload
 // ============================================
 
 import React, { useState, useEffect } from 'react';
 import * as packageApi from '../../services/admin/packages';
 import './PackageManagement.css';
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const PackageManagement = () => {
   const [packages, setPackages] = useState([]);
@@ -14,6 +15,8 @@ const PackageManagement = () => {
   const [selectedOasis, setSelectedOasis] = useState('Oasis 1');
   const [editingPackage, setEditingPackage] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState({
     oasis: 'Oasis 1',
     name: '',
@@ -24,7 +27,8 @@ const PackageManagement = () => {
     pricing: {},
     availableSessions: ['Day', 'Night'],
     displayOrder: 1,
-    isActive: true
+    isActive: true,
+    image: ''
   });
   const [inclusionInput, setInclusionInput] = useState('');
 
@@ -41,6 +45,45 @@ const PackageManagement = () => {
       console.error('Error fetching packages:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!imageFile) return formData.image;
+    
+    const uploadFormData = new FormData();
+    uploadFormData.append('image', imageFile);
+    
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/packages/upload-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: uploadFormData
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.imageUrl;
+      }
+      return formData.image;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return formData.image;
     }
   };
 
@@ -83,10 +126,19 @@ const PackageManagement = () => {
     }
     
     try {
+      let imageUrl = formData.image;
+      
+      // Upload image if a new file was selected
+      if (imageFile) {
+        imageUrl = await uploadImage();
+      }
+      
+      const packageData = { ...formData, image: imageUrl };
+      
       if (editingPackage) {
-        await packageApi.updatePackage(editingPackage._id, formData);
+        await packageApi.updatePackage(editingPackage._id, packageData);
       } else {
-        await packageApi.createPackage(formData);
+        await packageApi.createPackage(packageData);
       }
       setShowModal(false);
       fetchPackages();
@@ -110,8 +162,11 @@ const PackageManagement = () => {
       pricing: pkg.pricing || {},
       availableSessions: pkg.availableSessions || ['Day', 'Night'],
       displayOrder: pkg.displayOrder || 1,
-      isActive: pkg.isActive !== false
+      isActive: pkg.isActive !== false,
+      image: pkg.image || ''
     });
+    setImagePreview(pkg.image ? `${API_BASE_URL}${pkg.image}` : null);
+    setImageFile(null);
     setShowModal(true);
   };
 
@@ -140,8 +195,11 @@ const PackageManagement = () => {
       pricing: {},
       availableSessions: ['Day', 'Night'],
       displayOrder: 1,
-      isActive: true
+      isActive: true,
+      image: ''
     });
+    setImagePreview(null);
+    setImageFile(null);
     setInclusionInput('');
   };
 
@@ -149,17 +207,15 @@ const PackageManagement = () => {
 
   return (
     <div className="package-management">
-      {/* Hero Section */}
       <div className="package-hero">
         <div className="package-hero-content">
           <span className="hero-badge">Admin Panel</span>
           <h1>Package Management</h1>
-          <p>Manage package prices, descriptions, and inclusions</p>
+          <p>Manage package prices, descriptions, images, and inclusions</p>
         </div>
       </div>
 
       <div className="package-container">
-        {/* Oasis Selector */}
         <div className="oasis-selector">
           <button 
             className={`oasis-tab ${selectedOasis === 'Oasis 1' ? 'active' : ''}`}
@@ -175,14 +231,12 @@ const PackageManagement = () => {
           </button>
         </div>
 
-        {/* Add Package Button */}
         <div className="package-actions-bar">
           <button className="btn-add-package" onClick={() => { resetForm(); setShowModal(true); }}>
             <i className="fas fa-plus"></i> Add New Package
           </button>
         </div>
 
-        {/* Packages Grid */}
         {loading ? (
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -203,6 +257,11 @@ const PackageManagement = () => {
                     </button>
                   </div>
                 </div>
+                {pkg.image && (
+                  <div className="package-image">
+                    <img src={`${API_BASE_URL}${pkg.image}`} alt={pkg.name} />
+                  </div>
+                )}
                 <p className="package-description">{pkg.description}</p>
                 
                 <div className="package-details">
@@ -222,7 +281,6 @@ const PackageManagement = () => {
                   </div>
                 </div>
 
-                {/* Pricing Preview */}
                 <div className="package-pricing-preview">
                   <div className="pricing-preview-title">Starting from</div>
                   <div className="pricing-preview-amount">
@@ -280,6 +338,34 @@ const PackageManagement = () => {
                       <label>Display Order</label>
                       <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })} min="1" />
                     </div>
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div className="form-section">
+                  <h4>Package Image</h4>
+                  <div className="image-upload-container">
+                    {imagePreview ? (
+                      <div className="image-preview">
+                        <img src={imagePreview} alt="Package preview" />
+                        <button type="button" className="remove-image-btn" onClick={() => {
+                          setImagePreview(null);
+                          setImageFile(null);
+                          setFormData({ ...formData, image: '' });
+                        }}>
+                          <i className="fas fa-times"></i> Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="image-upload-area">
+                        <label className="image-upload-label">
+                          <i className="fas fa-cloud-upload-alt"></i>
+                          <span>Click to upload package image</span>
+                          <input type="file" accept="image/*" onChange={handleImageChange} hidden />
+                        </label>
+                        <p className="image-hint">Recommended size: 800x600px, Max 5MB</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 

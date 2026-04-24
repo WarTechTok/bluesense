@@ -5,8 +5,49 @@
 
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const Package = require('../../models/Package');
 const { verifyToken, isStaff } = require('../../middleware/auth');
+
+// ============================================
+// IMAGE UPLOAD CONFIGURATION
+// ============================================
+
+const packageImageDir = path.join(__dirname, '../../../uploads/package-images');
+if (!fs.existsSync(packageImageDir)) {
+  fs.mkdirSync(packageImageDir, { recursive: true });
+  console.log('✅ Created uploads/package-images folder');
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, packageImageDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
+  
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    return cb(new Error('Only images are allowed'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: fileFilter
+});
 
 // ============================================
 // PUBLIC ROUTES - No authentication required
@@ -29,6 +70,25 @@ router.get('/public/oasis/:oasis', async (req, res) => {
     const packages = await Package.find({ oasis, isActive: true }).sort({ displayOrder: 1 });
     res.json(packages);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// IMAGE UPLOAD ROUTE
+// ============================================
+
+// POST upload package image (admin only)
+router.post('/upload-image', verifyToken, isStaff, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    
+    const imageUrl = `/uploads/package-images/${req.file.filename}`;
+    res.json({ imageUrl });
+  } catch (error) {
+    console.error('Error uploading image:', error);
     res.status(500).json({ error: error.message });
   }
 });

@@ -21,6 +21,12 @@ const packageSchema = new mongoose.Schema({
     default: ''
   },
   
+  // Image
+  image: {
+    type: String,
+    default: ''
+  },
+  
   // Capacity
   baseCapacity: {
     type: Number,
