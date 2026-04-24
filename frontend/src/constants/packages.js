@@ -44,7 +44,7 @@ export const fetchSessions = async () => {
   }
 };
 
-// Transform API package data
+// Transform API package data - FIXED to use minCapacity and maxCapacity
 const transformPackageData = (apiPackage) => {
   const pricing = {};
   
@@ -61,23 +61,25 @@ const transformPackageData = (apiPackage) => {
         "22hrs": apiPackage.pricing['100pax']["22hrs"]?.weekday || 0
       };
     } else {
-      pricing.weekday = {};
-      pricing.weekend = {};
-      
-      apiPackage.availableSessions?.forEach(session => {
-        pricing.weekday[session] = apiPackage.pricing[session]?.weekday || 0;
-        pricing.weekend[session] = apiPackage.pricing[session]?.weekend || 0;
-      });
+      // Regular packages - keep the pricing structure as is
+      for (const [session, prices] of Object.entries(apiPackage.pricing)) {
+        pricing[session] = prices;
+      }
     }
   }
+  
+  // 🔴 FIXED: Use minCapacity and maxCapacity, not baseCapacity
+  const hasMinCapacity = apiPackage.minCapacity && apiPackage.minCapacity > 0;
   
   return {
     id: apiPackage._id,
     name: apiPackage.name,
     image: apiPackage.image || `/images/packages/${apiPackage.oasis === 'Oasis 1' ? 'oasis1' : 'oasis2'}/${apiPackage.name.toLowerCase().replace(/ /g, '-')}.jpg`,
     subtitle: apiPackage.description?.substring(0, 50) || apiPackage.name,
-    capacity: `${apiPackage.baseCapacity} - ${apiPackage.maxCapacity} pax`,
-    baseCapacity: apiPackage.baseCapacity,
+    capacity: hasMinCapacity 
+      ? `${apiPackage.minCapacity} - ${apiPackage.maxCapacity} pax`
+      : `Up to ${apiPackage.maxCapacity} pax`,
+    minCapacity: apiPackage.minCapacity || 0,
     maxCapacity: apiPackage.maxCapacity,
     inclusions: apiPackage.inclusions || [],
     addons: [],
@@ -143,26 +145,38 @@ export const fetchAllPackages = async () => {
   return dataCache.loadPromise;
 };
 
+// Force clear cache and refresh (called after admin updates)
+export const refreshAllData = async () => {
+  // Clear cache
+  dataCache.lastFetch = null;
+  dataCache.Oasis1Packages = [];
+  dataCache.Oasis2Packages = [];
+  dataCache.loadPromise = null;
+  
+  // Refetch all data
+  await fetchAddons();
+  await fetchSessions();
+  await fetchAllPackages();
+  
+  // Update exported arrays
+  OASIS1_PACKAGES = dataCache.Oasis1Packages;
+  OASIS2_PACKAGES = dataCache.Oasis2Packages;
+  ADDONS = dataCache.addons;
+  SESSIONS = dataCache.sessions;
+  
+  return {
+    OASIS1_PACKAGES,
+    OASIS2_PACKAGES,
+    ADDONS,
+    SESSIONS
+  };
+};
+
 // Export getters that return the current cached data
 export const getOasis1Packages = () => dataCache.Oasis1Packages || [];
 export const getOasis2Packages = () => dataCache.Oasis2Packages || [];
 export const getAddons = () => dataCache.addons || [];
 export const getSessions = () => dataCache.sessions || [];
-
-// Refresh all data (use this in components)
-export const refreshAllData = async () => {
-  await Promise.all([
-    fetchAddons(),
-    fetchSessions(),
-    fetchAllPackages()
-  ]);
-  return {
-    OASIS1_PACKAGES: dataCache.Oasis1Packages,
-    OASIS2_PACKAGES: dataCache.Oasis2Packages,
-    ADDONS: dataCache.addons,
-    SESSIONS: dataCache.sessions
-  };
-};
 
 // Default exports - will be populated after refresh
 export let OASIS1_PACKAGES = [];
