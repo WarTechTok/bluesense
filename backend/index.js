@@ -29,6 +29,13 @@ const salesRoutes = require("./routes/sales.js");
 const reportRoutes = require("./routes/reports.js");
 const maintenanceRoutes = require("./routes/maintenance.js");
 
+// ============================================
+// NEW: PACKAGE, ADD-ON & SESSION MANAGEMENT ROUTES
+// ============================================
+const packageRoutes = require("./routes/admin/packages.js");
+const addOnRoutes = require("./routes/admin/addons.js");
+const sessionRoutes = require("./routes/admin/sessions.js");
+
 const app = express();
 
 // Create uploads folder for payment proofs if it doesn't exist
@@ -125,6 +132,13 @@ app.use("/api/admin/staff", staffRoutes);
 app.use("/api/admin/sales", salesRoutes);
 app.use("/api/admin/reports", reportRoutes);
 app.use("/api/admin/maintenance", maintenanceRoutes);
+
+// ============================================
+// NEW: PACKAGE, ADD-ON & SESSION MANAGEMENT API ROUTES
+// ============================================
+app.use("/api/admin/packages", packageRoutes);
+app.use("/api/admin/addons", addOnRoutes);
+app.use("/api/admin/sessions", sessionRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access

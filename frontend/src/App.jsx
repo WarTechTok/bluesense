@@ -1,6 +1,12 @@
 // frontend/src/App.jsx
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import AdminLayout from "./components/admin/AdminLayout";
 import ReceptionistLayout from "./components/receptionist/ReceptionistLayout";
@@ -30,9 +36,12 @@ import Gallery from "./pages/Gallery";
 import Booking from "./pages/booking/Booking";
 import MyBookings from "./pages/booking/MyBookings";
 import Profile from "./pages/Profile";
-import VerifyEmail from "./pages/VerifyEmail";  // ADD THIS IMPORT
+import VerifyEmail from "./pages/VerifyEmail"; // ADD THIS IMPORT
 import ProtectedRoute from "./components/ProtectedRoute";
-import OAuthRedirect from './pages/OAuthRedirect';
+import OAuthRedirect from "./pages/OAuthRedirect";
+import PackageManagement from "./pages/admin/PackageManagement";
+import AddOnManagement from "./pages/admin/AddOnManagement";
+import SessionManagement from "./pages/admin/SessionManagement";
 
 // ScrollToTop component - resets scroll position on page change
 function ScrollToTop() {
@@ -47,30 +56,30 @@ function ScrollToTop() {
 
 // Component to redirect users based on role - checks if already logged in
 function HomeRedirect() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token');
-  
+  const user = JSON.parse(localStorage.getItem("user"));
+  const token = localStorage.getItem("token");
+
   // If logged in as admin, redirect to admin dashboard
-  if (token && user?.role === 'admin') {
+  if (token && user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
-  
+
   // If logged in as staff, redirect to staff dashboard
-  if (token && user?.role === 'staff') {
+  if (token && user?.role === "staff") {
     return <Navigate to="/staff/dashboard" replace />;
   }
-  
+
   // If not logged in, show Home page
   return <Home />;
 }
 
 // Component for /dashboard endpoint (legacy support)
 function DashboardRedirect() {
-  const user = JSON.parse(localStorage.getItem('user'));
-  if (user?.role === 'admin') {
+  const user = JSON.parse(localStorage.getItem("user"));
+  if (user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;
   }
-  if (user?.role === 'staff') {
+  if (user?.role === "staff") {
     return <Navigate to="/staff/dashboard" replace />;
   }
   return <Dashboard />;
@@ -90,228 +99,240 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />  {/* ADD THIS ROUTE */}
+        <Route path="/verify-email" element={<VerifyEmail />} />{" "}
+        {/* ADD THIS ROUTE */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/oauth-redirect" element={<OAuthRedirect />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/my-bookings" element={<MyBookings />} />
-        <Route 
-          path="/profile" 
+        <Route
+          path="/profile"
           element={
-            <ProtectedRoute allowedRoles={['customer', 'staff', 'admin']}>
+            <ProtectedRoute allowedRoles={["customer", "staff", "admin"]}>
               <Profile />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Protected Route - Admin/Staff ONLY - Admin redirect to admin dashboard */}
-        <Route 
-          path="/dashboard" 
+        <Route
+          path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'staff']}>
+            <ProtectedRoute allowedRoles={["admin", "staff"]}>
               <DashboardRedirect />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Staff Dashboard - Staff ONLY (With Sidebar) */}
-        <Route 
-          path="/staff/dashboard" 
+        <Route
+          path="/staff/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <StaffDashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Staff Tasks - Staff ONLY (With Sidebar) */}
-        <Route 
-          path="/staff/tasks" 
+        <Route
+          path="/staff/tasks"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <Tasks />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Staff Inspections - Staff ONLY (With Sidebar) */}
-        <Route 
-          path="/staff/inspections" 
+        <Route
+          path="/staff/inspections"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <Inspections />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Staff Assigned Rooms - Staff ONLY (With Sidebar) */}
-        <Route 
-          path="/staff/rooms" 
+        <Route
+          path="/staff/rooms"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <Rooms />
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Admin Dashboard - Admin ONLY (With Sidebar) */}
-        <Route 
-          path="/admin/dashboard" 
+        <Route
+          path="/admin/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <AdminDashboard />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
         {/* Admin Management Pages - Admin ONLY (With Sidebar) */}
-        <Route 
-          path="/admin/rooms" 
+        <Route
+          path="/admin/rooms"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <RoomManagement />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/staff" 
+        <Route
+          path="/admin/addons"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <AddOnManagement />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/sessions"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <SessionManagement />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/staff"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <StaffManagement />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/inventory" 
+        <Route
+          path="/admin/inventory"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <InventoryManagement />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/bookings" 
+        <Route
+          path="/admin/bookings"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <BookingManagement />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/sales" 
+        <Route
+          path="/admin/sales"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <SalesTracking />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/reports" 
+        <Route
+          path="/admin/reports"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <Reports />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/admin/maintenance" 
+        <Route
+          path="/admin/maintenance"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <MaintenanceManagement />
               </AdminLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
+        <Route
+          path="/admin/packages"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <PackageManagement />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
         {/* ============================================
             RECEPTIONIST ROUTES - Role: staff, Position: Receptionist
             ============================================ */}
-        <Route 
-          path="/receptionist/dashboard" 
+        <Route
+          path="/receptionist/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <ReceptionistDashboard />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/receptionist/bookings" 
+        <Route
+          path="/receptionist/bookings"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <BookingManagement />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/receptionist/rooms" 
+        <Route
+          path="/receptionist/rooms"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <RoomManagement />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/receptionist/inventory" 
+        <Route
+          path="/receptionist/inventory"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <InventoryManagement />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/receptionist/sales" 
+        <Route
+          path="/receptionist/sales"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <SalesTracking />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
-
-        <Route 
-          path="/receptionist/reports" 
+        <Route
+          path="/receptionist/reports"
           element={
-            <ProtectedRoute allowedRoles={['staff']}>
+            <ProtectedRoute allowedRoles={["staff"]}>
               <ReceptionistLayout>
                 <Reports />
               </ReceptionistLayout>
             </ProtectedRoute>
-          } 
+          }
         />
       </Routes>
     </BrowserRouter>

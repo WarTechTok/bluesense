@@ -13,3 +13,7 @@ export * from './staff';
 export * from './sales';
 export * from './reports';
 export * from './maintenance';
+// Add to the exports
+export * from './packages';
+export * from './addons';
+export * from './sessions';
