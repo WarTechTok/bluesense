@@ -10,7 +10,7 @@ import SessionSelector from '../../components/booking/SessionSelector';
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage, onSessionSelect, selectedSession }) {
+function DateStep({ formData, errors, handleChange, selectedOasis, selectedPackage, onSessionSelect, selectedSession, packageData }) {
   const [bookedSessions, setBookedSessions] = useState({});
 
   // Get logged-in user email
@@ -34,7 +34,6 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
 
     const fetchBookedSessions = async () => {
       try {
-        // Use environment variable instead of hardcoded localhost
         const url = `${API_BASE_URL}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}&package=${encodeURIComponent(selectedPackage)}&email=${encodeURIComponent(currentUserEmail)}`;
         
         console.log('📅 Fetching booked sessions from:', url);
@@ -48,13 +47,11 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
             const dateStr = formData.reservationDate;
             const dateBookings = data.bookedDates[dateStr] || {};
             
-            // Extract which sessions are booked
             const bookedSessionData = {};
             if (dateBookings.Day?.booked) bookedSessionData.Day = true;
             if (dateBookings.Night?.booked) bookedSessionData.Night = true;
             if (dateBookings['22hrs']?.booked) bookedSessionData['22hrs'] = true;
             
-            // Also track if user has a booking on this date
             if (dateBookings.userHasBooking) {
               bookedSessionData.userHasBooking = true;
             }
@@ -72,7 +69,6 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
   }, [formData.reservationDate, selectedOasis, selectedPackage, currentUserEmail]);
   
   const handleDateChange = (date) => {
-    // Fix timezone issue - use local date instead of UTC
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -81,7 +77,6 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
   };
 
   const handleSessionChange = (session) => {
-    // Update both formData and parent state
     handleChange({ target: { name: 'session', value: session } });
     if (onSessionSelect) {
       onSessionSelect(session);
@@ -91,13 +86,12 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
   const getSessionName = (sessionId) => {
     const sessions = {
       'Day': 'Day Session (8AM - 5PM)',
-      'Night': 'Night Session (6PM - 6AM)',
-      '22hrs': '22-Hour Session (Flexible)'
+      'Night': 'Night Session (8PM - 6AM)',
+      '22hrs': '22-Hour Session (Fixed schedule)'
     };
     return sessions[sessionId] || sessionId;
   };
 
-  // Use selectedSession from props or formData.session
   const currentSession = selectedSession || formData.session;
 
   return (
@@ -172,6 +166,7 @@ function DateStep({ formData, errors, handleChange, selectedOasis, selectedPacka
             oasis={selectedOasis}
             packageName={selectedPackage}
             bookedSessions={bookedSessions}
+            packageData={packageData}
           />
           {currentSession && (
             <div className="selected-display">

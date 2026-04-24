@@ -543,6 +543,7 @@ function Booking() {
                   onSessionSelect={handleSessionSelect}
                   selectedSession={selectedSession}
                   availableSessions={getAvailableSessions()}
+                  packageData={currentPackage} // ← ADD THIS LINE
                 />
               )}
 

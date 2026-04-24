@@ -1,25 +1,26 @@
 // frontend/src/components/booking/SessionSelector.jsx
 // ============================================
-// SESSION SELECTOR - Radio buttons with clear pricing
+// SESSION SELECTOR - Dynamic with pricing from packageData
 // ============================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getSessions, refreshAllData } from '../../constants/packages';
 
-function SessionSelector({ selectedSession, onSessionChange, oasis, packageName, bookedSessions = {} }) {
+function SessionSelector({ selectedSession, onSessionChange, oasis, packageName, bookedSessions = {}, packageData }) {
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dayType, setDayType] = useState('weekday'); // This should come from selected date
   
-  // Check if 22hrs should be disabled (if Day OR Night is booked)
   const is22hrsDisabled = () => {
     return bookedSessions.Day === true || bookedSessions.Night === true;
   };
 
-  // Check if a specific session is disabled
   const isSessionDisabled = (sessionId) => {
     if (bookedSessions[sessionId]) return true;
     if (sessionId === '22hrs' && is22hrsDisabled()) return true;
     return false;
   };
 
-  // Get tooltip/helper message for disabled sessions
   const getDisabledMessage = (sessionId) => {
     if (sessionId === '22hrs' && is22hrsDisabled()) {
       return '22-hour session requires both Day and Night availability';
@@ -30,143 +31,40 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     return '';
   };
 
-  // Get pricing display with weekday/weekend breakdown
-  const getSessionPriceDisplay = (session) => {
-    // Oasis 1 Package 1
-    if (oasis === 'Oasis 1' && packageName === 'Package 1') {
-      if (session === 'Day') {
-        return { weekday: '₱5,999', weekend: '₱6,400' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱6,400', weekend: '₱6,800' };
-      }
+  // Get price for a session from packageData
+  const getSessionPrice = (sessionId) => {
+    if (!packageData || !packageData.pricing) return null;
+    
+    // Handle Package C special pricing (pax-based)
+    if (packageData.name === 'Package C') {
+      // This should be dynamic based on selected pax
+      return { type: 'pax', price: 'Varies by guest count' };
     }
     
-    // Oasis 1 Package 2
-    if (oasis === 'Oasis 1' && packageName === 'Package 2') {
-      if (session === 'Day') {
-        return { weekday: '₱9,000', weekend: '₱9,500' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱10,000', weekend: '₱10,500' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱15,000', weekend: '₱16,000' };
-      }
-    }
+    // Regular packages
+    const pricing = packageData.pricing;
+    const price = pricing[dayType]?.[sessionId];
     
-    // Oasis 1 Package 3
-    if (oasis === 'Oasis 1' && packageName === 'Package 3') {
-      if (session === 'Day') {
-        return { weekday: '₱9,500', weekend: '₱10,000' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱10,500', weekend: '₱11,000' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱16,000', weekend: '₱17,000' };
-      }
-    }
-    
-    // Oasis 1 Package 4
-    if (oasis === 'Oasis 1' && packageName === 'Package 4') {
-      if (session === 'Day') {
-        return { weekday: '₱10,000', weekend: '₱10,500' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱11,000', weekend: '₱11,500' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱17,000', weekend: '₱18,000' };
-      }
-    }
-    
-    // Oasis 1 Package 5
-    if (oasis === 'Oasis 1' && packageName === 'Package 5') {
-      if (session === 'Day') {
-        return { weekday: '₱14,200', weekend: '₱15,600' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱14,600', weekend: '₱16,000' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱19,400', weekend: '₱21,200' };
-      }
-    }
-    
-    // Oasis 1 Package 5+
-    if (oasis === 'Oasis 1' && packageName === 'Package 5+') {
-      if (session === 'Day') {
-        return { weekday: '₱17,000', weekend: '₱20,000' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱18,000', weekend: '₱21,000' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱25,000', weekend: '₱30,000' };
-      }
-    }
-    
-    // Oasis 2 Package A
-    if (oasis === 'Oasis 2' && packageName === 'Package A') {
-      if (session === 'Day') {
-        return { weekday: '₱7,500', weekend: '₱10,000' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱8,500', weekend: '₱11,000' };
-      }
-    }
-    
-    // Oasis 2 Package B
-    if (oasis === 'Oasis 2' && packageName === 'Package B') {
-      if (session === 'Day') {
-        return { weekday: '₱9,000', weekend: '₱12,000' };
-      }
-      if (session === 'Night') {
-        return { weekday: '₱10,000', weekend: '₱12,500' };
-      }
-      if (session === '22hrs') {
-        return { weekday: '₱16,500', weekend: '₱20,000' };
-      }
-    }
-    
-    // Oasis 2 Package C - Based on PAX, not day of week
-    if (oasis === 'Oasis 2' && packageName === 'Package C') {
-      if (session === 'Day') {
-        return { pax50: '₱19,000', pax100: '₱20,000' };
-      }
-      if (session === 'Night') {
-        return { pax50: '₱20,000', pax100: '₱21,000' };
-      }
-      if (session === '22hrs') {
-        return { pax50: '₱26,000', pax100: '₱30,000' };
-      }
+    if (price) {
+      return { type: 'fixed', weekday: pricing.weekday?.[sessionId], weekend: pricing.weekend?.[sessionId] };
     }
     
     return null;
   };
 
-  // Render price display based on package type
   const renderPrice = (sessionId) => {
-    const price = getSessionPriceDisplay(sessionId);
-    if (!price) return <div className="session-price">Price varies</div>;
+    const priceInfo = getSessionPrice(sessionId);
+    if (!priceInfo) return <div className="session-price">Price varies</div>;
     
-    // Package C - shows based on PAX
-    if (price.pax50 && price.pax100) {
-      return (
-        <div className="session-price">
-          <div className="price-row">50 PAX: {price.pax50}</div>
-          <div className="price-row">100 PAX: {price.pax100}</div>
-        </div>
-      );
+    if (priceInfo.type === 'pax') {
+      return <div className="session-price">Based on guest count</div>;
     }
     
-    // Regular packages - shows weekday/weekend
-    if (price.weekday && price.weekend) {
+    if (priceInfo.weekday && priceInfo.weekend) {
       return (
         <div className="session-price">
-          <div className="price-row weekday">Mon-Thu: {price.weekday}</div>
-          <div className="price-row weekend">Fri-Sun: {price.weekend}</div>
+          <div className="price-row weekday">Mon-Thu: ₱{priceInfo.weekday.toLocaleString()}</div>
+          <div className="price-row weekend">Fri-Sun: ₱{priceInfo.weekend.toLocaleString()}</div>
         </div>
       );
     }
@@ -174,38 +72,51 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     return <div className="session-price">Price varies</div>;
   };
 
-  // Get available sessions based on package
-  const getAvailableSessions = () => {
-    // Oasis 1 Package 1 only has Day and Night
-    if (oasis === 'Oasis 1' && packageName === 'Package 1') {
-      return [
-        { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-        { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
-      ];
-    }
-    
-    // Oasis 2 Package A only has Day and Night
-    if (oasis === 'Oasis 2' && packageName === 'Package A') {
-      return [
-        { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-        { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
-      ];
-    }
-    
-    // Most packages have all three sessions
-    return [
-      { id: 'Day', name: 'Day Session', time: '8:00 AM - 5:00 PM' },
-      { id: 'Night', name: 'Night Session', time: '8:00 PM - 6:00 AM' }, // 🔴 UPDATED
-      { id: '22hrs', name: '22-Hour Session', time: 'Fixed 22-hour schedule' }, // 🔴 UPDATED
-    ];
-  };
+  // Load sessions from API
+  useEffect(() => {
+    const loadSessions = async () => {
+      setLoading(true);
+      await refreshAllData();
+      const sessionList = getSessions();
+      const formattedSessions = sessionList.map(session => ({
+        id: session.name,
+        name: session.displayName,
+        time: `${session.startTime} - ${session.endTime}`,
+        downpaymentAmount: session.downpaymentAmount
+      }));
+      setSessions(formattedSessions);
+      setLoading(false);
+    };
+    loadSessions();
+  }, []);
 
-  const sessions = getAvailableSessions();
+  // Determine day type from selected date (pass from parent)
+  useEffect(() => {
+    // This should come from the selected date in parent
+    // For now, we'll use a placeholder
+    const date = new Date();
+    const isWeekend = date.getDay() === 5 || date.getDay() === 6 || date.getDay() === 0;
+    setDayType(isWeekend ? 'weekend' : 'weekday');
+  }, []);
+
+  const availableSessions = packageData?.availableSessions 
+    ? sessions.filter(s => packageData.availableSessions.includes(s.id))
+    : sessions;
+
+  if (loading) {
+    return (
+      <div className="session-selector">
+        <div className="session-options">
+          <div className="loading-state">Loading sessions...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="session-selector">
       <div className="session-options">
-        {sessions.map((session) => {
+        {availableSessions.map((session) => {
           const isDisabled = isSessionDisabled(session.id);
           const disabledMessage = getDisabledMessage(session.id);
           const isSelected = selectedSession === session.id;
@@ -235,6 +146,7 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
                   {session.id === '22hrs' && isBooked && <span className="booked-badge">Already Booked</span>}
                 </div>
                 <div className="session-time">{session.time}</div>
+                <div className="session-downpayment">Downpayment: ₱{session.downpaymentAmount?.toLocaleString()}</div>
               </div>
               <div className="session-price-container">
                 {renderPrice(session.id)}
@@ -244,7 +156,6 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
         })}
       </div>
       
-      {/* Info note for 22hrs when Day or Night is booked */}
       {sessions.some(s => s.id === '22hrs') && (bookedSessions.Day || bookedSessions.Night) && (
         <div className="session-info-note" style={{ 
           marginTop: '12px', 

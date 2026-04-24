@@ -1,16 +1,30 @@
 // src/pages/Oasis1.jsx
 // ============================================
-// OASIS 1 PAGE - Consistent with Home page design
+// OASIS 1 PAGE - Dynamic packages from API
 // ============================================
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import PackageCard from '../components/home/PackageCard';
-import { OASIS1_PACKAGES } from '../constants/packages';
+import { fetchAllPackages, getOasis1Packages } from '../constants/packages';
 import './Oasis1.css';
 
 function Oasis1() {
+  const [packages, setPackages] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPackages = async () => {
+      setLoading(true);
+      await fetchAllPackages();
+      const oasis1Packages = getOasis1Packages();
+      setPackages(oasis1Packages);
+      setLoading(false);
+    };
+    loadPackages();
+  }, []);
+
   return (
     <div className="oasis1-page">
       <Navbar />
@@ -85,15 +99,22 @@ function Oasis1() {
           <div className="section-header">
             <h2 className="section-title">Our Packages</h2>
           </div>
-          <div className="packages-grid">
-            {OASIS1_PACKAGES.map((pkg) => (
-              <PackageCard 
-                key={pkg.id} 
-                pkg={pkg}
-                oasis="Oasis 1"
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="loading-spinner">
+              <div className="spinner"></div>
+              <p>Loading packages...</p>
+            </div>
+          ) : (
+            <div className="packages-grid">
+              {packages.map((pkg) => (
+                <PackageCard 
+                  key={pkg.id} 
+                  pkg={pkg}
+                  oasis="Oasis 1"
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
