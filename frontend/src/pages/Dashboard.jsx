@@ -1,327 +1,274 @@
-// frontend/src/pages/Dashboard.jsx
-// ============================================
-// DASHBOARD - main monitoring page with auth links
-// ============================================
-
+// src/pages/admin/Dashboard.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
-import LatestCard from "../components/LatestCard";
-import HistoryView from "../components/history/HistoryView";
+import StatCard from "../../components/admin/StatCard";
+import PoolMonitoring from "../../components/admin/PoolMonitoring";
+import SalesChart from "../../components/admin/SalesChart";
+import "./Dashboard.css";
+import * as adminApi from '../../services/admin';
 
-// Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-// ESP32 Control Component (inline for now)
-const ESP32Control = () => {
-  const [currentOasis, setCurrentOasis] = useState('oasis1');
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalReservations: 0,
+    pendingBookings: 0,
+    confirmedBookings: 0,
+    completedBookings: 0,
+    cancelledBookings: 0,
+    availableRooms: 0,
+    maintainanceRooms: 0,
+    activeStaff: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    totalExpenses: 0,
+    monthlyExpenses: 0,
+    netTotalRevenue: 0,
+    netMonthlyRevenue: 0,
+    lowStockItems: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [esp32Oasis, setEsp32Oasis] = useState('oasis1');
   const [switching, setSwitching] = useState(false);
 
-  // Fetch current oasis on load
-  useEffect(() => {
-    const fetchCurrentOasis = async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/readings/current-oasis`);
-        const data = await response.json();
-        if (data.oasis) {
-          setCurrentOasis(data.oasis);
-        }
-      } catch (error) {
-        console.error('Error fetching current oasis:', error);
-      }
-    };
-    fetchCurrentOasis();
-  }, []);
+  const fetchEsp32Oasis = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/readings/current-oasis`);
+      const data = await response.json();
+      setEsp32Oasis(data.oasis);
+    } catch (error) {
+      console.error("Error fetching ESP32 oasis:", error);
+    }
+  };
 
-  const handleSwitchOasis = async (oasis) => {
+  const switchEsp32Oasis = async (oasis) => {
     setSwitching(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/api/readings/set-oasis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ oasis })
       });
       
       const data = await response.json();
       if (data.success) {
-        setCurrentOasis(oasis);
-        alert(`✅ ESP32 is now monitoring ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`);
+        setEsp32Oasis(oasis);
+        alert(`✅ ESP32 switched to ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`);
+        // Refresh after 3 seconds to show new data
+        setTimeout(() => window.location.reload(), 3000);
       } else {
-        alert('Failed to switch oasis');
+        alert('Failed to switch ESP32');
       }
     } catch (error) {
-      console.error('Error switching oasis:', error);
-      alert('Failed to switch oasis. Make sure backend is running.');
+      console.error("Error switching ESP32:", error);
+      alert('Error switching ESP32');
     } finally {
       setSwitching(false);
     }
   };
 
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      const bookings = await adminApi.getAllBookings();
+      
+      const totalReservations = bookings.length;
+      const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
+      const confirmedBookings = bookings.filter(b => b.status === 'Confirmed').length;
+      const completedBookings = bookings.filter(b => b.status === 'Completed').length;
+      const cancelledBookings = bookings.filter(b => b.status === 'Cancelled').length;
+      
+      const dashboardStats = await adminApi.getDashboardStats();
+      
+      let rooms = [];
+      let availableRooms = 0;
+      let maintainanceRooms = 0;
+      try {
+        rooms = await adminApi.getAllRooms();
+        availableRooms = rooms.filter(r => r.status === 'Available').length;
+        maintainanceRooms = rooms.filter(r => r.status === 'Maintenance').length;
+      } catch (err) {
+        console.error('Error fetching rooms:', err);
+      }
+      
+      let activeStaff = 0;
+      try {
+        const staff = await adminApi.getAllStaff();
+        activeStaff = staff.length;
+      } catch (err) {
+        console.error('Error fetching staff:', err);
+      }
+      
+      setStats({
+        totalReservations,
+        pendingBookings,
+        confirmedBookings,
+        completedBookings,
+        cancelledBookings,
+        availableRooms,
+        maintainanceRooms,
+        activeStaff,
+        totalRevenue: dashboardStats.totalRevenue || 0,
+        monthlyRevenue: dashboardStats.monthlyRevenue || 0,
+        totalExpenses: dashboardStats.totalExpenses || 0,
+        monthlyExpenses: dashboardStats.monthlyExpenses || 0,
+        netTotalRevenue: (dashboardStats.totalRevenue || 0) - (dashboardStats.totalExpenses || 0),
+        netMonthlyRevenue: (dashboardStats.monthlyRevenue || 0) - (dashboardStats.monthlyExpenses || 0),
+        lowStockItems: dashboardStats.lowStockItems || 0
+      });
+      
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+    fetchEsp32Oasis();
+  }, [fetchDashboardData]);
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '12px',
-      padding: '16px 20px',
-      marginBottom: '20px',
-      border: '1px solid #e2e8f0',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-    }}>
-      <h3 style={{
-        fontSize: '0.9rem',
-        fontWeight: '600',
-        color: '#1e293b',
-        margin: '0 0 8px',
+    <div className="dashboard-page">
+      <div className="dashboard-header">
+        <h1>Dashboard</h1>
+        <p>Welcome back, Admin</p>
+      </div>
+
+      {/* ESP32 Oasis Switcher */}
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '20px',
+        marginBottom: '24px',
+        border: '1px solid #e2e8f0',
         display: 'flex',
         alignItems: 'center',
-        gap: '8px'
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px'
       }}>
-        <i className="fas fa-microchip"></i> ESP32 Monitor Control
-      </h3>
-      <p style={{
-        fontSize: '0.75rem',
-        color: '#64748b',
-        margin: '0 0 12px'
-      }}>
-        Select which pool the ESP32 should monitor:
-      </p>
-      <div style={{
-        display: 'flex',
-        gap: '12px',
-        marginBottom: '12px'
-      }}>
-        <button 
-          style={{
-            flex: 1,
-            padding: '8px 16px',
-            background: currentOasis === 'oasis1' ? '#0284c7' : 'transparent',
-            border: currentOasis === 'oasis1' ? 'none' : '1px solid #e2e8f0',
-            borderRadius: '40px',
-            fontSize: '0.75rem',
-            fontWeight: '500',
-            color: currentOasis === 'oasis1' ? 'white' : '#475569',
-            cursor: switching ? 'not-allowed' : 'pointer',
-            opacity: switching ? 0.5 : 1,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-          onClick={() => handleSwitchOasis('oasis1')}
-          disabled={switching}
-        >
-          <i className="fas fa-water"></i> Monitor Oasis 1
-        </button>
-        <button 
-          style={{
-            flex: 1,
-            padding: '8px 16px',
-            background: currentOasis === 'oasis2' ? '#0284c7' : 'transparent',
-            border: currentOasis === 'oasis2' ? 'none' : '1px solid #e2e8f0',
-            borderRadius: '40px',
-            fontSize: '0.75rem',
-            fontWeight: '500',
-            color: currentOasis === 'oasis2' ? 'white' : '#475569',
-            cursor: switching ? 'not-allowed' : 'pointer',
-            opacity: switching ? 0.5 : 1,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '6px'
-          }}
-          onClick={() => handleSwitchOasis('oasis2')}
-          disabled={switching}
-        >
-          <i className="fas fa-water"></i> Monitor Oasis 2
-        </button>
-      </div>
-      <p style={{
-        fontSize: '0.75rem',
-        color: '#1e293b',
-        background: '#f8fafc',
-        padding: '8px',
-        borderRadius: '8px',
-        textAlign: 'center',
-        margin: 0
-      }}>
-        <strong>Currently monitoring:</strong> {currentOasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}
-      </p>
-    </div>
-  );
-};
-
-function Dashboard() {
-  const [showHistory, setShowHistory] = useState(false);
-  const [selectedReading, setSelectedReading] = useState(null);
-  const [liveData, setLiveData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedOasis, setSelectedOasis] = useState('oasis1'); // For filtering display
-
-  // ✅ Fetch function - runs every 5 seconds for instant updates
-  const fetchLatestData = useCallback(async () => {
-    try {
-      // Fetch data for selected oasis
-      const response = await fetch(`${API_BASE_URL}/api/readings/latest?oasis=${selectedOasis}`);
-      const data = await response.json();
-      setLiveData(data);
-      setLoading(false);
-      console.log(`📡 Fetched ${selectedOasis} data - pH:`, data.ph);
-    } catch (error) {
-      console.error("Error fetching live data:", error);
-    }
-  }, [selectedOasis]);
-
-  // Initial fetch + 5-second rapid polling
-  useEffect(() => {
-    fetchLatestData(); // Fetch immediately
-    
-    const interval = setInterval(fetchLatestData, 5000); // Every 5 seconds!
-    return () => clearInterval(interval);
-  }, [fetchLatestData]);
-
-  return (
-    <div style={{ padding: "20px" }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: "20px"
-      }}>
-        <h1>Pool Monitoring Dashboard</h1>
-        
-        <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-          {/* LIVE indicator */}
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center",
-            gap: "6px"
-          }}>
-            <div style={{
-              width: "10px",
-              height: "10px",
-              borderRadius: "50%",
-              backgroundColor: "#10B981",
-              animation: "pulse 1s infinite"
-            }}></div>
-            <span style={{ color: "#10B981", fontWeight: "500" }}>LIVE</span>
-          </div>
-          
-          {/* Oasis Selector for Display */}
-          <div style={{
-            display: "flex",
-            gap: "8px",
-            background: "#f1f5f9",
-            padding: "4px",
-            borderRadius: "40px"
-          }}>
-            <button
-              onClick={() => setSelectedOasis('oasis1')}
-              style={{
-                padding: "6px 16px",
-                background: selectedOasis === 'oasis1' ? '#0284c7' : 'transparent',
-                color: selectedOasis === 'oasis1' ? 'white' : '#475569',
-                border: 'none',
-                borderRadius: "40px",
-                cursor: 'pointer',
-                fontSize: "0.75rem",
-                fontWeight: "500"
-              }}
-            >
-              Oasis 1
-            </button>
-            <button
-              onClick={() => setSelectedOasis('oasis2')}
-              style={{
-                padding: "6px 16px",
-                background: selectedOasis === 'oasis2' ? '#0284c7' : 'transparent',
-                color: selectedOasis === 'oasis2' ? 'white' : '#475569',
-                border: 'none',
-                borderRadius: "40px",
-                cursor: 'pointer',
-                fontSize: "0.75rem",
-                fontWeight: "500"
-              }}
-            >
-              Oasis 2
-            </button>
-          </div>
-          
-          {/* History button */}
+        <div>
+          <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b' }}>
+            <i className="fas fa-microchip"></i> ESP32 Pool Monitor Control
+          </h3>
+          <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#64748b' }}>
+            Currently monitoring: <strong style={{ color: esp32Oasis === 'oasis1' ? '#0284c7' : '#f59e0b' }}>
+              {esp32Oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}
+            </strong>
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
           <button
-            onClick={() => setShowHistory(!showHistory)}
+            onClick={() => switchEsp32Oasis('oasis1')}
+            disabled={switching || esp32Oasis === 'oasis1'}
             style={{
-              padding: "8px 16px",
-              backgroundColor: showHistory ? "#f44336" : "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontWeight: "bold"
+              padding: '8px 24px',
+              background: esp32Oasis === 'oasis1' ? '#0284c7' : '#f1f5f9',
+              color: esp32Oasis === 'oasis1' ? 'white' : '#475569',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: esp32Oasis === 'oasis1' ? 'default' : 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.2s'
             }}
           >
-            {showHistory ? "✕ Close History" : "📊 View History"}
+            Set to Oasis 1
           </button>
-
-          {/* Login Button */}
-          <Link to="/login">
-            <button style={{
-              padding: "8px 16px",
-              backgroundColor: "#3B82F6",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}>
-              Login
-            </button>
-          </Link>
-
-          {/* Register Button */}
-          <Link to="/register">
-            <button style={{
-              padding: "8px 16px",
-              backgroundColor: "#10B981",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}>
-              Register
-            </button>
-          </Link>
+          <button
+            onClick={() => switchEsp32Oasis('oasis2')}
+            disabled={switching || esp32Oasis === 'oasis2'}
+            style={{
+              padding: '8px 24px',
+              background: esp32Oasis === 'oasis2' ? '#f59e0b' : '#f1f5f9',
+              color: esp32Oasis === 'oasis2' ? 'white' : '#475569',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: esp32Oasis === 'oasis2' ? 'default' : 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+          >
+            Set to Oasis 2
+          </button>
         </div>
       </div>
 
-      {/* ESP32 Control Panel - Only visible to admin? You can add role check here */}
-      <ESP32Control />
+      <PoolMonitoring />
 
-      <LatestCard
-        selectedReading={selectedReading}
-        liveData={liveData}
-        loading={loading}
-      />
-      
-      {showHistory && (
-        <HistoryView 
-          onClose={() => setShowHistory(false)}
-          onReadingClick={setSelectedReading}
-          oasis={selectedOasis}
-        />
-      )}
+      {/* Financial Summary */}
+      <div className="stats-section">
+        <h2 className="section-title">Financial Summary</h2>
+        <div className="financial-table">
+          <div className="financial-row header">
+            <div className="financial-cell">Metric</div>
+            <div className="financial-cell text-right">Total</div>
+            <div className="financial-cell text-right">Monthly</div>
+          </div>
+          
+          <div className="financial-row">
+            <div className="financial-cell label">Revenue</div>
+            <div className="financial-cell text-right amount-positive">₱{stats.totalRevenue.toLocaleString()}</div>
+            <div className="financial-cell text-right amount-positive">₱{stats.monthlyRevenue.toLocaleString()}</div>
+          </div>
+          
+          <div className="financial-row">
+            <div className="financial-cell label">Expenses</div>
+            <div className="financial-cell text-right amount-negative">₱{stats.totalExpenses.toLocaleString()}</div>
+            <div className="financial-cell text-right amount-negative">₱{stats.monthlyExpenses.toLocaleString()}</div>
+          </div>
+          
+          <div className="financial-row highlight">
+            <div className="financial-cell label">Net Profit</div>
+            <div className={`financial-cell text-right ${stats.netTotalRevenue >= 0 ? 'amount-profit' : 'amount-loss'}`}>
+              ₱{stats.netTotalRevenue.toLocaleString()}
+            </div>
+            <div className={`financial-cell text-right ${stats.netMonthlyRevenue >= 0 ? 'amount-profit' : 'amount-loss'}`}>
+              ₱{stats.netMonthlyRevenue.toLocaleString()}
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <style>{`
-        @keyframes pulse {
-          0% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.3); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
+      {/* Booking Status */}
+      <div className="stats-section">
+        <h2 className="section-title">Booking Status</h2>
+        <div className="stats-grid">
+          <StatCard title="Pending" value={stats.pendingBookings} icon="⏳" color="#f59e0b" />
+          <StatCard title="Confirmed" value={stats.confirmedBookings} icon="✓" color="#10b981" />
+          <StatCard title="Completed" value={stats.completedBookings} icon="✅" color="#3b82f6" />
+          <StatCard title="Cancelled" value={stats.cancelledBookings} icon="❌" color="#ef4444" />
+        </div>
+      </div>
+
+      {/* Facilities Status */}
+      <div className="stats-section">
+        <h2 className="section-title">Facilities Status</h2>
+        <div className="stats-grid">
+          <StatCard title="Available Rooms" value={stats.availableRooms} icon="🏠" color="#10b981" />
+          <StatCard title="Maintenance" value={stats.maintainanceRooms} icon="🔧" color="#f59e0b" />
+          <StatCard title="Low Stock Items" value={stats.lowStockItems} icon="📦" color="#ef4444" />
+        </div>
+      </div>
+
+      {/* Sales Charts */}
+      <SalesChart />
     </div>
   );
-}
+};
 
 export default Dashboard;
