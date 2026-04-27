@@ -4,9 +4,7 @@
 // ============================================
 
 const Readings = require("../models/reading.js");
-
-// Store current oasis in memory (can be changed by admin)
-let currentOasis = "oasis1"; // Default to oasis1
+const Settings = require("../models/Settings.js");
 
 // ============================================
 // Add new reading from ESP32 (authenticated)
@@ -121,9 +119,9 @@ const getHistory = async (req, res) => {
 };
 
 // ============================================
-// Set which oasis the ESP32 should monitor
+// Set which oasis the ESP32 should monitor (saved to database)
 // ============================================
-const setCurrentOasis = (req, res) => {
+const setCurrentOasis = async (req, res) => {
     try {
         const { oasis } = req.body;
         
@@ -131,26 +129,41 @@ const setCurrentOasis = (req, res) => {
             return res.status(400).json({ error: "Invalid oasis. Must be 'oasis1' or 'oasis2'" });
         }
         
-        currentOasis = oasis;
+        // Save to database (persists across server restarts)
+        await Settings.findOneAndUpdate(
+            { key: 'currentOasis' },
+            { value: oasis },
+            { upsert: true, new: true }
+        );
+        
         console.log(`📡 ESP32 should now monitor: ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`);
         
         res.json({ 
             success: true, 
-            oasis: currentOasis,
+            oasis: oasis,
             message: `ESP32 will now monitor ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`
         });
     } catch (error) {
+        console.error("Error setting current oasis:", error);
         res.status(500).json({ error: error.message });
     }
 };
 
 // ============================================
-// Get current oasis the ESP32 should monitor
+// Get current oasis the ESP32 should monitor (from database)
 // ============================================
-const getCurrentOasis = (req, res) => {
+const getCurrentOasis = async (req, res) => {
     try {
-        res.json({ oasis: currentOasis });
+        let setting = await Settings.findOne({ key: 'currentOasis' });
+        
+        if (!setting) {
+            // Create default setting if not exists
+            setting = await Settings.create({ key: 'currentOasis', value: 'oasis1' });
+        }
+        
+        res.json({ oasis: setting.value });
     } catch (error) {
+        console.error("Error getting current oasis:", error);
         res.status(500).json({ error: error.message });
     }
 };
