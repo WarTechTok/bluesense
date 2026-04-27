@@ -9,13 +9,12 @@ const Readings = require("../models/reading.js");
 let currentOasis = "oasis1"; // Default to oasis1
 
 // ============================================
-// Add new reading from ESP32
+// Add new reading from ESP32 (authenticated)
 // ============================================
 const addReading = async (req, res) => {
     try {
         const { oasis, ph, turbidity, temperature, status } = req.body;
         
-        // Validate oasis is provided
         if (!oasis) {
             return res.status(400).json({ error: "oasis field is required (oasis1 or oasis2)" });
         }
@@ -31,6 +30,36 @@ const addReading = async (req, res) => {
         await newReading.save();
         res.status(200).json({ message: "Reading saved successfully", oasis });
     } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+};
+
+// ============================================
+// PUBLIC: Add new reading from ESP32 (no auth)
+// ============================================
+const addReadingPublic = async (req, res) => {
+    try {
+        const { oasis, ph, turbidity, temperature, status } = req.body;
+        
+        console.log("📥 Public reading received:", { oasis, ph, turbidity, temperature });
+        
+        if (!oasis) {
+            return res.status(400).json({ error: "oasis field is required (oasis1 or oasis2)" });
+        }
+        
+        const newReading = new Readings({
+            oasis,
+            ph: ph || 0,
+            turbidity: turbidity || "Unknown",
+            temperature: temperature || 0,
+            status: status || "Normal"
+        });
+        
+        await newReading.save();
+        console.log(`✅ Public reading saved for ${oasis}`);
+        res.status(200).json({ message: "Reading saved successfully", oasis });
+    } catch (err) {
+        console.error("Error saving public reading:", err);
         res.status(400).json({ error: err.message });
     }
 };
@@ -92,7 +121,7 @@ const getHistory = async (req, res) => {
 };
 
 // ============================================
-// NEW: Set which oasis the ESP32 should monitor
+// Set which oasis the ESP32 should monitor
 // ============================================
 const setCurrentOasis = (req, res) => {
     try {
@@ -116,7 +145,7 @@ const setCurrentOasis = (req, res) => {
 };
 
 // ============================================
-// NEW: Get current oasis the ESP32 should monitor
+// Get current oasis the ESP32 should monitor
 // ============================================
 const getCurrentOasis = (req, res) => {
     try {
@@ -127,7 +156,8 @@ const getCurrentOasis = (req, res) => {
 };
 
 module.exports = { 
-    addReading, 
+    addReading,
+    addReadingPublic,
     getLatest, 
     getHistory,
     setCurrentOasis,
