@@ -16,7 +16,7 @@ function DiagonalCalendar({
   const [bookedDates, setBookedDates] = useState({});
   const [loading, setLoading] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [showOwnBookingModal, setShowOwnBookingModal] = useState(false);
+  // showOwnBookingModal removed - no longer needed
 
   // Helper to convert date to YYYY-MM-DD using local date (not UTC/ISO)
   const getLocalDateString = (date) => {
@@ -169,11 +169,8 @@ function DiagonalCalendar({
     const dateStr = getLocalDateString(clickedDate);
     const status = bookedDates[dateStr];
 
-    // Check if user already has a booking on this date
-    if (status && status.userHasBooking === true) {
-      setShowOwnBookingModal(true);
-      return;
-    }
+    // USER BOOKING CHECK - REMOVED per client request
+    // Customers can now book multiple times on the same date
 
     // Check if date is fully booked (Day and Night both booked by others)
     if (status && status.Day?.booked && status.Night?.booked) {
@@ -452,112 +449,6 @@ function DiagonalCalendar({
             >
               <button
                 onClick={() => setShowDuplicateModal(false)}
-                style={{
-                  padding: "10px 24px",
-                  background: "#0284c7",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  color: "white",
-                  fontWeight: "500",
-                  fontSize: "14px",
-                }}
-              >
-                <i className="fas fa-check"></i> OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* You Already Have a Booking Modal */}
-      {showOwnBookingModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 9999,
-          }}
-          onClick={() => setShowOwnBookingModal(false)}
-        >
-          <div
-            style={{
-              backgroundColor: "white",
-              borderRadius: "16px",
-              width: "90%",
-              maxWidth: "400px",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ padding: "24px", textAlign: "center" }}>
-              <div
-                style={{
-                  width: "60px",
-                  height: "60px",
-                  background: "#fef3c7",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 16px",
-                }}
-              >
-                <i
-                  className="fas fa-clock"
-                  style={{ color: "#f59e0b", fontSize: "28px" }}
-                ></i>
-              </div>
-
-              <h2
-                style={{
-                  fontSize: "22px",
-                  fontWeight: "600",
-                  marginBottom: "12px",
-                  color: "#1e293b",
-                }}
-              >
-                You Already Have a Booking
-              </h2>
-
-              <p
-                style={{
-                  color: "#475569",
-                  marginBottom: "8px",
-                  lineHeight: "1.5",
-                }}
-              >
-                You already have a booking on this date.
-              </p>
-
-              <p
-                style={{
-                  color: "#475569",
-                  marginBottom: "16px",
-                  lineHeight: "1.5",
-                }}
-              >
-                Please choose another date for your new reservation.
-              </p>
-            </div>
-
-            <div
-              style={{
-                padding: "16px 24px 24px",
-                display: "flex",
-                justifyContent: "center",
-                borderTop: "1px solid #e2e8f0",
-              }}
-            >
-              <button
-                onClick={() => setShowOwnBookingModal(false)}
                 style={{
                   padding: "10px 24px",
                   background: "#0284c7",
