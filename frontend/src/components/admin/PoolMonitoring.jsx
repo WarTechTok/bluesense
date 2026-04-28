@@ -279,7 +279,13 @@ const PoolMonitoring = () => {
           </div>
           <button
             className="pm-switch-btn"
-            onClick={() => {
+            onClick={async () => {
+              // Tell ESP32 to stop monitoring
+              await fetch("https://bluesense.onrender.com/api/readings/stop", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              });
+              // Go back to selection screen
               setSelectedOasis(null);
               setLatestReading(null);
               setHistoryData([]);
