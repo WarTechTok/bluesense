@@ -133,7 +133,7 @@ function Login() {
             </div>
             <h2 className="promo-title">Experience Paradise</h2>
             <p className="promo-text">
-              Two stunning oases, crystal-clear pools, and cozy cottages waiting
+              Two stunning oasis, crystal-clear pools, and cozy cottages waiting
               for you.
             </p>
           </div>
