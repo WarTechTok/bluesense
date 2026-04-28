@@ -11,7 +11,8 @@ const {
     getLatest, 
     getHistory,
     setCurrentOasis,
-    getCurrentOasis
+    getCurrentOasis,
+    stopMonitoring  // ← ADD THIS
 } = require("../controllers/ctrl_readings.js");
 
 const router = express.Router();
@@ -34,5 +35,6 @@ router.post("/readings", addReading);
 router.get("/readings/latest", getLatest);
 router.get("/readings/history", getHistory);
 router.post("/readings/set-oasis", setCurrentOasis);
+router.post("/readings/stop", stopMonitoring);  // ← ADD THIS
 
 module.exports = router;

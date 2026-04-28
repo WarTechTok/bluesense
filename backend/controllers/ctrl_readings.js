@@ -150,6 +150,31 @@ const setCurrentOasis = async (req, res) => {
 };
 
 // ============================================
+// STOP monitoring (ESP32 goes idle)
+// ============================================
+const stopMonitoring = async (req, res) => {
+    try {
+        // Set current oasis to 'none' to stop ESP32 from sending data
+        await Settings.findOneAndUpdate(
+            { key: 'currentOasis' },
+            { value: 'none' },
+            { upsert: true, new: true }
+        );
+        
+        console.log("🛑 ESP32 monitoring stopped - going idle");
+        
+        res.json({ 
+            success: true, 
+            oasis: 'none',
+            message: "ESP32 monitoring stopped"
+        });
+    } catch (error) {
+        console.error("Error stopping monitoring:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ============================================
 // Get current oasis the ESP32 should monitor (from database)
 // ============================================
 const getCurrentOasis = async (req, res) => {
@@ -174,5 +199,6 @@ module.exports = {
     getLatest, 
     getHistory,
     setCurrentOasis,
-    getCurrentOasis
+    getCurrentOasis,
+    stopMonitoring
 };
