@@ -127,32 +127,31 @@ function Register() {
         phone: cleanPhone
       });
       
-      console.log('Registration response:', response.data);
+      console.log('Registration response (success):', response.data);
       
-      // Check if registration was successful
-      if (response.status === 201 || response.data.message?.includes("check your email")) {
-        // Success - show modal
-        setRegisteredEmail(form.email);
-        setRegisteredName(form.name);
-        setShowSuccessModal(true);
-        // Keep loading true - modal will handle
-      } else if (response.data.needsVerification) {
-        // Account exists but not verified
-        setError(response.data.message || "Please check your email for verification link");
-        setLoading(false);
-      } else {
-        // Other error
-        setError(response.data.message || "Registration failed");
-        setLoading(false);
-      }
+      // Success - show modal
+      setRegisteredEmail(form.email);
+      setRegisteredName(form.name);
+      setShowSuccessModal(true);
+      // Do NOT set loading false - modal will handle
       
     } catch (err) {
       console.error('Registration error:', err);
+      console.error('Error response data:', err.response?.data);
       
-      // Handle different error types
-      if (err.response?.data?.needsVerification) {
-        setError(err.response.data.message || "Please verify your email first. Check your inbox.");
-      } else if (err.response?.data?.message) {
+      // IMPORTANT: Check for needsVerification (account exists but not verified)
+      if (err.response?.data?.needsVerification === true) {
+        // Account exists but not verified - show modal anyway (email resent)
+        console.log('Account needs verification - showing modal');
+        setRegisteredEmail(form.email);
+        setRegisteredName(form.name);
+        setShowSuccessModal(true);
+        // Do NOT set loading false - modal will handle
+        return;
+      }
+      
+      // Handle other errors
+      if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError('Registration failed. Please try again.');
@@ -319,7 +318,10 @@ function Register() {
 
       <SignupSuccessModal 
         isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
+        onClose={() => {
+          setShowSuccessModal(false);
+          setLoading(false);
+        }}
         email={registeredEmail}
         name={registeredName}
       />
