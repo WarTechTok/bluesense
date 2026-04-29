@@ -75,13 +75,11 @@ exports.getNotifications = async (req, res) => {
       return res.status(404).json({ error: 'Staff record not found' });
     }
 
-    // Use the user ID from the token (this should be the MongoDB _id)
-    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
-      ? userId 
-      : staff._id;
+    // Use the staff's MongoDB _id for querying notifications
+    const staffId = staff._id;
 
-    // Build query filter
-    const filter = { userId: effectiveUserId };
+    // Build query filter - query by staffId for staff notifications
+    const filter = { staffId: staffId };
     if (isRead !== undefined) filter.isRead = isRead === 'true';
     if (type) filter.type = type;
 
@@ -93,7 +91,7 @@ exports.getNotifications = async (req, res) => {
 
     // Total count
     const totalCount = await Notification.countDocuments(filter);
-    const unreadCount = await Notification.countDocuments({ userId: effectiveUserId, isRead: false });
+    const unreadCount = await Notification.countDocuments({ staffId: staffId, isRead: false });
 
     res.json({
       notifications,
@@ -114,19 +112,13 @@ exports.getNotifications = async (req, res) => {
  */
 exports.getUnreadCount = async (req, res) => {
   try {
-    const userId = req.user.id;
-    
     const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
 
-    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
-      ? userId 
-      : staff._id;
-
     const unreadCount = await Notification.countDocuments({ 
-      userId: effectiveUserId, 
+      staffId: staff._id, 
       isRead: false 
     });
 
@@ -144,16 +136,11 @@ exports.getUnreadCount = async (req, res) => {
 exports.markNotificationAsRead = async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.id;
 
     const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
-
-    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
-      ? userId 
-      : staff._id;
 
     const notification = await Notification.findById(notificationId);
 
@@ -161,8 +148,8 @@ exports.markNotificationAsRead = async (req, res) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    // Verify ownership
-    if (notification.userId.toString() !== effectiveUserId.toString()) {
+    // Verify ownership - check if notification belongs to this staff member
+    if (notification.staffId.toString() !== staff._id.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
@@ -183,19 +170,13 @@ exports.markNotificationAsRead = async (req, res) => {
  */
 exports.markAllNotificationsAsRead = async (req, res) => {
   try {
-    const userId = req.user.id;
-    
     const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
 
-    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
-      ? userId 
-      : staff._id;
-
     await Notification.updateMany(
-      { userId: effectiveUserId, isRead: false },
+      { staffId: staff._id, isRead: false },
       { isRead: true, readAt: new Date() }
     );
 
@@ -213,23 +194,18 @@ exports.markAllNotificationsAsRead = async (req, res) => {
 exports.deleteNotification = async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.id;
     
     const staff = await getStaffDocument(req.user);
     if (!staff) {
       return res.status(404).json({ error: 'Staff record not found' });
     }
 
-    const effectiveUserId = userId && mongoose.Types.ObjectId.isValid(userId) 
-      ? userId 
-      : staff._id;
-
     const notification = await Notification.findById(notificationId);
     if (!notification) {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.userId.toString() !== effectiveUserId.toString()) {
+    if (notification.staffId.toString() !== staff._id.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
