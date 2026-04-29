@@ -39,9 +39,7 @@ import Profile from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail"; // ADD THIS IMPORT
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from "./pages/OAuthRedirect";
-import PackageManagement from "./pages/admin/PackageManagement";
-import AddOnManagement from "./pages/admin/AddOnManagement";
-import SessionManagement from "./pages/admin/SessionManagement";
+import PackageAddOnSessionManagement from "./pages/admin/PackageAddOnSessionManagement";
 
 // ScrollToTop component - resets scroll position on page change
 function ScrollToTop() {
@@ -186,7 +184,7 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
-                <AddOnManagement />
+                <PackageAddOnSessionManagement />
               </AdminLayout>
             </ProtectedRoute>
           }
@@ -196,7 +194,7 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
-                <SessionManagement />
+                <PackageAddOnSessionManagement />
               </AdminLayout>
             </ProtectedRoute>
           }
@@ -266,7 +264,7 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
-                <PackageManagement />
+                <PackageAddOnSessionManagement />
               </AdminLayout>
             </ProtectedRoute>
           }

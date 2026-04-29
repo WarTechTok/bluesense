@@ -75,18 +75,16 @@ const AdminLayout = ({ children }) => {
   }, []);
 
   const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/admin/dashboard' },
-  { id: 'bookings', label: 'Bookings', icon: 'fas fa-calendar-alt', path: '/admin/bookings' },
-  { id: 'packages', label: 'Packages', icon: 'fas fa-box', path: '/admin/packages' },
-  { id: 'addons', label: 'Add-ons', icon: 'fas fa-cube', path: '/admin/addons' },
-  { id: 'sessions', label: 'Sessions', icon: 'fas fa-clock', path: '/admin/sessions' },
-  { id: 'rooms', label: 'Rooms', icon: 'fas fa-bed', path: '/admin/rooms' },
-  { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/admin/inventory' },
-  { id: 'staff', label: 'Staff', icon: 'fas fa-users', path: '/admin/staff' },
-  { id: 'sales', label: 'Sales', icon: 'fas fa-chart-simple', path: '/admin/sales' },
-  { id: 'maintenance', label: 'Maintenance', icon: 'fas fa-wrench', path: '/admin/maintenance' },
-  { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/admin/reports' },
-];
+    { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/admin/dashboard' },
+    { id: 'bookings', label: 'Bookings', icon: 'fas fa-calendar-alt', path: '/admin/bookings' },
+    { id: 'packages', label: 'Packages', icon: 'fas fa-box', path: '/admin/packages' },
+    { id: 'rooms', label: 'Rooms', icon: 'fas fa-bed', path: '/admin/rooms' },
+    { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/admin/inventory' },
+    { id: 'staff', label: 'Staff', icon: 'fas fa-users', path: '/admin/staff' },
+    { id: 'sales', label: 'Sales', icon: 'fas fa-chart-simple', path: '/admin/sales' },
+    { id: 'maintenance', label: 'Maintenance', icon: 'fas fa-wrench', path: '/admin/maintenance' },
+    { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/admin/reports' },
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -95,6 +93,10 @@ const AdminLayout = ({ children }) => {
   };
 
   const isActive = (path) => location.pathname === path;
+
+  const getPageLabel = () => {
+    return menuItems.find(item => isActive(item.path))?.label || 'Dashboard';
+  };
 
   const getInitial = userData?.name?.charAt(0).toUpperCase() || 'A';
 
@@ -158,7 +160,6 @@ const AdminLayout = ({ children }) => {
               className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
               onClick={() => {
                 navigate(item.path);
-                // Close sidebar on mobile after navigation
                 if (isMobile) {
                   setSidebarOpen(false);
                 }
@@ -184,7 +185,7 @@ const AdminLayout = ({ children }) => {
           </button>
           
           <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Dashboard'}</h1>
+            <h1>{getPageLabel()}</h1>
             <p>Welcome back, {userData?.name || 'Admin'}</p>
           </div>
           

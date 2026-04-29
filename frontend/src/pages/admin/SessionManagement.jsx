@@ -75,19 +75,6 @@ const SessionManagement = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (session) => {
-    if (window.confirm(`Are you sure you want to delete "${session.displayName}"?`)) {
-      try {
-        await sessionApi.deleteSession(session._id);
-        fetchSessions();
-        alert('Session deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting session:', error);
-        alert('Error deleting session');
-      }
-    }
-  };
-
   const resetForm = () => {
     setEditingSession(null);
     setFormData({
@@ -122,13 +109,6 @@ const SessionManagement = () => {
       </div>
 
       <div className="session-container">
-        {/* Add Button */}
-        <div className="session-actions-bar">
-          <button className="btn-add-session" onClick={() => { resetForm(); setShowModal(true); }}>
-            <i className="fas fa-plus"></i> Add New Session
-          </button>
-        </div>
-
         {/* Sessions Grid */}
         {loading ? (
           <div className="loading-spinner">
@@ -150,9 +130,6 @@ const SessionManagement = () => {
                   <div className="session-actions">
                     <button className="btn-icon edit" onClick={() => handleEdit(session)}>
                       <i className="fas fa-edit"></i>
-                    </button>
-                    <button className="btn-icon delete" onClick={() => handleDelete(session)}>
-                      <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
