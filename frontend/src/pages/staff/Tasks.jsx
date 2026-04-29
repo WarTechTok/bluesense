@@ -424,7 +424,7 @@ const Tasks = () => {
             >
               ✕
             </button>
-            <h2>{selectedTask.title}</h2>
+            <h2><i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0284c7' }}></i>{selectedTask.title}</h2>
             <div className="modal-details">
               <p>
                 <strong>Room:</strong> {selectedTask.roomId?.name}

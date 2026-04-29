@@ -955,6 +955,95 @@
   box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
 }
 
+/* Profile Modal Mobile Responsive */
+@media (max-width: 768px) {
+  .profile-modal {
+    max-width: 90vw;
+  }
+
+  .profile-avatar img,
+  .profile-avatar span {
+    width: 80px;
+    height: 80px;
+    font-size: 2rem;
+  }
+
+  .profile-info {
+    margin-bottom: 16px;
+  }
+
+  .info-row {
+    padding: 12px 0;
+  }
+
+  .info-row label {
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+  }
+
+  .info-row p {
+    font-size: 0.9rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .edit-profile-inside-btn {
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-modal {
+    max-width: 95vw;
+  }
+
+  .profile-avatar img,
+  .profile-avatar span {
+    width: 70px;
+    height: 70px;
+    font-size: 1.8rem;
+    margin-bottom: 16px;
+  }
+
+  .profile-avatar {
+    margin-bottom: 16px;
+  }
+
+  .profile-info {
+    margin-bottom: 12px;
+  }
+
+  .info-row {
+    padding: 10px 0;
+  }
+
+  .info-row label {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
+  }
+
+  .info-row p {
+    font-size: 0.85rem;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.4;
+  }
+
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .modal-body {
+    padding: 12px;
+  }
+
+  .edit-profile-inside-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
 /* Edit Modal */
 .edit-modal {
   max-width: 500px;
@@ -1023,6 +1112,61 @@
   background: #d1fae5;
   color: #065f46;
   border: 1px solid #a7f3d0;
+}
+
+/* Edit Modal Mobile Responsive */
+@media (max-width: 768px) {
+  .edit-modal {
+    max-width: 90vw;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .edit-input,
+  .edit-input:focus {
+    font-size: 0.9rem;
+    padding: 10px 12px;
+  }
+
+  .edit-input::placeholder {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-modal {
+    max-width: 95vw;
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    font-size: 0.8rem;
+    margin-bottom: 4px;
+  }
+
+  .edit-input,
+  .edit-input:focus {
+    font-size: 0.85rem;
+    padding: 8px 10px;
+  }
+
+  .edit-input::placeholder {
+    font-size: 0.85rem;
+  }
+
+  .edit-input textarea {
+    min-height: 60px;
+  }
 }
 
 .message-banner.error {

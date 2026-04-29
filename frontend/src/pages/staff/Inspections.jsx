@@ -575,7 +575,7 @@ const Inspections = () => {
             >
               ✕
             </button>
-            <h2>{selectedInspection.roomId?.name}</h2>
+            <h2><i className="fas fa-clipboard-check" style={{ marginRight: '8px', color: '#0284c7' }}></i>Inspection for {selectedInspection.roomId?.name}</h2>
             <div className="modal-details">
               <div className="detail-section">
                 <h4>Room Condition</h4>

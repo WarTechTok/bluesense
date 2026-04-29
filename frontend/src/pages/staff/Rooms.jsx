@@ -376,35 +376,60 @@ const Rooms = () => {
             >
               ✕
             </button>
-            <h2>{selectedRoom.name} ({selectedRoom.roomNumber})</h2>
+            <h2><i className="fas fa-door-open" style={{ marginRight: '8px', color: '#0284c7' }}></i>{selectedRoom.name}</h2>
             <div className="modal-details">
-              <p>
-                <strong>Status:</strong>{' '}
-                <span style={{ color: getRoomStatusColor(selectedRoom.status) }}>
-                  {selectedRoom.status}
-                </span>
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedRoom.roomType || 'Standard'}
-              </p>
-              <p>
-                <strong>Floor:</strong> {selectedRoom.floor || 'N/A'}
-              </p>
-              <p>
-                <strong>Cleanliness Rating:</strong>{' '}
-                <span style={{ color: getRatingColor(selectedRoom.rating) }}>
-                  {selectedRoom.rating}/5 <i className="fas fa-star"></i>
-                </span>
-              </p>
-              {selectedRoom.lastCleaned && (
-                <p>
-                  <strong>Last Cleaned:</strong> {new Date(selectedRoom.lastCleaned).toLocaleDateString()}
-                </p>
+              {/* Primary Details Grid */}
+              <div className="details-grid">
+                <div className="detail-card">
+                  <label className="detail-label">Room Number</label>
+                  <span className="detail-value">{selectedRoom.roomNumber || '—'}</span>
+                </div>
+                <div className="detail-card">
+                  <label className="detail-label">Status</label>
+                  <span 
+                    className="detail-value status-badge"
+                    style={{ 
+                      color: getRoomStatusColor(selectedRoom.status),
+                      backgroundColor: getRoomStatusColor(selectedRoom.status) + '20',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      display: 'inline-block'
+                    }}>
+                    {selectedRoom.status}
+                  </span>
+                </div>
+                <div className="detail-card">
+                  <label className="detail-label">Type</label>
+                  <span className="detail-value">{selectedRoom.roomType || 'Standard'}</span>
+                </div>
+                <div className="detail-card">
+                  <label className="detail-label">Cleanliness Rating</label>
+                  <span className="detail-value rating-badge" style={{ color: getRatingColor(selectedRoom.rating) }}>
+                    {selectedRoom.rating}/5 <i className="fas fa-star" style={{ marginLeft: '4px' }}></i>
+                  </span>
+                </div>
+              </div>
+
+              {/* Secondary Details */}
+              {selectedRoom.floor && (
+                <div className="detail-section">
+                  <label className="section-label">Floor</label>
+                  <span className="section-value">{selectedRoom.floor}</span>
+                </div>
               )}
+              
+              {selectedRoom.lastCleaned && (
+                <div className="detail-section">
+                  <label className="section-label">Last Cleaned</label>
+                  <span className="section-value">{new Date(selectedRoom.lastCleaned).toLocaleDateString()}</span>
+                </div>
+              )}
+              
               {selectedRoom.notes && (
-                <p>
-                  <strong>Notes:</strong> {selectedRoom.notes}
-                </p>
+                <div className="detail-section full-width">
+                  <label className="section-label">Notes</label>
+                  <span className="section-value">{selectedRoom.notes}</span>
+                </div>
               )}
             </div>
           </div>
