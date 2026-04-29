@@ -9,6 +9,7 @@ const InventoryManagement = () => {
   const [inventory, setInventory] = useState([]);
   const [filteredInventory, setFilteredInventory] = useState([]);
   const [lowStockItems, setLowStockItems] = useState([]);
+  const [staffList, setStaffList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
@@ -30,6 +31,7 @@ const InventoryManagement = () => {
   useEffect(() => {
     fetchInventory();
     fetchLowStockItems();
+    fetchStaff();
   }, []);
 
   useEffect(() => {
@@ -45,6 +47,15 @@ const InventoryManagement = () => {
       setFilteredInventory(filtered);
     }
   }, [searchTerm, inventory]);
+
+  const fetchStaff = async () => {
+    try {
+      const data = await adminApi.getAllStaff();
+      setStaffList(data || []);
+    } catch (error) {
+      console.error('Error fetching staff:', error);
+    }
+  };
 
   const fetchInventory = async () => {
     try {
@@ -345,12 +356,19 @@ const InventoryManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Used By (Staff ID)</label>
-                <input
-                  type="text"
+                <label>Used By (Staff) *</label>
+                <select
                   value={usageData.usedBy}
                   onChange={(e) => setUsageData({ ...usageData, usedBy: e.target.value })}
-                />
+                  required
+                >
+                  <option value="">-- Select Staff Member --</option>
+                  {staffList.map((staff) => (
+                    <option key={staff._id} value={staff._id}>
+                      {staff.name} ({staff.staffId})
+                    </option>
+                  ))}
+                </select>
               </div>
             </form>
           </div>

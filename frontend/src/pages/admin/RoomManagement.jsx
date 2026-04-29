@@ -469,16 +469,16 @@ const RoomManagement = () => {
           <div className="modal-body">
             <form className="form">
               <div className="form-group">
-                <label>Select Staff Member *</label>
+                <label>Select Staff Member (Housekeeper) *</label>
                 <select
                   value={selectedStaffId}
                   onChange={(e) => setSelectedStaffId(e.target.value)}
                   required
                 >
-                  <option value="">-- Choose Staff --</option>
-                  {staff.map((member) => (
+                  <option value="">-- Choose Housekeeper --</option>
+                  {staff.filter(member => member.position === 'Housekeeper').map((member) => (
                     <option key={member._id} value={member._id}>
-                      {member.name} ({member.email})
+                      {member.name} ({member.staffId})
                     </option>
                   ))}
                 </select>

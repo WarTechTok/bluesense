@@ -193,12 +193,6 @@ exports.assignStaffToRoom = async (req, res) => {
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // Get staff's User account for notifications
-    const staffUser = await User.findOne({ email: staff.email });
-    if (!staffUser) {
-      return res.status(400).json({ error: 'Staff user account not found' });
-    }
-
     // Add staff to room
     const updatedRoom = await Room.findByIdAndUpdate(
       req.params.id,
@@ -231,7 +225,6 @@ exports.assignStaffToRoom = async (req, res) => {
     // Create notification for staff
     const notification = await Notification.create({
       staffId,
-      userId: staffUser._id,
       type: 'Task Assignment',
       title: 'New Task Assignment',
       message: `You have been assigned to ${taskType.toLowerCase()} room "${room.name}" (Capacity: ${room.capacity})`,
