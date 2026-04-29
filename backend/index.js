@@ -46,10 +46,57 @@ if (!fs.existsSync(paymentProofDir)) {
 }
 
 // ============================================
-// CORS CONFIGURATION - Allow all origins (ESP32, frontend, etc.)
+// CORS CONFIGURATION - Allow frontend (Vercel) and ESP32
 // ============================================
-// 🔴 SIMPLIFIED - Allows ESP32, mobile apps, any client to connect
-app.use(cors());
+const allowedOrigins = [
+  'https://bluesense-de14.vercel.app',
+  'https://bluesense.onrender.com',
+  'http://localhost:3000',
+  'http://localhost:8080'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, ESP32, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(null, true); // Still allow for now, just log it
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// ============================================
+// HEALTH CHECK ENDPOINT
+// ============================================
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Backend is running', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+// ============================================
+// TEST CORS ENDPOINT
+// ============================================
+app.post('/api/test-cors', (req, res) => {
+  res.json({ 
+    message: 'CORS is working!', 
+    receivedBody: req.body,
+    headers: req.headers
+  });
+});
 
 // Apply urlencoded and json AFTER cors
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -74,7 +121,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Get callback URL from environment or use default
 const getGoogleCallbackUrl = () => {
-  // Use environment variable if set, otherwise use production URL
   const backendUrl = process.env.BACKEND_URL || 'https://bluesense.onrender.com';
   return `${backendUrl}/api/auth/google/callback`;
 };
@@ -87,7 +133,6 @@ passport.use(new GoogleStrategy({
   },
   async (accessToken, refreshToken, profile, done) => {
     try {
-      // Extract user data from Google profile
       const user = {
         id: profile.id,
         email: profile.emails[0].value,
@@ -110,7 +155,7 @@ app.use(passport.initialize());
 
 // LOGGING MIDDLEWARE - track all requests
 app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.path}`);
+  console.log(`📡 ${req.method} ${req.path} from ${req.headers.origin || 'unknown'}`);
   next();
 });
 
@@ -119,7 +164,7 @@ app.use("/api", readingRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/bookings", bookingRoutes);
 
-// Staff Dashboard Routes (STAFF USER ROUTES)
+// Staff Dashboard Routes
 app.use("/api/staff/dashboard", staffDashboardRoutes);
 
 // Admin Dashboard API Routes
@@ -165,15 +210,12 @@ app.get('/api/diagnose-sales', async (req, res) => {
     const Booking = require('./models/Booking');
     const Sale = require('./models/Sale');
 
-    // Get all bookings with their status
     const allBookings = await Booking.find({}, 'bookingNumber status totalAmount oasis customerName createdAt');
     const confirmedBookings = allBookings.filter(b => b.status === 'Confirmed' || b.status === 'Completed');
     
-    // Get all sales and populate booking info
     const allSales = await Sale.find({})
       .populate('booking', 'bookingNumber status totalAmount oasis customerName');
     
-    // Check which confirmed bookings don't have sales
     const bookingsWithoutSales = confirmedBookings.filter(booking => 
       !allSales.some(sale => sale.booking && sale.booking._id.toString() === booking._id.toString())
     );
@@ -183,16 +225,12 @@ app.get('/api/diagnose-sales', async (req, res) => {
       confirmedBookings: confirmedBookings.length,
       totalSales: allSales.length,
       bookingsWithoutSales: bookingsWithoutSales.length,
-      
-      // Group bookings by status
       bookingsByStatus: {
         pending: allBookings.filter(b => b.status === 'Pending').length,
         confirmed: allBookings.filter(b => b.status === 'Confirmed').length,
         completed: allBookings.filter(b => b.status === 'Completed').length,
         cancelled: allBookings.filter(b => b.status === 'Cancelled').length,
       },
-      
-      // Sample data
       sampleConfirmedBookings: confirmedBookings.slice(0, 5).map(b => ({
         id: b._id,
         bookingNumber: b.bookingNumber,
@@ -203,7 +241,6 @@ app.get('/api/diagnose-sales', async (req, res) => {
         createdAt: b.createdAt,
         hasSale: allSales.some(s => s.booking && s.booking._id.toString() === b._id.toString())
       })),
-      
       sampleSales: allSales.slice(0, 5).map(s => ({
         id: s._id,
         bookingId: s.booking ? s.booking._id : null,
@@ -212,7 +249,6 @@ app.get('/api/diagnose-sales', async (req, res) => {
         date: s.date,
         bookingStatus: s.booking ? s.booking.status : 'No booking'
       })),
-      
       issue: bookingsWithoutSales.length > 0 
         ? `⚠️ ${bookingsWithoutSales.length} confirmed/completed bookings are missing sales records!`
         : '✅ All confirmed/completed bookings have sales records'
@@ -230,9 +266,21 @@ app.get('/api/diagnose-sales', async (req, res) => {
 // ============================================
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err.message);
+  console.error('❌ Stack:', err.stack);
   res.status(500).json({ 
     success: false, 
     message: err.message || 'Internal server error' 
+  });
+});
+
+// ============================================
+// 404 HANDLER - Catch all unmatched routes
+// ============================================
+app.use((req, res) => {
+  console.log(`❌ 404 - Route not found: ${req.method} ${req.path}`);
+  res.status(404).json({ 
+    success: false, 
+    message: `Route not found: ${req.method} ${req.path}` 
   });
 });
 
