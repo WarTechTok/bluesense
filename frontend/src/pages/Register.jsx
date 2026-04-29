@@ -29,15 +29,9 @@ function Register() {
 
   // Philippine phone number validation
   const validatePhoneNumber = (phone) => {
-    if (!phone) return true; // Phone is optional
+    if (!phone) return true;
     
-    // Remove all non-digit characters
     const cleaned = phone.replace(/\D/g, '');
-    
-    // Philippine mobile numbers:
-    // - 11 digits starting with 09 (e.g., 09123456789)
-    // - 13 digits starting with 639 (e.g., 639123456789)
-    // - 10 digits starting with 9 (e.g., 9123456789)
     
     if (cleaned.length === 11 && cleaned.startsWith('09')) {
       return true;
@@ -51,18 +45,16 @@ function Register() {
     return false;
   };
 
-  // Format phone number as user types (optional)
+  // Format phone number as user types
   const formatPhoneNumber = (value) => {
     const cleaned = value.replace(/\D/g, '');
     if (cleaned.length >= 11) {
-      // Format as +63 XXX XXX XXXX
       if (cleaned.startsWith('63')) {
         const match = cleaned.match(/^(\d{2})(\d{3})(\d{3})(\d{4})$/);
         if (match) {
           return `+${match[1]} ${match[2]} ${match[3]} ${match[4]}`;
         }
       }
-      // Format as 09XX XXX XXXX
       if (cleaned.startsWith('09')) {
         const match = cleaned.match(/^(\d{4})(\d{3})(\d{4})$/);
         if (match) {
@@ -113,7 +105,6 @@ function Register() {
       errors.push("Passwords don't match");
     }
     
-    // Phone validation (optional but must be valid if provided)
     if (form.phone && !validatePhoneNumber(form.phone)) {
       errors.push("Please enter a valid Philippine mobile number (e.g., 09123456789 or 639123456789)");
     }
@@ -128,22 +119,44 @@ function Register() {
     setError('');
     
     try {
-      // Clean phone number before sending to backend (remove spaces)
       const cleanPhone = form.phone ? form.phone.replace(/\s/g, '') : '';
       const { confirmPassword, ...submitData } = form;
       
-      await axios.post(`${API_BASE_URL}/api/auth/register`, {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         ...submitData,
         phone: cleanPhone
       });
       
-      setRegisteredEmail(form.email);
-      setRegisteredName(form.name);
-      setShowSuccessModal(true);
+      console.log('Registration response:', response.data);
+      
+      // Check if registration was successful
+      if (response.status === 201 || response.data.message?.includes("check your email")) {
+        // Success - show modal
+        setRegisteredEmail(form.email);
+        setRegisteredName(form.name);
+        setShowSuccessModal(true);
+        // Keep loading true - modal will handle
+      } else if (response.data.needsVerification) {
+        // Account exists but not verified
+        setError(response.data.message || "Please check your email for verification link");
+        setLoading(false);
+      } else {
+        // Other error
+        setError(response.data.message || "Registration failed");
+        setLoading(false);
+      }
       
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-    } finally {
+      console.error('Registration error:', err);
+      
+      // Handle different error types
+      if (err.response?.data?.needsVerification) {
+        setError(err.response.data.message || "Please verify your email first. Check your inbox.");
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError('Registration failed. Please try again.');
+      }
       setLoading(false);
     }
   };

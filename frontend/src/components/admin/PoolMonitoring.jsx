@@ -25,7 +25,7 @@ const OASIS_OPTIONS = [
 ];
 
 const PoolMonitoring = () => {
-  const [selectedOasis, setSelectedOasis] = useState(null); // null = not yet chosen
+  const [selectedOasis, setSelectedOasis] = useState(null);
   const [latestReading, setLatestReading] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [poolLoading, setPoolLoading] = useState(false);
@@ -33,7 +33,6 @@ const PoolMonitoring = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedChart, setSelectedChart] = useState("ph");
 
-  // FIXED: Wrap fetchPoolReadings in useCallback to prevent infinite re-renders
   const fetchPoolReadings = useCallback(async () => {
     if (!selectedOasis) return;
 
@@ -50,15 +49,14 @@ const PoolMonitoring = () => {
     } finally {
       setPoolLoading(false);
     }
-  }, [selectedOasis]); // Re-create when selectedOasis changes
+  }, [selectedOasis]);
 
-  // FIXED: Add fetchPoolReadings to dependency array
   useEffect(() => {
     if (!selectedOasis) return;
     fetchPoolReadings();
     const interval = setInterval(fetchPoolReadings, 30000);
     return () => clearInterval(interval);
-  }, [selectedOasis, fetchPoolReadings]); // ← Added fetchPoolReadings
+  }, [selectedOasis, fetchPoolReadings]);
 
   const getFilteredHistory = () => {
     const today = new Date();
@@ -98,22 +96,17 @@ const PoolMonitoring = () => {
 
   const chartData = getChartData();
 
+  // UPDATED: WHO Standards for status
   const getStatusInfo = (reading) => {
     if (!reading)
       return { color: "#94a3b8", bg: "#f1f5f9", text: "No Data", icon: "○" };
-    if (reading.ph < 6.5 || reading.ph > 8.5 || reading.turbidity === "Dirty")
+    // WHO: pH should be 7.2-7.8, Turbidity should be Clear
+    if (reading.ph < 7.2 || reading.ph > 7.8 || reading.turbidity !== "Clear")
       return {
         color: "#ef4444",
         bg: "#fef2f2",
         text: "Action Needed",
         icon: "⚠",
-      };
-    if (reading.turbidity === "Cloudy")
-      return {
-        color: "#f59e0b",
-        bg: "#fffbeb",
-        text: "Monitor Closely",
-        icon: "◐",
       };
     return { color: "#10b981", bg: "#f0fdf4", text: "All Good", icon: "✓" };
   };
@@ -129,13 +122,13 @@ const PoolMonitoring = () => {
 
   const getYAxisMax = () => {
     if (selectedChart === "ph") return 9;
-    if (selectedChart === "temperature") return 40;
+    if (selectedChart === "temperature") return 45;
     return 4;
   };
 
   const getYAxisSteps = () => {
-    if (selectedChart === "ph") return [6, 6.5, 7, 7.5, 8, 8.5];
-    if (selectedChart === "temperature") return [20, 25, 30, 35, 40];
+    if (selectedChart === "ph") return [7.0, 7.2, 7.5, 7.8, 8.0];
+    if (selectedChart === "temperature") return [20, 25, 30, 32, 35];
     return [1, 2, 3];
   };
 
@@ -152,11 +145,12 @@ const PoolMonitoring = () => {
     return item.turbidityLabel;
   };
 
+  // UPDATED: WHO Standards for dot colors
   const getDotColor = (item) => {
     if (selectedChart === "ph")
-      return item.ph < 6.5 || item.ph > 8.5 ? "#ef4444" : "#0284c7";
+      return item.ph < 7.2 || item.ph > 7.8 ? "#ef4444" : "#0284c7";
     if (selectedChart === "temperature")
-      return item.temperature > 35 ? "#ef4444" : "#f59e0b";
+      return item.temperature > 32 ? "#ef4444" : "#f59e0b";
     return item.turbidity === 3
       ? "#ef4444"
       : item.turbidity === 2
@@ -198,16 +192,14 @@ const PoolMonitoring = () => {
               key={oasis.id}
               className="pm-oasis-card"
               onClick={async () => {
-                // Tell ESP32 to switch to this oasis
                 await fetch(
                   "https://bluesense.onrender.com/api/readings/set-oasis",
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ oasis: oasis.id }),
-                  },
+                  }
                 );
-                // Then show the oasis data
                 setSelectedOasis(oasis.id);
               }}
             >
@@ -280,12 +272,10 @@ const PoolMonitoring = () => {
           <button
             className="pm-switch-btn"
             onClick={async () => {
-              // Tell ESP32 to stop monitoring
               await fetch("https://bluesense.onrender.com/api/readings/stop", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
               });
-              // Go back to selection screen
               setSelectedOasis(null);
               setLatestReading(null);
               setHistoryData([]);
@@ -349,7 +339,7 @@ const PoolMonitoring = () => {
         </div>
       ) : (
         <div className="pm-readings-grid">
-          {/* pH */}
+          {/* pH - UPDATED WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#e0f2fe" }}>
               <svg
@@ -371,27 +361,27 @@ const PoolMonitoring = () => {
                 className="pm-reading-value"
                 style={{
                   color:
-                    latestReading?.ph < 6.5 || latestReading?.ph > 8.5
+                    latestReading?.ph < 7.2 || latestReading?.ph > 7.8
                       ? "#ef4444"
                       : "#0284c7",
                 }}
               >
                 {latestReading?.ph?.toFixed(2) || "--"}
               </span>
-              <span className="pm-reading-range">Normal: 6.5 – 8.5</span>
+              <span className="pm-reading-range">WHO Standard: 7.2 – 7.8</span>
             </div>
             <div
               className="pm-reading-status-dot"
               style={{
                 background:
-                  latestReading?.ph < 6.5 || latestReading?.ph > 8.5
+                  latestReading?.ph < 7.2 || latestReading?.ph > 7.8
                     ? "#ef4444"
                     : "#10b981",
               }}
             />
           </div>
 
-          {/* Temperature */}
+          {/* Temperature - UPDATED WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#fffbeb" }}>
               <svg
@@ -409,26 +399,33 @@ const PoolMonitoring = () => {
             </div>
             <div className="pm-reading-info">
               <span className="pm-reading-label">Temperature</span>
-              <span className="pm-reading-value" style={{ color: "#f59e0b" }}>
+              <span
+                className="pm-reading-value"
+                style={{
+                  color:
+                    latestReading?.temperature > 32
+                      ? "#ef4444"
+                      : "#f59e0b",
+                }}
+              >
                 {latestReading?.temperature
                   ? `${latestReading.temperature.toFixed(1)}°C`
                   : "--"}
               </span>
-              <span className="pm-reading-range">Normal: 20°C – 35°C</span>
+              <span className="pm-reading-range">WHO Standard: 21°C – 32°C</span>
             </div>
             <div
               className="pm-reading-status-dot"
               style={{
                 background:
-                  latestReading?.temperature > 35 ||
-                  latestReading?.temperature < 20
+                  latestReading?.temperature > 32 || latestReading?.temperature < 21
                     ? "#ef4444"
                     : "#10b981",
               }}
             />
           </div>
 
-          {/* Turbidity */}
+          {/* Turbidity - WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#f0fdf4" }}>
               <svg
@@ -461,7 +458,7 @@ const PoolMonitoring = () => {
               >
                 {latestReading?.turbidity || "--"}
               </span>
-              <span className="pm-reading-range">Ideal: Clear</span>
+              <span className="pm-reading-range">WHO Standard: Clear (≤ 0.5 NTU)</span>
             </div>
             <div
               className="pm-reading-status-dot"
@@ -663,12 +660,10 @@ const PoolMonitoring = () => {
                       />
                     </linearGradient>
                   </defs>
-                  {/* Area fill */}
                   <path
                     d={`${getLinePath()} L 100,100 L 0,100 Z`}
                     fill="url(#lineGrad)"
                   />
-                  {/* Line */}
                   <path
                     d={getLinePath()}
                     fill="none"
