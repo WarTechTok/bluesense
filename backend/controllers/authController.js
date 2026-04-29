@@ -144,7 +144,12 @@ const register = async (req, res) => {
         existingUser.emailVerificationExpires = verificationExpires;
         await existingUser.save();
 
-        await sendVerificationEmailFunc(email, existingUser.name, verificationToken);
+        // ✅ Fire-and-forget — don't await, respond instantly
+        sendVerificationEmailFunc(email, existingUser.name, verificationToken)
+          .then(result => {
+            if (!result.success) console.error(`❌ Re-verification email failed for ${email}:`, result.error);
+          })
+          .catch(err => console.error(`❌ Re-verification email exception for ${email}:`, err.message));
 
         return res.status(400).json({
           message: "Email not verified. A new verification link has been sent.",
@@ -172,8 +177,17 @@ const register = async (req, res) => {
     await newUser.save();
     console.log(`✅ User created: ${email} (awaiting verification)`);
 
-    // Send verification email
-    await sendVerificationEmailFunc(email, name, verificationToken);
+    // ✅ Fire-and-forget — respond to the user instantly, email sends in background
+    // This cuts response time from 120s → <1s
+    sendVerificationEmailFunc(email, name, verificationToken)
+      .then(result => {
+        if (result.success) {
+          console.log(`✅ Verification email delivered to ${email}`);
+        } else {
+          console.error(`❌ Verification email failed for ${email}:`, result.error);
+        }
+      })
+      .catch(err => console.error(`❌ Verification email exception for ${email}:`, err.message));
 
     res.status(201).json({
       message: "Registration successful! Please check your email to verify your account.",
@@ -220,7 +234,9 @@ const verifyEmail = async (req, res) => {
 
     console.log(`✅ Email verified for: ${user.email}`);
 
-    await sendWelcomeEmailFunc(user.email, user.name);
+    // ✅ Fire-and-forget welcome email
+    sendWelcomeEmailFunc(user.email, user.name)
+      .catch(err => console.error(`❌ Welcome email failed for ${user.email}:`, err.message));
 
     res.status(200).json({
       message: "Email verified successfully! You can now log in.",
@@ -256,7 +272,9 @@ const resendVerificationEmail = async (req, res) => {
     user.emailVerificationExpires = verificationExpires;
     await user.save();
 
-    await sendVerificationEmailFunc(email, user.name, verificationToken);
+    // ✅ Fire-and-forget — respond instantly
+    sendVerificationEmailFunc(email, user.name, verificationToken)
+      .catch(err => console.error(`❌ Resend verification failed for ${email}:`, err.message));
 
     res.status(200).json({
       message: "Verification email resent. Please check your inbox.",
@@ -460,7 +478,9 @@ const forgotPassword = async (req, res) => {
       </div>
     `;
 
-    await sendEmail({ email: user.email, subject: "Password Reset", html: message });
+    // ✅ Fire-and-forget — respond instantly
+    sendEmail({ email: user.email, subject: "Password Reset", html: message })
+      .catch(err => console.error(`❌ Password reset email failed for ${user.email}:`, err.message));
 
     res.json({ message: "Password reset email sent" });
   } catch (error) {
