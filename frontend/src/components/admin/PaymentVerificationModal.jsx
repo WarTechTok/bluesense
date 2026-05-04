@@ -167,9 +167,6 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
           {booking.paymentProof ? (
             <div className="verification-section">
               <h3>Payment Proof</h3>
-              <div style={{fontSize: '12px', color: '#64748b', marginBottom: '10px', padding: '8px', backgroundColor: '#f1f5f9', borderRadius: '4px'}}>
-                <div>📂 Stored Path: {booking.paymentProof}</div>
-              </div>
               <div className="proof-container">
                 {!imageLoaded && (
                   <div style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>
