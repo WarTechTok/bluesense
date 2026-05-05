@@ -194,7 +194,7 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
               </div>
             </div>
           </div>
-          <p className="qr-enlarge-hint">🔍 Tap QR code to view full size</p>
+          <p className="qr-enlarge-hint">Tap to view full size</p>
 
           {/* QR Lightbox */}
           {qrLightboxOpen && (
