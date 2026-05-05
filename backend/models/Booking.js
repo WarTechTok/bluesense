@@ -12,11 +12,11 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   customerContact: {
-    type: String,
-    required: true
+    type: String  // optional
   },
   customerEmail: {
-    type: String  // optional
+    type: String,
+    required: true
   },
   
   // Booking details

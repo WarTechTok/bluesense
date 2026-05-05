@@ -190,10 +190,10 @@ const createBooking = async (req, res) => {
     // VALIDATE REQUIRED FIELDS
     // ============================================
 
-    if (!customerName || !customerContact || !customerEmail) {
+    if (!customerName || !customerEmail) {
       return res.status(400).json({
         success: false,
-        message: "Customer name, contact, and email are required",
+        message: "Customer name and email are required",
       });
     }
 
