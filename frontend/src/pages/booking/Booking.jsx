@@ -21,7 +21,6 @@ import ReviewStep from "./ReviewStep";
 import AddonsSelector from "../../components/booking/AddonsSelector";
 import {
   getPackagePrice,
-  getDownpayment,
   oasisPackages,
   getMaxCapacity,
 } from "../../config/packageData";
@@ -41,6 +40,8 @@ function Booking() {
   const [selectedAddons, setSelectedAddons] = useState({});
   const [infoConfirmed, setInfoConfirmed] = useState(false);
   const [extraGuestWarning, setExtraGuestWarning] = useState("");
+  // Sessions fetched from DB - includes downpaymentAmount set by admin
+  const [sessionData, setSessionData] = useState([]);
 
   // Get preselected data from navigation state
   const preselectedOasis = location.state?.oasis || null;
@@ -180,9 +181,15 @@ function Booking() {
     return 1;
   };
 
-  // Get downpayment amount based on session
+  // Get downpayment from DB session data set by admin
   const getDownpaymentAmount = () => {
-    return getDownpayment(selectedSession);
+    if (sessionData.length > 0) {
+      const match = sessionData.find((s) => s.name === selectedSession);
+      if (match) return match.downpaymentAmount;
+    }
+    // Fallback to hardcoded values if API hasn't loaded yet
+    if (selectedSession === "22hrs") return 5000;
+    return 3000;
   };
 
   // Check authentication
@@ -192,6 +199,23 @@ function Booking() {
       navigate("/login?redirect=/booking");
     }
   }, [navigate]);
+
+  // Fetch sessions from DB so downpayment reflects what admin set
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+        const res = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setSessionData(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch session data:", err);
+      }
+    };
+    fetchSessions();
+  }, []);
 
   const handleSessionSelect = (session) => {
     setSelectedSession(session);
@@ -240,6 +264,8 @@ function Booking() {
       if (!formData.email || formData.email.trim() === "") {
         newErrors.email = "Email is required";
       }
+
+
       // Guest info validation
       if (!formData.guestCount || formData.guestCount < 1) {
         newErrors.guestCount = "Number of guests is required";
