@@ -99,8 +99,14 @@ function SessionSelector({ selectedSession, onSessionChange, oasis, packageName,
     setDayType(isWeekend ? 'weekend' : 'weekday');
   }, []);
 
-  const availableSessions = packageData?.availableSessions 
-    ? sessions.filter(s => packageData.availableSessions.includes(s.id))
+  // ✅ FIXED: transformPackageData stores the field as `sessions`, not `availableSessions`
+  // Always filter — if sessions list is somehow empty, show all as a safe fallback
+  const packageSessions = packageData?.sessions?.length > 0
+    ? packageData.sessions
+    : packageData?.availableSessions || null;
+
+  const availableSessions = packageSessions
+    ? sessions.filter(s => packageSessions.includes(s.id))
     : sessions;
 
   if (loading) {
