@@ -200,9 +200,6 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                     <span>Click to enlarge</span>
                   </div>
                 </div>
-                {imageLoaded && (
-                  <p className="proof-hint">🖼️ Click the image to view full size</p>
-                )}
               </div>
             </div>
           ) : (
