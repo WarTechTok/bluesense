@@ -9,6 +9,7 @@ import imageCompression from 'browser-image-compression';
 function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice, downpayment, selectedSession }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [qrLightboxOpen, setQrLightboxOpen] = useState(false);
   const fileInputRef = useRef(null);
 
   // Image compression function
@@ -177,16 +178,42 @@ function PaymentStep({ formData, handleChange, nights, pricePerNight, totalPrice
           <p className="qr-subtitle">Pay ₱{formData.paymentType === 'fullpayment' ? totalPrice.toLocaleString() : downpayment.toLocaleString()} using your {formData.paymentMethod.toUpperCase()} app</p>
           
           <div className="qr-code-container">
-            <img 
-              src={getQrCode(formData.paymentMethod)} 
-              alt={`${formData.paymentMethod} QR Code`}
-              className="qr-code-image"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = `https://placehold.co/300x300/e2e8f0/64748b?text=${formData.paymentMethod.toUpperCase()}+QR+Code`;
-              }}
-            />
+            <div className="qr-code-wrapper" onClick={() => setQrLightboxOpen(true)} title="Click to enlarge">
+              <img 
+                src={getQrCode(formData.paymentMethod)} 
+                alt={`${formData.paymentMethod} QR Code`}
+                className="qr-code-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://placehold.co/300x300/e2e8f0/64748b?text=${formData.paymentMethod.toUpperCase()}+QR+Code`;
+                }}
+              />
+              <div className="qr-code-overlay">
+                <span className="qr-zoom-icon">🔍</span>
+                <span>Click to enlarge</span>
+              </div>
+            </div>
           </div>
+          <p className="qr-enlarge-hint">🔍 Tap QR code to view full size</p>
+
+          {/* QR Lightbox */}
+          {qrLightboxOpen && (
+            <div className="qr-lightbox" onClick={() => setQrLightboxOpen(false)}>
+              <div className="qr-lightbox-inner" onClick={(e) => e.stopPropagation()}>
+                <button className="qr-lightbox-close" onClick={() => setQrLightboxOpen(false)}>✕</button>
+                <p className="qr-lightbox-label">{formData.paymentMethod.toUpperCase()} QR Code</p>
+                <img
+                  src={getQrCode(formData.paymentMethod)}
+                  alt={`${formData.paymentMethod} QR Code`}
+                  className="qr-lightbox-image"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://placehold.co/400x400/e2e8f0/64748b?text=${formData.paymentMethod.toUpperCase()}+QR+Code`;
+                  }}
+                />
+              </div>
+            </div>
+          )}
           
           <div className="qr-instructions">
             <p>1. Open your {formData.paymentMethod.toUpperCase()} app</p>

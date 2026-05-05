@@ -10,6 +10,7 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
   const [isVerifying, setIsVerifying] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   if (!isOpen || !booking) return null;
 
@@ -163,32 +164,45 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
             </div>
           </div>
 
-          {/* Payment Proof - FIXED IMAGE URL */}
+          {/* Payment Proof */}
           {booking.paymentProof ? (
             <div className="verification-section">
               <h3>Payment Proof</h3>
               <div className="proof-container">
                 {!imageLoaded && (
-                  <div style={{padding: '20px', textAlign: 'center', color: '#64748b'}}>
-                    Loading image...
+                  <div className="proof-loading">
+                    <div className="proof-loading-spinner" />
+                    <span>Loading image...</span>
                   </div>
                 )}
-                <img 
-                  src={getPaymentProofUrl(booking.paymentProof)} 
-                  alt="Payment Proof" 
-                  className="proof-image"
-                  style={{display: imageLoaded ? 'block' : 'none'}}
-                  onLoad={() => {
-                    console.log('✅ Image loaded successfully');
-                    setImageLoaded(true);
-                  }}
-                  onError={(e) => {
-                    console.error('❌ Failed to load image. Tried URL:', getPaymentProofUrl(booking.paymentProof));
-                    e.target.style.display = 'none';
-                    e.target.onerror = null;
-                  }}
-                />
-                <p className="proof-hint">Click image to view full size</p>
+                <div
+                  className="proof-image-wrapper"
+                  style={{ display: imageLoaded ? 'flex' : 'none' }}
+                  onClick={() => setLightboxOpen(true)}
+                  title="Click to view full size"
+                >
+                  <img 
+                    src={getPaymentProofUrl(booking.paymentProof)} 
+                    alt="Payment Proof" 
+                    className="proof-image"
+                    onLoad={() => {
+                      console.log('✅ Image loaded successfully');
+                      setImageLoaded(true);
+                    }}
+                    onError={(e) => {
+                      console.error('❌ Failed to load image. Tried URL:', getPaymentProofUrl(booking.paymentProof));
+                      e.target.parentElement.style.display = 'none';
+                      e.target.onerror = null;
+                    }}
+                  />
+                  <div className="proof-overlay">
+                    <span className="proof-zoom-icon">🔍</span>
+                    <span>Click to enlarge</span>
+                  </div>
+                </div>
+                {imageLoaded && (
+                  <p className="proof-hint">🖼️ Click the image to view full size</p>
+                )}
               </div>
             </div>
           ) : (
@@ -201,6 +215,20 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                 <p style={{color: '#64748b', fontSize: '12px', textAlign: 'center'}}>
                   Database shows: {booking.paymentProof === null ? 'NULL' : booking.paymentProof === undefined ? 'UNDEFINED' : 'UNKNOWN'}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Lightbox */}
+          {lightboxOpen && (
+            <div className="proof-lightbox" onClick={() => setLightboxOpen(false)}>
+              <div className="proof-lightbox-inner" onClick={(e) => e.stopPropagation()}>
+                <button className="proof-lightbox-close" onClick={() => setLightboxOpen(false)}>✕</button>
+                <img
+                  src={getPaymentProofUrl(booking.paymentProof)}
+                  alt="Payment Proof Full Size"
+                  className="proof-lightbox-image"
+                />
               </div>
             </div>
           )}

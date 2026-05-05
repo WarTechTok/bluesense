@@ -1361,17 +1361,127 @@
 .qr-code-container {
   display: flex;
   justify-content: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+}
+
+.qr-code-wrapper {
+  position: relative;
+  cursor: zoom-in;
+  border-radius: 16px;
+  overflow: hidden;
+  display: inline-flex;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
 .qr-code-image {
-  width: 200px;
-  height: 200px;
+  width: 250px;
+  height: 250px;
   object-fit: contain;
   border-radius: 16px;
   background: white;
   padding: 16px;
   border: 1px solid #e2e8f0;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.qr-code-wrapper:hover .qr-code-image {
+  transform: scale(1.03);
+}
+
+.qr-code-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0;
+  transition: all 0.2s ease;
+  border-radius: 16px;
+}
+
+.qr-code-wrapper:hover .qr-code-overlay {
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 1;
+}
+
+.qr-zoom-icon {
+  font-size: 26px;
+}
+
+.qr-enlarge-hint {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0 0 16px;
+}
+
+/* QR Lightbox */
+.qr-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: qrFadeIn 0.2s ease;
+}
+
+@keyframes qrFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.qr-lightbox-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr-lightbox-label {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0;
+}
+
+.qr-lightbox-image {
+  width: min(85vw, 420px);
+  height: min(85vw, 420px);
+  object-fit: contain;
+  background: white;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.qr-lightbox-close {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s;
 }
 
 .qr-instructions {
@@ -2307,8 +2417,13 @@
 /* Responsive */
 @media (max-width: 640px) {
   .qr-code-image {
-    width: 160px;
-    height: 160px;
+    width: 200px;
+    height: 200px;
+  }
+  
+  .qr-lightbox-image {
+    width: min(90vw, 320px);
+    height: min(90vw, 320px);
   }
   
   .qr-instructions p {
