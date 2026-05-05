@@ -8,17 +8,36 @@
 const multer = require('multer');
 
 // ============================================
-// FILE FILTER — images only
+// FILE FILTER — all common image formats
 // ============================================
 const imageFilter = (req, file, cb) => {
-  const allowedMimeTypes = /jpeg|jpg|png|gif|webp/;
-  const mimeOk = allowedMimeTypes.test(file.mimetype);
-  const extOk  = allowedMimeTypes.test(file.originalname.split('.').pop().toLowerCase());
-
-  if (mimeOk && extOk) {
+  // Allowed mime types (expanded)
+  const allowedMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png', 
+    'image/gif',
+    'image/webp',
+    'image/bmp',
+    'image/tiff',
+    'image/svg+xml'
+  ];
+  
+  // Allowed extensions
+  const allowedExtensions = /jpeg|jpg|png|gif|webp|bmp|tiff|svg/i;
+  
+  const mimeOk = allowedMimeTypes.includes(file.mimetype);
+  const extOk = allowedExtensions.test(file.originalname.split('.').pop());
+  
+  // Also check for common variations
+  const lowerMime = file.mimetype.toLowerCase();
+  const isImage = lowerMime.startsWith('image/');
+  
+  if ((mimeOk || extOk || isImage) && file.mimetype !== 'application/octet-stream') {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'), false);
+    console.log(`❌ File rejected: ${file.originalname} - MIME: ${file.mimetype}`);
+    cb(new Error(`Only image files are allowed. You uploaded: ${file.originalname} (${file.mimetype})`), false);
   }
 };
 
@@ -39,17 +58,17 @@ const uploadSingle = (fieldName = 'image') =>
     fileFilter: imageFilter,
   }).single(fieldName);
 
-// For payment proofs (named field)
+// For payment proofs (named field) - increased to 10MB for better quality
 const uploadPaymentProof = multer({
   storage: memoryStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB for payment proofs
   fileFilter: imageFilter,
 }).single('paymentProof');
 
 // For refund proofs (named field)
 const uploadRefundProof = multer({
   storage: memoryStorage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB for refund proofs
   fileFilter: imageFilter,
 }).single('proof');
 
