@@ -128,7 +128,7 @@ const GuestInfoStep = ({
         </div>
         <div className="form-group">
           <label>
-            Phone Number <span className="required">*</span>
+            Phone Number <span style={{color: '#94a3b8', fontSize: '12px'}}>(optional)</span>
           </label>
           <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>

@@ -240,10 +240,6 @@ function Booking() {
       if (!formData.email || formData.email.trim() === "") {
         newErrors.email = "Email is required";
       }
-      if (!formData.phone || formData.phone.trim() === "") {
-        newErrors.phone = "Phone number is required";
-      }
-
       // Guest info validation
       if (!formData.guestCount || formData.guestCount < 1) {
         newErrors.guestCount = "Number of guests is required";

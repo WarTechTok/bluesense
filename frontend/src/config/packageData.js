@@ -298,9 +298,9 @@ export const getAvailableSessions = (oasis, packageName) => {
 
 // Get downpayment amount based on session
 export const getDownpayment = (session, totalPrice = null) => {
-  // For Night or 22hrs sessions, downpayment is ₱5,000
-  if (session === 'Night' || session === '22hrs') return 5000;
-  // For Day sessions, downpayment is ₱3,000
+  // 22-hour session requires ₱5,000 downpayment
+  if (session === '22hrs') return 5000;
+  // Day and Night sessions require ₱3,000 downpayment
   return 3000;
 };
 
