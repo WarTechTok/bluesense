@@ -98,11 +98,28 @@ function Booking() {
     }
   }, [preselectedOasis, preselectedPackage, navigate]);
 
-  // Get current package data
-  const currentPackage =
-    selectedOasis && selectedPackage
+  // Get current package data.
+  // IMPORTANT: preselectedPackage comes from the homepage/PackageCard and was
+  // transformed by transformPackageData() — it has the correct `sessions` array
+  // from the database (e.g. ["Day","Night"] for Package 1).
+  // oasisPackages has the pricing details but NO `sessions` key.
+  // We merge both so SessionSelector gets the right sessions AND pricing works.
+  const currentPackage = (() => {
+    const hardcoded = (selectedOasis && selectedPackage)
       ? oasisPackages[selectedOasis]?.packages[selectedPackage]
       : null;
+
+    if (!hardcoded) return preselectedPackage || null;
+
+    // Prefer sessions from the API-fetched preselectedPackage (reflects DB),
+    // fall back to hardcoded sessions (added in packageData.js as safety net).
+    const sessions =
+      preselectedPackage?.sessions?.length > 0
+        ? preselectedPackage.sessions
+        : hardcoded.sessions || [];
+
+    return { ...hardcoded, sessions };
+  })();
 
   // Get available sessions for this package
   const getAvailableSessions = () => {

@@ -9,6 +9,7 @@ export const oasisPackages = {
         description: 'Cottage Only (No Room)',
         baseCapacity: 20,  // Good for 20 pax
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night'], // No 22hrs — cottage only, no overnight room
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -29,6 +30,7 @@ export const oasisPackages = {
         description: '1 AC Room (Superior - 2-4 pax)',
         baseCapacity: 20,  // Good for 20 pax (changed from 4)
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -52,6 +54,7 @@ export const oasisPackages = {
         description: '1 AC Room (Family - 8-12 pax)',
         baseCapacity: 20,  // Good for 20 pax (changed from 12)
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -76,6 +79,7 @@ export const oasisPackages = {
         description: '2 AC Rooms (Family + Superior - 12-15 pax)',
         baseCapacity: 20,  // Good for 20 pax (changed from 15)
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -100,6 +104,7 @@ export const oasisPackages = {
         description: '4 AC Rooms (2 Family + 2 Superior - 22-25 pax)',
         baseCapacity: 20,  // Good for 20 pax (changed from 25)
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -124,6 +129,7 @@ export const oasisPackages = {
         description: '4 AC Rooms + Extra Space (30-100 pax)',
         baseCapacity: 30,  // Good for 30-100 pax (kept as is)
         maxCapacity: 100,
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Swimming pool with bubble jacuzzi and fountain',
           'Cottage (Gazebo) and kubo cottage near parking area',
@@ -153,6 +159,7 @@ export const oasisPackages = {
         description: 'Pool & Open Spaces Only',
         baseCapacity: 30,  // Good for 30 pax
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night'], // No 22hrs — no overnight room
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -171,6 +178,7 @@ export const oasisPackages = {
         description: '1 AC Family Room',
         baseCapacity: 30,  // Good for 30 pax
         maxCapacity: 100,   // Can accept extra guests up to 100
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
@@ -191,6 +199,7 @@ export const oasisPackages = {
         description: 'Ideal for Events (50-100 pax)',
         baseCapacity: 50,  // Good for 50-100 pax (kept as is)
         maxCapacity: 100,
+        sessions: ['Day', 'Night', '22hrs'],
         inclusions: [
           'Pool and all open spaces',
           'Free WiFi access',
