@@ -7,6 +7,7 @@ console.log("🟢🟢🟢 BOOKING CONTROLLER IS LOADED! 🟢🟢🟢");
 
 const Booking = require("../models/Booking");
 const Sale = require("../models/Sale");
+const { uploadPaymentProof, uploadRefundProof, deleteFromCloudinary } = require("../utils/cloudinary");
 
 // ============================================
 // CAPACITY CONFIGURATION
@@ -159,11 +160,16 @@ const createBooking = async (req, res) => {
       paymentType,
     } = req.body;
 
-    // Get payment proof file from multer
+    // Upload payment proof to Cloudinary (buffer from memoryStorage)
     let paymentProof = null;
     if (req.file) {
-      paymentProof = `/uploads/payment-proofs/${req.file.filename}`;
-      console.log("✅ Payment proof file received:", req.file.filename);
+      try {
+        const { url } = await uploadPaymentProof(req.file.buffer);
+        paymentProof = url;
+        console.log("✅ Payment proof uploaded to Cloudinary:", url);
+      } catch (uploadErr) {
+        console.error("❌ Cloudinary payment proof upload failed:", uploadErr.message);
+      }
     } else {
       console.log("⚠️ No payment proof file received");
     }
@@ -860,20 +866,14 @@ const deletePaymentProof = async (req, res) => {
       });
     }
 
-    // Delete the file from storage if needed
-    const fs = require("fs");
-    const path = require("path");
-    
+    // Delete from Cloudinary if URL is a Cloudinary URL
     try {
-      // Try to delete the file from uploads folder
-      const filePath = path.join(__dirname, "../uploads/payment-proofs", path.basename(booking.paymentProof));
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-        console.log(`✅ Payment proof file deleted: ${filePath}`);
+      if (booking.paymentProof && booking.paymentProof.includes("cloudinary.com")) {
+        await deleteFromCloudinary(booking.paymentProof);
+        console.log("✅ Payment proof deleted from Cloudinary");
       }
     } catch (fileDeleteError) {
-      console.warn("⚠️  Could not delete physical file:", fileDeleteError.message);
-      // Continue anyway - just remove from database
+      console.warn("⚠️  Could not delete from Cloudinary:", fileDeleteError.message);
     }
 
     // Update booking - remove payment proof
@@ -953,7 +953,13 @@ const cancelBooking = async (req, res) => {
       booking.refundStatus = 'pending';
       booking.refundReason = reason;
       if (proofFile) {
-        booking.refundProof = `/uploads/refund-proofs/${proofFile.filename}`;
+        try {
+          const { url } = await uploadRefundProof(proofFile.buffer);
+          booking.refundProof = url;
+          console.log("✅ Refund proof uploaded to Cloudinary:", url);
+        } catch (uploadErr) {
+          console.error("❌ Cloudinary refund proof upload failed:", uploadErr.message);
+        }
       }
     }
     

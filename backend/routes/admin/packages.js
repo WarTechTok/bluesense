@@ -1,59 +1,20 @@
 // backend/routes/admin/packages.js
 // ============================================
-// PACKAGE MANAGEMENT ROUTES
+// PACKAGE MANAGEMENT ROUTES (Cloudinary version)
 // ============================================
 
 const express = require('express');
-const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const router  = express.Router();
 const Package = require('../../models/Package');
 const { verifyToken, isStaff } = require('../../middleware/auth');
+const { uploadPackageImage } = require('../../middleware/upload');
+const { uploadPackageImage: uploadToCloud, deleteFromCloudinary } = require('../../utils/cloudinary');
 
 // ============================================
-// IMAGE UPLOAD CONFIGURATION
+// PUBLIC ROUTES — no authentication required
 // ============================================
 
-const packageImageDir = path.join(__dirname, '../../../uploads/package-images');
-if (!fs.existsSync(packageImageDir)) {
-  fs.mkdirSync(packageImageDir, { recursive: true });
-  console.log('✅ Created uploads/package-images folder');
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, packageImageDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${file.originalname}`;
-    cb(null, uniqueName);
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = allowedTypes.test(file.mimetype);
-  
-  if (mimetype && extname) {
-    return cb(null, true);
-  } else {
-    return cb(new Error('Only images are allowed'), false);
-  }
-};
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: fileFilter
-});
-
-// ============================================
-// PUBLIC ROUTES - No authentication required
-// ============================================
-
-// GET active packages for customers (public)
+// GET active packages for customers
 router.get('/public', async (req, res) => {
   try {
     const packages = await Package.find({ isActive: true }).sort({ oasis: 1, displayOrder: 1 });
@@ -66,8 +27,7 @@ router.get('/public', async (req, res) => {
 // GET packages by oasis (public)
 router.get('/public/oasis/:oasis', async (req, res) => {
   try {
-    const { oasis } = req.params;
-    const packages = await Package.find({ oasis, isActive: true }).sort({ displayOrder: 1 });
+    const packages = await Package.find({ oasis: req.params.oasis, isActive: true }).sort({ displayOrder: 1 });
     res.json(packages);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -75,29 +35,30 @@ router.get('/public/oasis/:oasis', async (req, res) => {
 });
 
 // ============================================
-// IMAGE UPLOAD ROUTE
+// IMAGE UPLOAD ROUTE — Cloudinary
 // ============================================
 
-// POST upload package image (admin only)
-router.post('/upload-image', verifyToken, isStaff, upload.single('image'), async (req, res) => {
+// POST /api/admin/packages/upload-image
+router.post('/upload-image', verifyToken, isStaff, uploadPackageImage, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No image file provided' });
     }
-    
-    const imageUrl = `/uploads/package-images/${req.file.filename}`;
-    res.json({ imageUrl });
+
+    const { url, publicId } = await uploadToCloud(req.file.buffer);
+
+    res.json({ imageUrl: url, publicId });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('❌ Package image upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
 // ============================================
-// ADMIN ROUTES - Authentication required
+// ADMIN ROUTES — authentication required
 // ============================================
 
-// GET all packages (admin only)
+// GET all packages
 router.get('/', verifyToken, isStaff, async (req, res) => {
   try {
     const packages = await Package.find().sort({ oasis: 1, displayOrder: 1 });
@@ -107,11 +68,10 @@ router.get('/', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// GET packages by oasis (admin only)
+// GET packages by oasis (admin)
 router.get('/oasis/:oasis', verifyToken, isStaff, async (req, res) => {
   try {
-    const { oasis } = req.params;
-    const packages = await Package.find({ oasis, isActive: true }).sort({ displayOrder: 1 });
+    const packages = await Package.find({ oasis: req.params.oasis, isActive: true }).sort({ displayOrder: 1 });
     res.json(packages);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -140,9 +100,22 @@ router.post('/', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// UPDATE package
+// UPDATE package — if a new image is uploaded, delete the old Cloudinary image
 router.put('/:id', verifyToken, isStaff, async (req, res) => {
   try {
+    const existing = await Package.findById(req.params.id);
+
+    // If image URL is being replaced and the old one was on Cloudinary, delete it
+    if (
+      existing &&
+      req.body.image &&
+      existing.image &&
+      existing.image !== req.body.image &&
+      existing.image.includes('cloudinary.com')
+    ) {
+      await deleteFromCloudinary(existing.image);
+    }
+
     const updatedPackage = await Package.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -155,11 +128,16 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// DELETE package
+// DELETE package — also remove image from Cloudinary
 router.delete('/:id', verifyToken, isStaff, async (req, res) => {
   try {
-    const deletedPackage = await Package.findByIdAndDelete(req.params.id);
-    if (!deletedPackage) return res.status(404).json({ error: 'Package not found' });
+    const pkg = await Package.findByIdAndDelete(req.params.id);
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+
+    if (pkg.image && pkg.image.includes('cloudinary.com')) {
+      await deleteFromCloudinary(pkg.image);
+    }
+
     res.json({ message: 'Package deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });

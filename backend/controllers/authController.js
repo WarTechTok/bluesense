@@ -10,6 +10,7 @@ const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
 const sendEmail = require("../utils/sendEmail");
+const { uploadAvatar } = require("../utils/cloudinary");
 
 // ============================================
 // LOAD LOGO AS BASE64
@@ -649,8 +650,15 @@ const updateProfile = async (req, res) => {
     if (address !== undefined) updateData.address = address;
 
     if (req.file) {
-      updateData.avatar = `/uploads/avatars/${req.file.filename}`;
-      updateData.googleAvatar = null;
+      try {
+        const { url } = await uploadAvatar(req.file.buffer, userId);
+        updateData.avatar = url;
+        updateData.googleAvatar = null;
+        console.log("✅ Avatar uploaded to Cloudinary:", url);
+      } catch (uploadErr) {
+        console.error("❌ Cloudinary avatar upload failed:", uploadErr.message);
+        return res.status(500).json({ message: "Failed to upload avatar. Please try again." });
+      }
     }
 
     if (Object.keys(updateData).length === 0) {
