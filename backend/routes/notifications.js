@@ -14,19 +14,23 @@ const Notification = require('../models/Notification');
 // ============================================
 router.post('/send', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { userId, email, subject, message, type } = req.body;
+    const { staffId, userId, email, subject, title, message, type } = req.body;
 
-    if (!userId || !email || !subject || !message) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    // Use staffId or userId (staffId takes priority)
+    const targetId = staffId || userId;
+    const notificationTitle = title || subject;
+
+    if (!targetId || !email || !notificationTitle || !message) {
+      return res.status(400).json({ error: 'Missing required fields: staffId/userId, email, subject/title, and message are required' });
     }
 
     // Save notification to database
     const notification = new Notification({
-      userId,
-      subject,
+      staffId: targetId,
+      userId: userId,
+      title: notificationTitle,
       message,
-      type: type || 'general',
-      isRead: false
+      type: type || 'Task Assignment'
     });
 
     await notification.save();
@@ -35,9 +39,9 @@ router.post('/send', authenticate, authorize('admin'), async (req, res) => {
     try {
       await sendEmail({
         to: email,
-        subject: subject,
+        subject: notificationTitle,
         html: `
-          <h2>${subject}</h2>
+          <h2>${notificationTitle}</h2>
           <p>${message}</p>
           <hr>
           <p style="color: #666; font-size: 12px;">This is an automated notification from Bluesense Resort Management System.</p>
@@ -55,7 +59,7 @@ router.post('/send', authenticate, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error sending notification:', error);
-    return res.status(500).json({ error: 'Error sending notification' });
+    return res.status(500).json({ error: 'Error sending notification', details: error.message });
   }
 });
 

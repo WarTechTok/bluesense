@@ -228,11 +228,12 @@ const PoolMonitoring = () => {
       // Send notification to staff
       if (staffMember?.email) {
         await adminApi.sendNotification({
+          staffId: selectedStaff,
           userId: selectedStaff,
           email: staffMember.email,
           subject: `🏊 Pool Maintenance Assignment - ${activeOasis?.label}`,
           message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C. Please check the pool and take necessary corrective actions.`,
-          type: 'pool_maintenance'
+          type: 'Task Assignment'
         });
       }
 
