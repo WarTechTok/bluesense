@@ -5,8 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const authenticate = require('../middleware/auth');
-const authorize = require('../middleware/role');
+const { authenticate, authorize } = require('../middleware/role');
 const TaskAssignment = require('../models/TaskAssignment');
 const Staff = require('../models/Staff');
 const { sendEmail } = require('../services/emailService');
