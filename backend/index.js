@@ -194,7 +194,7 @@ app.use("/api/admin/sessions", sessionRoutes);
 // TASKS & NOTIFICATIONS API ROUTES
 // ============================================
 app.use("/api/admin/tasks", tasksRoutes);
-app.use("/api/notifications", notificationsRoutes);
+app.use("/api/admin/notifications", notificationsRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access
