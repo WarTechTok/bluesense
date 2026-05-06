@@ -212,13 +212,17 @@ const PoolMonitoring = () => {
       const staffMember = staff.find(s => s._id === selectedStaff);
       
       // Create task assignment
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 1); // Due tomorrow
+      
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
         title: `Pool Maintenance Required - ${activeOasis?.label}`,
         description: `Pool water quality requires attention. pH: ${latestReading?.ph?.toFixed(2)}, Temperature: ${latestReading?.temperature?.toFixed(1)}°C, Turbidity: ${latestReading?.turbidity}`,
-        oasis: selectedOasis,
         priority: 'High',
-        status: 'Assigned'
+        status: 'Pending',
+        taskType: 'Maintenance',
+        dueDate: dueDate.toISOString()
       });
 
       // Send notification to staff

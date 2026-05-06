@@ -15,11 +15,18 @@ const { sendEmail } = require('../services/emailService');
 // ============================================
 router.post('/assign', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { staffId, title, description, priority, status, oasis } = req.body;
+    const { staffId, title, description, priority, status, taskType, roomId, dueDate } = req.body;
 
     if (!staffId || !title) {
       return res.status(400).json({ error: 'Staff ID and title are required' });
     }
+
+    // Validate status is correct enum value
+    const validStatuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+    const finalStatus = validStatuses.includes(status) ? status : 'Pending';
+
+    // Set due date - default to 3 days from now if not provided
+    const finalDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
     // Create task assignment
     const newTask = new TaskAssignment({
@@ -27,9 +34,11 @@ router.post('/assign', authenticate, authorize('admin'), async (req, res) => {
       title,
       description: description || '',
       priority: priority || 'Medium',
-      status: status || 'Assigned',
-      roomId: req.user.id, // Using admin's ID as reference
-      taskType: 'Maintenance'
+      status: finalStatus,
+      roomId: roomId || staffId, // Use provided roomId or fallback to staffId
+      taskType: taskType || 'Maintenance',
+      dueDate: finalDueDate,
+      assignedBy: req.user.id
     });
 
     const savedTask = await newTask.save();
@@ -40,7 +49,7 @@ router.post('/assign', authenticate, authorize('admin'), async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating task assignment:', error);
-    return res.status(500).json({ error: 'Error creating task assignment' });
+    return res.status(500).json({ error: 'Error creating task assignment', details: error.message });
   }
 });
 
