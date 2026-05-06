@@ -1,6 +1,8 @@
 // src/components/admin/PoolMonitoring.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { getLatestReading, getHistory } from "../../services/api";
+import * as adminApi from "../../services/admin";
+import MessageModal from "../modals/MessageModal";
 import "./PoolMonitoring.css";
 
 const OASIS_OPTIONS = [
@@ -32,6 +34,18 @@ const PoolMonitoring = () => {
   const [historyFilter, setHistoryFilter] = useState("today");
   const [showHistory, setShowHistory] = useState(false);
   const [selectedChart, setSelectedChart] = useState("ph");
+  
+  // Staff assignment states
+  const [staff, setStaff] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
 
   const fetchPoolReadings = useCallback(async () => {
     if (!selectedOasis) return;
@@ -51,12 +65,23 @@ const PoolMonitoring = () => {
     }
   }, [selectedOasis]);
 
+  // Fetch staff list
+  const fetchStaff = useCallback(async () => {
+    try {
+      const staffData = await adminApi.getAllStaff();
+      setStaff(staffData);
+    } catch (error) {
+      console.error("Failed to fetch staff:", error);
+    }
+  }, []);
+
   useEffect(() => {
     if (!selectedOasis) return;
     fetchPoolReadings();
+    fetchStaff();
     const interval = setInterval(fetchPoolReadings, 30000);
     return () => clearInterval(interval);
-  }, [selectedOasis, fetchPoolReadings]);
+  }, [selectedOasis, fetchPoolReadings, fetchStaff]);
 
   const getFilteredHistory = () => {
     const today = new Date();
@@ -107,8 +132,9 @@ const PoolMonitoring = () => {
         bg: "#fef2f2",
         text: "Action Needed",
         icon: "⚠",
+        isActionNeeded: true,
       };
-    return { color: "#10b981", bg: "#f0fdf4", text: "All Good", icon: "✓" };
+    return { color: "#10b981", bg: "#f0fdf4", text: "All Good", icon: "✓", isActionNeeded: false };
   };
 
   const statusInfo = getStatusInfo(latestReading);
@@ -167,6 +193,65 @@ const PoolMonitoring = () => {
         return `${idx === 0 ? "M" : "L"} ${x},${y}`;
       })
       .join(" ");
+  };
+
+  // Staff assignment handler
+  const handleAssignStaff = async () => {
+    if (!selectedStaff) {
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Please select a staff member to assign'
+      });
+      return;
+    }
+
+    setIsAssigning(true);
+    try {
+      const staffMember = staff.find(s => s._id === selectedStaff);
+      
+      // Create task assignment
+      await adminApi.createTaskAssignment({
+        staffId: selectedStaff,
+        title: `Pool Maintenance Required - ${activeOasis?.label}`,
+        description: `Pool water quality requires attention. pH: ${latestReading?.ph?.toFixed(2)}, Temperature: ${latestReading?.temperature?.toFixed(1)}°C, Turbidity: ${latestReading?.turbidity}`,
+        oasis: selectedOasis,
+        priority: 'High',
+        status: 'Assigned'
+      });
+
+      // Send notification to staff
+      if (staffMember?.email) {
+        await adminApi.sendNotification({
+          userId: selectedStaff,
+          email: staffMember.email,
+          subject: `🏊 Pool Maintenance Assignment - ${activeOasis?.label}`,
+          message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C. Please check the pool and take necessary corrective actions.`,
+          type: 'pool_maintenance'
+        });
+      }
+
+      setMessageModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: `${staffMember?.name} has been assigned and notified about the pool maintenance issue.`
+      });
+
+      setShowAssignModal(false);
+      setSelectedStaff(null);
+    } catch (error) {
+      console.error('Error assigning staff:', error);
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to assign staff. Please try again.'
+      });
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   // ── OASIS SELECTOR SCREEN ──
@@ -328,6 +413,39 @@ const PoolMonitoring = () => {
               </span>
             </div>
           </div>
+          
+          {/* Assign Staff Button - Only show when Action Needed */}
+          {statusInfo.isActionNeeded && (
+            <button
+              className="pm-assign-btn"
+              onClick={() => setShowAssignModal(true)}
+              style={{
+                position: 'absolute',
+                bottom: '16px',
+                right: '16px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '8px 16px',
+                fontSize: '0.9rem',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              Assign Staff
+            </button>
+          )}
         </div>
       </div>
 
@@ -714,6 +832,134 @@ const PoolMonitoring = () => {
           )}
         </div>
       )}
+
+      {/* Staff Assignment Modal */}
+      {showAssignModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }} onClick={() => setShowAssignModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            width: '90%',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#1e293b' }}>👥 Assign Staff Member</h3>
+              <button
+                onClick={() => setShowAssignModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#94a3b8'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+                Select Staff Member
+              </label>
+              <select
+                value={selectedStaff || ''}
+                onChange={(e) => setSelectedStaff(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">-- Select a staff member --</option>
+                {staff.map(s => (
+                  <option key={s._id} value={s._id}>
+                    {s.name} ({s.position || s.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedStaff && (
+              <div style={{
+                background: '#f0f9ff',
+                border: '1px solid #0284c7',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '20px',
+                fontSize: '0.85rem',
+                color: '#0284c7'
+              }}>
+                <strong>Assignment Details:</strong>
+                <p style={{ margin: '8px 0 0', lineHeight: '1.4' }}>
+                  This staff member will receive an email notification about the pool maintenance issue and the task will be assigned to their dashboard.
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowAssignModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  color: '#64748b'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignStaff}
+                disabled={isAssigning || !selectedStaff}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  background: isAssigning ? '#cbd5e1' : '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: isAssigning ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isAssigning ? 'Assigning...' : '✓ Assign Now'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Modal */}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        onClose={() => setMessageModal({ ...messageModal, isOpen: false })}
+        type={messageModal.type}
+        title={messageModal.title}
+        message={messageModal.message}
+      />
     </div>
   );
 };

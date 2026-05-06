@@ -17,3 +17,4 @@ export * from './maintenance';
 export * from './packages';
 export * from './addons';
 export * from './sessions';
+export * from './tasks';

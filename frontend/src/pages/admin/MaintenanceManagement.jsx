@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import * as adminApi from '../../services/admin';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
+import MessageModal from '../../components/modals/MessageModal';
 import './ManagementPages.css';
 
 const MaintenanceManagement = () => {
@@ -15,6 +16,18 @@ const MaintenanceManagement = () => {
   const [filterCategory, setFilterCategory] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [newItem, setNewItem] = useState({ name: '', quantity: 1, unitCost: 0, supplier: '' });
+  const [messageModal, setMessageModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   const [formData, setFormData] = useState({
     title: '',
@@ -54,7 +67,12 @@ const MaintenanceManagement = () => {
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
       const errorMsg = error.response?.data?.error || error.message || 'Error fetching maintenance records';
-      alert(`❌ ${errorMsg}`);
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: errorMsg
+      });
     } finally {
       setLoading(false);
     }
@@ -102,64 +120,131 @@ const MaintenanceManagement = () => {
   const handleSubmit = async () => {
     try {
       if (!formData.title.trim()) {
-        alert('Title is required');
+        setMessageModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Validation Error',
+          message: 'Title is required'
+        });
         return;
       }
       if (!formData.amount || formData.amount <= 0) {
-        alert('Amount must be greater than 0');
+        setMessageModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Validation Error',
+          message: 'Amount must be greater than 0'
+        });
         return;
       }
 
       if (editingRecord) {
         await adminApi.updateMaintenance(editingRecord._id, formData);
-        alert('✅ Maintenance record updated successfully!');
+        setMessageModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Success',
+          message: 'Maintenance record updated successfully!'
+        });
       } else {
         await adminApi.createMaintenance(formData);
-        alert('✅ Maintenance record created successfully!');
+        setMessageModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Success',
+          message: 'Maintenance record created successfully!'
+        });
       }
       setIsModalOpen(false);
       fetchMaintenance();
     } catch (error) {
       console.error('Error saving maintenance record:', error);
-      alert('❌ Error saving maintenance record');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Error saving maintenance record'
+      });
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this maintenance record?')) {
-      try {
-        await adminApi.deleteMaintenance(id);
-        alert('✅ Maintenance record deleted successfully!');
-        fetchMaintenance();
-      } catch (error) {
-        console.error('Error deleting maintenance record:', error);
-        alert('❌ Error deleting maintenance record');
+  const handleDelete = (id) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Confirm Delete',
+      message: 'Are you sure you want to delete this maintenance record? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await adminApi.deleteMaintenance(id);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          fetchMaintenance();
+          setMessageModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Maintenance record deleted successfully!'
+          });
+        } catch (error) {
+          console.error('Error deleting maintenance record:', error);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setMessageModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Error deleting maintenance record'
+          });
+        }
       }
-    }
+    });
   };
 
   const handleMarkComplete = async (id) => {
     try {
       await adminApi.markMaintenanceComplete(id, { completedDate: new Date() });
-      alert('✅ Maintenance marked as completed!');
       fetchMaintenance();
+      setMessageModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Maintenance marked as completed!'
+      });
     } catch (error) {
       console.error('Error marking complete:', error);
-      alert('❌ Error marking maintenance as completed');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Error marking maintenance as completed'
+      });
     }
   };
 
   const handleAddItem = () => {
     if (!newItem.name.trim()) {
-      alert('Please enter item name');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please enter item name'
+      });
       return;
     }
     if (newItem.quantity <= 0) {
-      alert('Quantity must be greater than 0');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Quantity must be greater than 0'
+      });
       return;
     }
     if (newItem.unitCost < 0) {
-      alert('Unit cost cannot be negative');
+      setMessageModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Unit cost cannot be negative'
+      });
       return;
     }
 
@@ -818,6 +903,32 @@ const MaintenanceManagement = () => {
           </div>
         </Modal>
       )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <Modal onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>
+          <div className="modal-header">
+            <h3>{confirmationModal.title}</h3>
+            <button className="modal-close" onClick={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>✕</button>
+          </div>
+          <div className="modal-body">
+            <p style={{ fontSize: '14px', color: '#475569' }}>{confirmationModal.message}</p>
+          </div>
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>Cancel</button>
+            <button className="btn-danger" onClick={confirmationModal.onConfirm} style={{ backgroundColor: '#ef4444', color: 'white' }}>Delete</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Message Modal - Global */}
+      <MessageModal
+        isOpen={messageModal.isOpen}
+        onClose={() => setMessageModal({ ...messageModal, isOpen: false })}
+        type={messageModal.type}
+        title={messageModal.title}
+        message={messageModal.message}
+      />
     </div>
   );
 };

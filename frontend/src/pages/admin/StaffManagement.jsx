@@ -43,6 +43,12 @@ const StaffManagement = () => {
     title: '',
     message: ''
   });
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   useEffect(() => {
     fetchStaff();
@@ -248,21 +254,34 @@ const StaffManagement = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await adminApi.deleteStaff(id);
-        fetchStaff();
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        setMessageModal({
-          isOpen: true,
-          type: 'error',
-          title: 'Error',
-          message: 'Error deleting user'
-        });
+  const handleDelete = (id) => {
+    setConfirmationModal({
+      isOpen: true,
+      title: 'Confirm Delete',
+      message: 'Are you sure you want to delete this user? This action cannot be undone.',
+      onConfirm: async () => {
+        try {
+          await adminApi.deleteStaff(id);
+          fetchStaff();
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setMessageModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'User deleted successfully!'
+          });
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          setConfirmationModal({ ...confirmationModal, isOpen: false });
+          setMessageModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Error deleting user'
+          });
+        }
       }
-    }
+    });
   };
 
   const clearFilters = () => {
@@ -664,6 +683,23 @@ const StaffManagement = () => {
           <div className="modal-footer">
             <button className="btn-secondary" onClick={() => setIsPasswordModalOpen(false)}>Cancel</button>
             <button className="btn-primary" onClick={handleSubmitPassword}>Reset Password</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <Modal onClose={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>
+          <div className="modal-header">
+            <h3>{confirmationModal.title}</h3>
+            <button className="modal-close" onClick={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>✕</button>
+          </div>
+          <div className="modal-body">
+            <p style={{ fontSize: '14px', color: '#475569' }}>{confirmationModal.message}</p>
+          </div>
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setConfirmationModal({ ...confirmationModal, isOpen: false })}>Cancel</button>
+            <button className="btn-danger" onClick={confirmationModal.onConfirm} style={{ backgroundColor: '#ef4444', color: 'white' }}>Delete</button>
           </div>
         </Modal>
       )}
