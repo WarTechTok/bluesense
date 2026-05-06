@@ -193,7 +193,7 @@ app.use("/api/admin/sessions", sessionRoutes);
 // ============================================
 // TASKS & NOTIFICATIONS API ROUTES
 // ============================================
-app.use("/api/tasks", tasksRoutes);
+app.use("/api/admin/tasks", tasksRoutes);
 app.use("/api/notifications", notificationsRoutes);
 
 // ============================================

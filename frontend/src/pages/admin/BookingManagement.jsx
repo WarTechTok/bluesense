@@ -264,6 +264,11 @@ const BookingManagement = () => {
   const getActions = (booking) => {
     const actions = [];
 
+    // No actions available for cancelled or completed bookings
+    if (booking.status === "Cancelled" || booking.status === "Completed") {
+      return actions;
+    }
+
     if (booking.paymentStatus !== "Paid") {
       actions.push({
         label: "View Payment",
