@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState, useRef, useCallback } from "react";
-import "./PackageImageUploader.css";
+// import "./PackageImageUploader.css"; // TEMPORARILY REMOVED - add CSS file later
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
@@ -203,7 +203,7 @@ const PackageImageUploader = ({ images = [], onChange, packageId }) => {
               >
                 <img
                   src={url}
-                  alt={`Package image ${index + 1}`}
+                  alt={`Package ${index + 1}`}
                   onClick={() => setLightboxIndex(index)}
                 />
                 {index === 0 && (
@@ -285,7 +285,7 @@ const PackageImageUploader = ({ images = [], onChange, packageId }) => {
               </>
             )}
 
-            <img src={images[lightboxIndex]} alt={`Image ${lightboxIndex + 1}`} />
+            <img src={images[lightboxIndex]} alt={`Full view ${lightboxIndex + 1}`} />
 
             <div className="lb-counter">
               {lightboxIndex + 1} / {images.length}
@@ -297,7 +297,7 @@ const PackageImageUploader = ({ images = [], onChange, packageId }) => {
                   <img
                     key={i}
                     src={url}
-                    alt=""
+                    alt={`Thumbnail view`}
                     className={i === lightboxIndex ? "active" : ""}
                     onClick={() => setLightboxIndex(i)}
                   />
