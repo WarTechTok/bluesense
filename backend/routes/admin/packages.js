@@ -1,20 +1,22 @@
 // backend/routes/admin/packages.js
 // ============================================
-// PACKAGE MANAGEMENT ROUTES (Cloudinary version)
+// PACKAGE MANAGEMENT ROUTES — multi-image gallery
 // ============================================
 
 const express = require('express');
 const router  = express.Router();
 const Package = require('../../models/Package');
 const { verifyToken, isStaff } = require('../../middleware/auth');
-const { uploadPackageImage } = require('../../middleware/upload');
-const { uploadPackageImage: uploadToCloud, deleteFromCloudinary } = require('../../utils/cloudinary');
+const { uploadPackageImage, uploadPackageImages } = require('../../middleware/upload');
+const {
+  uploadPackageImage: uploadToCloud,
+  deleteFromCloudinary,
+} = require('../../utils/cloudinary');
 
 // ============================================
-// PUBLIC ROUTES — no authentication required
+// PUBLIC
 // ============================================
 
-// GET active packages for customers
 router.get('/public', async (req, res) => {
   try {
     const packages = await Package.find({ isActive: true }).sort({ oasis: 1, displayOrder: 1 });
@@ -24,7 +26,6 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// GET packages by oasis (public)
 router.get('/public/oasis/:oasis', async (req, res) => {
   try {
     const packages = await Package.find({ oasis: req.params.oasis, isActive: true }).sort({ displayOrder: 1 });
@@ -35,18 +36,13 @@ router.get('/public/oasis/:oasis', async (req, res) => {
 });
 
 // ============================================
-// IMAGE UPLOAD ROUTE — Cloudinary
-// ============================================
-
+// SINGLE IMAGE UPLOAD (backward compat)
 // POST /api/admin/packages/upload-image
+// ============================================
 router.post('/upload-image', verifyToken, isStaff, uploadPackageImage, async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' });
-    }
-
+    if (!req.file) return res.status(400).json({ error: 'No image file provided' });
     const { url, publicId } = await uploadToCloud(req.file.buffer);
-
     res.json({ imageUrl: url, publicId });
   } catch (error) {
     console.error('❌ Package image upload error:', error);
@@ -55,10 +51,35 @@ router.post('/upload-image', verifyToken, isStaff, uploadPackageImage, async (re
 });
 
 // ============================================
-// ADMIN ROUTES — authentication required
+// MULTI-IMAGE UPLOAD
+// POST /api/admin/packages/upload-images
+// Body: FormData with field "images" (1–10 files)
+// Returns: { imageUrls: [...] }
+// ============================================
+router.post('/upload-images', verifyToken, isStaff, uploadPackageImages, async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No image files provided' });
+    }
+
+    // Upload all files to Cloudinary in parallel
+    const uploadPromises = req.files.map((file) => uploadToCloud(file.buffer));
+    const results = await Promise.all(uploadPromises);
+
+    const imageUrls = results.map((r) => r.url);
+    console.log(`✅ Uploaded ${imageUrls.length} package images`);
+
+    res.json({ imageUrls });
+  } catch (error) {
+    console.error('❌ Multi-image upload error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============================================
+// ADMIN CRUD
 // ============================================
 
-// GET all packages
 router.get('/', verifyToken, isStaff, async (req, res) => {
   try {
     const packages = await Package.find().sort({ oasis: 1, displayOrder: 1 });
@@ -68,7 +89,6 @@ router.get('/', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// GET packages by oasis (admin)
 router.get('/oasis/:oasis', verifyToken, isStaff, async (req, res) => {
   try {
     const packages = await Package.find({ oasis: req.params.oasis, isActive: true }).sort({ displayOrder: 1 });
@@ -78,7 +98,6 @@ router.get('/oasis/:oasis', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// GET single package
 router.get('/:id', verifyToken, isStaff, async (req, res) => {
   try {
     const pkg = await Package.findById(req.params.id);
@@ -89,10 +108,21 @@ router.get('/:id', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// CREATE package
+// CREATE
 router.post('/', verifyToken, isStaff, async (req, res) => {
   try {
-    const newPackage = new Package(req.body);
+    const body = { ...req.body };
+
+    // Sync: if images array is provided but image field is not, use first image as primary
+    if (body.images?.length > 0 && !body.image) {
+      body.image = body.images[0];
+    }
+    // Sync: if image provided but images array empty, seed the array
+    if (body.image && (!body.images || body.images.length === 0)) {
+      body.images = [body.image];
+    }
+
+    const newPackage = new Package(body);
     await newPackage.save();
     res.status(201).json(newPackage);
   } catch (error) {
@@ -100,43 +130,91 @@ router.post('/', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// UPDATE package — if a new image is uploaded, delete the old Cloudinary image
+// UPDATE
 router.put('/:id', verifyToken, isStaff, async (req, res) => {
   try {
     const existing = await Package.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Package not found' });
 
-    // If image URL is being replaced and the old one was on Cloudinary, delete it
-    if (
-      existing &&
-      req.body.image &&
-      existing.image &&
-      existing.image !== req.body.image &&
-      existing.image.includes('cloudinary.com')
-    ) {
-      await deleteFromCloudinary(existing.image);
+    const body = { ...req.body };
+
+    // Keep images[] and image in sync
+    if (body.images?.length > 0) {
+      body.image = body.images[0]; // primary = first in array
+    } else if (body.image && (!body.images || body.images.length === 0)) {
+      body.images = [body.image];
+    }
+
+    // Delete old Cloudinary images that were removed
+    if (body.images) {
+      const oldImages = existing.images || (existing.image ? [existing.image] : []);
+      const removedImages = oldImages.filter(
+        (url) => url && url.includes('cloudinary.com') && !body.images.includes(url)
+      );
+      await Promise.all(removedImages.map((url) => deleteFromCloudinary(url)));
     }
 
     const updatedPackage = await Package.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      body,
       { new: true, runValidators: true }
     );
-    if (!updatedPackage) return res.status(404).json({ error: 'Package not found' });
     res.json(updatedPackage);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// DELETE package — also remove image from Cloudinary
+// ============================================
+// DELETE SINGLE IMAGE FROM GALLERY
+// DELETE /api/admin/packages/:id/image
+// Body: { imageUrl: "https://res.cloudinary.com/..." }
+// ============================================
+router.delete('/:id/image', verifyToken, isStaff, async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) return res.status(400).json({ error: 'imageUrl is required' });
+
+    const pkg = await Package.findById(req.params.id);
+    if (!pkg) return res.status(404).json({ error: 'Package not found' });
+
+    // Remove from images array
+    const newImages = (pkg.images || []).filter((url) => url !== imageUrl);
+
+    // Update primary image
+    const newPrimary = newImages[0] || '';
+
+    await Package.findByIdAndUpdate(req.params.id, {
+      images: newImages,
+      image: newPrimary,
+    });
+
+    // Delete from Cloudinary (non-fatal)
+    if (imageUrl.includes('cloudinary.com')) {
+      await deleteFromCloudinary(imageUrl);
+    }
+
+    res.json({ message: 'Image removed', images: newImages, image: newPrimary });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE PACKAGE (also remove all images from Cloudinary)
 router.delete('/:id', verifyToken, isStaff, async (req, res) => {
   try {
     const pkg = await Package.findByIdAndDelete(req.params.id);
     if (!pkg) return res.status(404).json({ error: 'Package not found' });
 
-    if (pkg.image && pkg.image.includes('cloudinary.com')) {
-      await deleteFromCloudinary(pkg.image);
-    }
+    const allImages = pkg.images?.length > 0
+      ? pkg.images
+      : pkg.image ? [pkg.image] : [];
+
+    await Promise.all(
+      allImages
+        .filter((url) => url && url.includes('cloudinary.com'))
+        .map((url) => deleteFromCloudinary(url))
+    );
 
     res.json({ message: 'Package deleted successfully' });
   } catch (error) {

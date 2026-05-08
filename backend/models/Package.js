@@ -1,13 +1,12 @@
 // backend/models/Package.js
 // ============================================
-// PACKAGE MODEL - Dynamic package management
+// PACKAGE MODEL - with multi-image gallery support
 // ============================================
 
 const mongoose = require("mongoose");
 
 const packageSchema = new mongoose.Schema(
   {
-    // Basic Info
     oasis: {
       type: String,
       enum: ["Oasis 1", "Oasis 2"],
@@ -22,35 +21,37 @@ const packageSchema = new mongoose.Schema(
       default: "",
     },
 
-    // Image
+    // PRIMARY image — kept for full backward compatibility
+    // Always mirrors images[0] when images array is used
     image: {
       type: String,
       default: "",
     },
 
-    // Capacity - Simple: max capacity only
-    // Minimum is handled separately for special packages
+    // GALLERY — array of Cloudinary URLs (max 10)
+    // images[0] is always the primary/cover image
+    images: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: (arr) => arr.length <= 10,
+        message: "A package can have at most 10 images",
+      },
+    },
+
     maxCapacity: {
       type: Number,
       required: true,
       min: 1,
     },
 
-    // Minimum capacity (only for packages that require a minimum)
-    // e.g., Package 5+ needs min 30, Package C needs min 50
     minCapacity: {
       type: Number,
       default: 0,
     },
 
-    // Inclusions (array of strings)
-    inclusions: [
-      {
-        type: String,
-      },
-    ],
+    inclusions: [{ type: String }],
 
-    // Pricing: dynamic for different sessions and day types
     pricing: {
       type: Map,
       of: {
@@ -59,7 +60,6 @@ const packageSchema = new mongoose.Schema(
       },
     },
 
-    // Available sessions for this package
     availableSessions: [
       {
         type: String,
@@ -67,24 +67,19 @@ const packageSchema = new mongoose.Schema(
       },
     ],
 
-    // Order in display
     displayOrder: {
       type: Number,
       default: 0,
     },
 
-    // Status
     isActive: {
       type: Boolean,
       default: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true }
 );
 
-// Compound index for unique oasis+name
 packageSchema.index({ oasis: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model("Package", packageSchema);
