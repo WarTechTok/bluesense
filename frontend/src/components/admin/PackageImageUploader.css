@@ -1,19 +1,19 @@
 /* src/components/admin/PackageImageUploader.css */
 /* ============================================ */
-/* MULTI-IMAGE UPLOADER - Polished admin UI */
+/* MULTI-IMAGE UPLOADER - COMPACT ADMIN UI */
 /* ============================================ */
 
 .pkg-uploader {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
-/* ── Drop Zone ───────────────────────────────── */
+/* ── Drop Zone (COMPACT) ───────────────────────────────── */
 .pkg-dropzone {
   border: 2px dashed #cbd5e1;
-  border-radius: 16px;
-  padding: 40px 24px;
+  border-radius: 12px;
+  padding: 16px 20px;
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -31,7 +31,7 @@
   border-color: #0284c7;
   background: #e0f2fe;
   transform: scale(1.01);
-  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
 }
 
 .pkg-dropzone.at-limit {
@@ -40,9 +40,9 @@
 }
 
 .dropzone-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 16px;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto 6px;
   color: #94a3b8;
 }
 
@@ -52,15 +52,15 @@
 }
 
 .dropzone-primary {
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   color: #334155;
-  margin: 0 0 4px;
+  margin: 0 0 2px;
 }
 
 .dropzone-secondary {
-  font-size: 0.875rem;
+  font-size: 0.7rem;
   color: #64748b;
-  margin: 0 0 8px;
+  margin: 0 0 4px;
 }
 
 .dropzone-link {
@@ -70,13 +70,13 @@
 }
 
 .dropzone-hint {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: #94a3b8;
   margin: 0;
 }
 
 .dropzone-limit {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #94a3b8;
   margin: 0;
 }
@@ -86,13 +86,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .progress-ring {
   position: relative;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
 }
 
 .progress-ring svg {
@@ -121,32 +121,32 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #0284c7;
   transform: none;
 }
 
 .pkg-upload-progress p {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin: 0;
 }
 
-/* ── Gallery ─────────────────────────────────── */
+/* ── Gallery (COMPACT) ─────────────────────────────────── */
 .pkg-gallery {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px;
 }
 
 .pkg-gallery-header {
-  margin-bottom: 14px;
+  margin-bottom: 10px;
 }
 
 .gallery-label {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: #94a3b8;
   font-weight: 500;
   text-transform: uppercase;
@@ -155,15 +155,15 @@
 
 .pkg-thumbs {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
 }
 
-/* ── Thumbnail ───────────────────────────────── */
+/* ── Thumbnail (COMPACT) ───────────────────────────────── */
 .pkg-thumb {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
   cursor: grab;
   border: 2px solid transparent;
@@ -205,14 +205,14 @@
 /* Primary badge */
 .primary-badge {
   position: absolute;
-  top: 6px;
-  left: 6px;
+  top: 4px;
+  left: 4px;
   background: #0284c7;
   color: white;
-  font-size: 0.6rem;
+  font-size: 0.55rem;
   font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 20px;
+  padding: 2px 5px;
+  border-radius: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   pointer-events: none;
@@ -222,11 +222,11 @@
 .thumb-actions {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -237,8 +237,8 @@
 
 .thumb-delete,
 .thumb-view {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: none;
   display: flex;
@@ -269,15 +269,15 @@
 
 .thumb-delete svg,
 .thumb-view svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 /* Drag handle */
 .thumb-drag-handle {
   position: absolute;
-  bottom: 4px;
-  right: 4px;
+  bottom: 2px;
+  right: 2px;
   color: rgba(255, 255, 255, 0.8);
   pointer-events: none;
   opacity: 0;
@@ -289,8 +289,8 @@
 }
 
 .thumb-drag-handle svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 /* Add more slot */
@@ -313,8 +313,8 @@
 }
 
 .pkg-thumb.add-more svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   color: #94a3b8;
 }
 
@@ -323,7 +323,7 @@
 }
 
 .pkg-thumb.add-more span {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #94a3b8;
   font-weight: 500;
 }
@@ -341,7 +341,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
   animation: lbFadeIn 0.2s ease;
 }
 
@@ -352,12 +352,12 @@
 
 .lightbox-inner {
   position: relative;
-  max-width: 1000px;
+  max-width: 900px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .lightbox-inner > img {
@@ -365,15 +365,15 @@
   max-width: 100%;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
 }
 
 .lb-close {
   position: absolute;
-  top: -16px;
-  right: -16px;
-  width: 40px;
-  height: 40px;
+  top: -12px;
+  right: -12px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -390,14 +390,14 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-.lb-close svg { width: 18px; height: 18px; }
+.lb-close svg { width: 16px; height: 16px; }
 
 .lb-nav {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -414,26 +414,26 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-.lb-nav svg { width: 22px; height: 22px; }
-.lb-prev { left: -64px; }
-.lb-next { right: -64px; }
+.lb-nav svg { width: 20px; height: 20px; }
+.lb-prev { left: -50px; }
+.lb-next { right: -50px; }
 
 .lb-counter {
   color: rgba(255, 255, 255, 0.7);
-  font-size: 0.85rem;
+  font-size: 0.75rem;
 }
 
 .lb-thumbs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
   justify-content: center;
-  max-width: 600px;
+  max-width: 500px;
 }
 
 .lb-thumbs img {
-  width: 56px;
-  height: 56px;
+  width: 45px;
+  height: 45px;
   object-fit: cover;
   border-radius: 6px;
   cursor: pointer;
@@ -446,4 +446,28 @@
 .lb-thumbs img.active {
   border-color: #0284c7;
   opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .pkg-thumbs {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 6px;
+  }
+  
+  .dropzone-primary {
+    font-size: 0.7rem;
+  }
+  
+  .dropzone-secondary {
+    font-size: 0.65rem;
+  }
+  
+  .lb-prev { left: -30px; }
+  .lb-next { right: -30px; }
+  .lb-nav {
+    width: 32px;
+    height: 32px;
+  }
+  .lb-nav svg { width: 16px; height: 16px; }
 }
