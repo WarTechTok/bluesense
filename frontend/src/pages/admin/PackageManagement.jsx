@@ -56,7 +56,6 @@ const PackageManagement = () => {
     setFormData((prev) => ({
       ...prev,
       images: newImages,
-      // Keep legacy `image` field synced to first image
       image: newImages[0] || "",
     }));
   };
@@ -75,21 +74,27 @@ const PackageManagement = () => {
     setFormData({ ...formData, inclusions: newInclusions });
   };
 
-  // ── Pricing ──────────────────────────────────────────────
-  const handlePricingChange = (session, paxLevel, dayType, value) => {
-    const newPricing = { ...formData.pricing };
+  // ── SIMPLIFIED PRICING (no weekday/weekend) ──────────────
+  const handlePricingChange = (session, value) => {
     const numValue = parseInt(value) || 0;
+    setFormData((prev) => ({
+      ...prev,
+      pricing: { ...prev.pricing, [session]: numValue },
+    }));
+  };
 
-    if (isPackageC() && paxLevel) {
-      if (!newPricing[paxLevel]) newPricing[paxLevel] = {};
-      if (!newPricing[paxLevel][session]) newPricing[paxLevel][session] = { weekday: 0, weekend: 0 };
-      newPricing[paxLevel][session].weekday = numValue;
-    } else {
-      if (!newPricing[session]) newPricing[session] = { weekday: 0, weekend: 0 };
-      newPricing[session][dayType] = numValue;
-    }
-
-    setFormData({ ...formData, pricing: newPricing });
+  const handlePaxPricingChange = (paxLevel, session, value) => {
+    const numValue = parseInt(value) || 0;
+    setFormData((prev) => ({
+      ...prev,
+      pricing: {
+        ...prev.pricing,
+        [paxLevel]: {
+          ...prev.pricing[paxLevel],
+          [session]: numValue,
+        },
+      },
+    }));
   };
 
   const handleSessionToggle = (session) => {
@@ -111,7 +116,6 @@ const PackageManagement = () => {
     try {
       const packageData = {
         ...formData,
-        // Ensure legacy image field mirrors first in array
         image: formData.images[0] || formData.image || "",
       };
 
@@ -138,23 +142,33 @@ const PackageManagement = () => {
   const handleEdit = (pkg) => {
     setEditingPackage(pkg);
 
-    let pricingData = pkg.pricing || {};
+    let pricingData = {};
 
     if (pkg.name === "Package C") {
+      // Package C: keep 50pax and 100pax structure
+      pricingData = pkg.pricing || {};
       if (!pricingData["50pax"]) pricingData["50pax"] = {};
       if (!pricingData["100pax"]) pricingData["100pax"] = {};
-      ["Day", "Night", "22hrs"].forEach((session) => {
-        if (!pricingData["50pax"][session]) pricingData["50pax"][session] = { weekday: 0 };
-        if (!pricingData["100pax"][session]) pricingData["100pax"][session] = { weekday: 0 };
-      });
+    } else {
+      // Regular packages: load session prices (they may be objects or numbers)
+      const rawPricing = pkg.pricing || {};
+      for (const [key, val] of Object.entries(rawPricing)) {
+        if (typeof val === "object" && val !== null) {
+          // Convert old weekday/weekend to single number (use weekday)
+          pricingData[key] = val.weekday || val.weekend || 0;
+        } else if (typeof val === "number") {
+          pricingData[key] = val;
+        } else {
+          pricingData[key] = 0;
+        }
+      }
     }
 
-    // Build images array — use pkg.images if available, else fall back to legacy pkg.image
+    // Build images array
     let existingImages = [];
     if (pkg.images && pkg.images.length > 0) {
       existingImages = pkg.images;
     } else if (pkg.image) {
-      // Legacy single image — wrap in array (resolve relative URLs)
       const imgUrl = pkg.image.startsWith("http") ? pkg.image : `${API_BASE_URL}${pkg.image}`;
       existingImages = [imgUrl];
     }
@@ -217,14 +231,14 @@ const PackageManagement = () => {
 
   const getPricingPreview = (pkg) => {
     if (pkg.name === "Package C") {
-      const fiftyPaxPrice = pkg.pricing?.["50pax"]?.Day?.weekday || 0;
+      const fiftyPaxPrice = pkg.pricing?.["50pax"]?.Day || 0;
       return `₱${fiftyPaxPrice.toLocaleString()}`;
     }
-    const firstPrice = Object.values(pkg.pricing || {})[0]?.weekday || 0;
+    const firstPrice = Object.values(pkg.pricing || {})[0] || 0;
     return `₱${firstPrice.toLocaleString()}`;
   };
 
-  // ── Pricing fields (unchanged logic) ────────────────────
+  // ── SIMPLIFIED PRICING FIELDS (no weekday/weekend) ────────
   const renderPricingFields = () => {
     if (isPackageC()) {
       const minPax = formData.minCapacity || 50;
@@ -232,86 +246,66 @@ const PackageManagement = () => {
 
       return (
         <div className="form-section">
-          <h4>Pricing (₱)</h4>
-          <div className="pricing-group">
-            <h5 style={{ margin: "16px 0 8px 0", color: "#0284c7" }}>📊 PAX-Based Pricing</h5>
-            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-              Based on min capacity ({minPax} PAX) and max capacity ({maxPax} PAX)
-            </p>
+          <h4>Pricing (₱) — PAX-Based</h4>
+          <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
+            Set price for {minPax} PAX and {maxPax} PAX tiers
+          </p>
 
-            {[minPax, maxPax].map((pax) => (
-              <div key={pax} style={{ marginBottom: "16px" }}>
-                <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>{pax} PAX</h6>
-                <div className="pricing-table">
-                  <div className="pricing-header">
-                    <div className="pricing-cell">Session</div>
-                    <div className="pricing-cell">Price</div>
-                  </div>
-                  {["Day", "Night", "22hrs"].map((session) =>
-                    formData.availableSessions.includes(session) && (
-                      <div key={session} className="pricing-row">
-                        <div className="pricing-cell">{session}</div>
-                        <div className="pricing-cell">
-                          <input
-                            type="number"
-                            value={formData.pricing[`${pax}pax`]?.[session]?.weekday || ""}
-                            onChange={(e) => handlePricingChange(session, `${pax}pax`, "weekday", e.target.value)}
-                            placeholder={`Price for ${pax} PAX`}
-                          />
-                        </div>
-                      </div>
-                    )
-                  )}
+          {[minPax, maxPax].map((pax) => (
+            <div key={pax} style={{ marginBottom: "20px" }}>
+              <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>{pax} PAX</h6>
+              <div className="pricing-table">
+                <div className="pricing-header">
+                  <div className="pricing-cell">Session</div>
+                  <div className="pricing-cell">Price (₱)</div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="pricing-group" style={{ marginTop: "24px" }}>
-            <h5 style={{ margin: "0 0 8px 0", color: "#f59e0b" }}>📅 Weekday / Weekend Pricing (Alternative)</h5>
-            <div className="pricing-table">
-              <div className="pricing-header">
-                <div className="pricing-cell">Session</div>
-                <div className="pricing-cell">Monday - Thursday</div>
-                <div className="pricing-cell">Friday - Sunday</div>
-              </div>
-              {["Day", "Night", "22hrs"].map((session) =>
-                formData.availableSessions.includes(session) && (
-                  <div key={session} className="pricing-row">
-                    <div className="pricing-cell">{session}</div>
-                    <div className="pricing-cell">
-                      <input type="number" value={formData.pricing[session]?.weekday || ""} onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)} placeholder="Weekday" />
+                {["Day", "Night", "22hrs"].map((session) =>
+                  formData.availableSessions.includes(session) && (
+                    <div key={session} className="pricing-row">
+                      <div className="pricing-cell">{session}</div>
+                      <div className="pricing-cell">
+                        <input
+                          type="number"
+                          value={formData.pricing[`${pax}pax`]?.[session] || ""}
+                          onChange={(e) => handlePaxPricingChange(`${pax}pax`, session, e.target.value)}
+                          placeholder={`Price for ${pax} PAX`}
+                          min="0"
+                        />
+                      </div>
                     </div>
-                    <div className="pricing-cell">
-                      <input type="number" value={formData.pricing[session]?.weekend || ""} onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)} placeholder="Weekend" />
-                    </div>
-                  </div>
-                )
-              )}
+                  )
+                )}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       );
     }
 
+    // Regular packages - simplified (single price per session)
     return (
       <div className="form-section">
-        <h4>Pricing (₱)</h4>
+        <h4>Pricing per Session (₱)</h4>
+        <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
+          Same price applies to all days of the week
+        </p>
         <div className="pricing-table">
           <div className="pricing-header">
             <div className="pricing-cell">Session</div>
-            <div className="pricing-cell">Monday - Thursday</div>
-            <div className="pricing-cell">Friday - Sunday</div>
+            <div className="pricing-cell">Price (₱)</div>
           </div>
           {["Day", "Night", "22hrs"].map((session) =>
             formData.availableSessions.includes(session) && (
               <div key={session} className="pricing-row">
                 <div className="pricing-cell">{session}</div>
                 <div className="pricing-cell">
-                  <input type="number" value={formData.pricing[session]?.weekday || ""} onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)} placeholder="Weekday" />
-                </div>
-                <div className="pricing-cell">
-                  <input type="number" value={formData.pricing[session]?.weekend || ""} onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)} placeholder="Weekend" />
+                  <input
+                    type="number"
+                    value={formData.pricing?.[session] ?? ""}
+                    onChange={(e) => handlePricingChange(session, e.target.value)}
+                    placeholder="Price"
+                    min="0"
+                  />
                 </div>
               </div>
             )
@@ -374,7 +368,6 @@ const PackageManagement = () => {
                   </div>
                 </div>
 
-                {/* Show first image or multi-image count badge */}
                 <div className="package-image">
                   {(pkg.images?.length > 0 || pkg.image) ? (
                     <div className="pkg-card-img-wrap">
@@ -420,7 +413,7 @@ const PackageManagement = () => {
                   <div className="pricing-preview-title">Starting from</div>
                   <div className="pricing-preview-amount">{getPricingPreview(pkg)}</div>
                   <div className="pricing-preview-note">
-                    {pkg.name === "Package C" ? "for 50 PAX" : "weekday rate"}
+                    {pkg.name === "Package C" ? `for ${pkg.minCapacity || 50} PAX` : "per session"}
                   </div>
                 </div>
               </div>
@@ -477,7 +470,7 @@ const PackageManagement = () => {
                   </div>
                 </div>
 
-                {/* ── MULTI-IMAGE UPLOAD ── */}
+                {/* MULTI-IMAGE UPLOAD */}
                 <div className="form-section">
                   <h4>Package Images</h4>
                   <p className="section-hint">
@@ -507,7 +500,7 @@ const PackageManagement = () => {
                   </div>
                 </div>
 
-                {/* Pricing */}
+                {/* Pricing - Simplified */}
                 {renderPricingFields()}
 
                 {/* Inclusions */}
