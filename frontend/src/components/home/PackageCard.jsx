@@ -106,7 +106,7 @@ function PackageCard({ pkg, oasis }) {
                 >
                   <img
                     src={src}
-                    alt={`${pkg.name} – photo ${i + 1}`}
+                    alt={`${pkg.name} ${i + 1}`}
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = `https://placehold.co/400x200/e2e8f0/64748b?text=${encodeURIComponent(pkg.name)}`;
