@@ -4,7 +4,7 @@
 // ============================================
 
 import React, { useState, useRef, useCallback } from "react";
-// import "./PackageImageUploader.css"; // TEMPORARILY REMOVED - add CSS file later
+import "./PackageImageUploader.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
