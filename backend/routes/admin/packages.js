@@ -14,6 +14,27 @@ const {
 } = require('../../utils/cloudinary');
 
 // ============================================
+// HELPER: Normalize pricing (convert single number to weekday/weekend)
+// ============================================
+const normalizePricing = (pricing) => {
+  if (!pricing || typeof pricing !== 'object') return pricing;
+  
+  const normalized = {};
+  for (const [key, val] of Object.entries(pricing)) {
+    if (typeof val === 'number') {
+      // New format: single number → convert to old format
+      normalized[key] = { weekday: val, weekend: val };
+    } else if (typeof val === 'object' && val !== null) {
+      // Old format: keep as is
+      normalized[key] = val;
+    } else {
+      normalized[key] = val;
+    }
+  }
+  return normalized;
+};
+
+// ============================================
 // PUBLIC
 // ============================================
 
@@ -122,10 +143,19 @@ router.post('/', verifyToken, isStaff, async (req, res) => {
       body.images = [body.image];
     }
 
+    // NORMALIZE PRICING: convert single number to weekday/weekend
+    if (body.pricing) {
+      body.pricing = normalizePricing(body.pricing);
+    }
+    if (body.pricePerPax) {
+      body.pricePerPax = normalizePricing(body.pricePerPax);
+    }
+
     const newPackage = new Package(body);
     await newPackage.save();
     res.status(201).json(newPackage);
   } catch (error) {
+    console.error("Create error:", error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -140,9 +170,17 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
 
     // Keep images[] and image in sync
     if (body.images?.length > 0) {
-      body.image = body.images[0]; // primary = first in array
+      body.image = body.images[0];
     } else if (body.image && (!body.images || body.images.length === 0)) {
       body.images = [body.image];
+    }
+
+    // NORMALIZE PRICING: convert single number to weekday/weekend
+    if (body.pricing) {
+      body.pricing = normalizePricing(body.pricing);
+    }
+    if (body.pricePerPax) {
+      body.pricePerPax = normalizePricing(body.pricePerPax);
     }
 
     // Delete old Cloudinary images that were removed
@@ -161,6 +199,7 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
     );
     res.json(updatedPackage);
   } catch (error) {
+    console.error("Update error:", error);
     res.status(400).json({ error: error.message });
   }
 });
