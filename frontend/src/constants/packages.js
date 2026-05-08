@@ -77,6 +77,12 @@ const transformPackageData = (apiPackage) => {
     image:
       apiPackage.image ||
       `/images/packages/${apiPackage.oasis === "Oasis 1" ? "oasis1" : "oasis2"}/${apiPackage.name.toLowerCase().replace(/ /g, "-")}.jpg`,
+    // Gallery — array of Cloudinary URLs; images[0] mirrors the primary image
+    images: Array.isArray(apiPackage.images) && apiPackage.images.length > 0
+      ? apiPackage.images
+      : apiPackage.image
+        ? [apiPackage.image]
+        : [],
     subtitle: apiPackage.description?.substring(0, 50) || apiPackage.name,
     capacity: hasMinCapacity
       ? `${apiPackage.minCapacity} - ${apiPackage.maxCapacity} pax`
