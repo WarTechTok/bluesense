@@ -14,10 +14,27 @@ const {
 } = require('../../utils/cloudinary');
 
 // ============================================
-// HELPER: Normalize pricing (convert single number to weekday/weekend)
+// HELPER: Check if pricing is PAX-based (Package C style)
 // ============================================
-const normalizePricing = (pricing) => {
+const isPaxBasedPricing = (pricing) => {
+  if (!pricing || typeof pricing !== 'object') return false;
+  // Check if keys are like "50pax", "100pax", etc.
+  const keys = Object.keys(pricing);
+  return keys.some(key => key.includes('pax'));
+};
+
+// ============================================
+// HELPER: Normalize pricing (convert single number to weekday/weekend)
+// SKIPS normalization for PAX-based pricing (Package C)
+// ============================================
+const normalizePricing = (pricing, skipNormalize = false) => {
+  if (skipNormalize) return pricing;
   if (!pricing || typeof pricing !== 'object') return pricing;
+  
+  // If it's PAX-based pricing (Package C), don't normalize
+  if (isPaxBasedPricing(pricing)) {
+    return pricing;
+  }
   
   const normalized = {};
   for (const [key, val] of Object.entries(pricing)) {
@@ -143,12 +160,18 @@ router.post('/', verifyToken, isStaff, async (req, res) => {
       body.images = [body.image];
     }
 
-    // NORMALIZE PRICING: convert single number to weekday/weekend
+    // NORMALIZE PRICING: skip for PAX-based pricing (Package C)
+    const skipNormalize = isPaxBasedPricing(body.pricing);
     if (body.pricing) {
-      body.pricing = normalizePricing(body.pricing);
+      body.pricing = normalizePricing(body.pricing, skipNormalize);
     }
     if (body.pricePerPax) {
-      body.pricePerPax = normalizePricing(body.pricePerPax);
+      body.pricePerPax = normalizePricing(body.pricePerPax, true);
+    }
+
+    // Mark isPaxBased flag for Package C
+    if (body.name === 'Package C' || isPaxBasedPricing(body.pricing)) {
+      body.isPaxBased = true;
     }
 
     const newPackage = new Package(body);
@@ -175,12 +198,18 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
       body.images = [body.image];
     }
 
-    // NORMALIZE PRICING: convert single number to weekday/weekend
+    // NORMALIZE PRICING: skip for PAX-based pricing (Package C)
+    const skipNormalize = isPaxBasedPricing(body.pricing) || existing.name === 'Package C';
     if (body.pricing) {
-      body.pricing = normalizePricing(body.pricing);
+      body.pricing = normalizePricing(body.pricing, skipNormalize);
     }
     if (body.pricePerPax) {
-      body.pricePerPax = normalizePricing(body.pricePerPax);
+      body.pricePerPax = normalizePricing(body.pricePerPax, true);
+    }
+
+    // Mark isPaxBased flag for Package C
+    if (body.name === 'Package C' || (body.pricing && isPaxBasedPricing(body.pricing))) {
+      body.isPaxBased = true;
     }
 
     // Delete old Cloudinary images that were removed
