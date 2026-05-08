@@ -491,7 +491,6 @@ const PoolMonitoring = () => {
               >
                 {latestReading?.ph?.toFixed(2) || "--"}
               </span>
-              <span className="pm-reading-range">WHO Standard: 7.2 – 7.8</span>
             </div>
             <div
               className="pm-reading-status-dot"
@@ -535,7 +534,6 @@ const PoolMonitoring = () => {
                   ? `${latestReading.temperature.toFixed(1)}°C`
                   : "--"}
               </span>
-              <span className="pm-reading-range">WHO Standard: 21°C – 32°C</span>
             </div>
             <div
               className="pm-reading-status-dot"
@@ -581,7 +579,6 @@ const PoolMonitoring = () => {
               >
                 {latestReading?.turbidity || "--"}
               </span>
-              <span className="pm-reading-range">WHO Standard: Clear (≤ 0.5 NTU)</span>
             </div>
             <div
               className="pm-reading-status-dot"
