@@ -114,10 +114,29 @@ const PackageManagement = () => {
     }
 
     try {
-      const packageData = {
+      let packageData = {
         ...formData,
         image: formData.images[0] || formData.image || "",
       };
+
+      // For Package C, ensure pricing structure uses dynamic pax values
+      if (isPackageC()) {
+        const minPax = formData.minCapacity || 50;
+        const maxPax = formData.maxCapacity || 100;
+        
+        packageData.pricing = {
+          [`${minPax}pax`]: {
+            Day: formData.pricing[`${minPax}pax`]?.Day || 0,
+            Night: formData.pricing[`${minPax}pax`]?.Night || 0,
+            "22hrs": formData.pricing[`${minPax}pax`]?.["22hrs"] || 0
+          },
+          [`${maxPax}pax`]: {
+            Day: formData.pricing[`${maxPax}pax`]?.Day || 0,
+            Night: formData.pricing[`${maxPax}pax`]?.Night || 0,
+            "22hrs": formData.pricing[`${maxPax}pax`]?.["22hrs"] || 0
+          }
+        };
+      }
 
       console.log("Submitting package data:", JSON.stringify(packageData, null, 2));
 
@@ -134,7 +153,7 @@ const PackageManagement = () => {
       alert(`Package ${editingPackage ? "updated" : "created"} successfully!`);
     } catch (error) {
       console.error("Error saving package:", error);
-      alert("Error saving package: " + error.message);
+      alert("Error saving package: " + (error.response?.data?.error || error.message));
     }
   };
 
@@ -145,10 +164,20 @@ const PackageManagement = () => {
     let pricingData = {};
 
     if (pkg.name === "Package C") {
-      // Package C: keep 50pax and 100pax structure
+      // Load pricing dynamically based on minCapacity and maxCapacity
       pricingData = pkg.pricing || {};
-      if (!pricingData["50pax"]) pricingData["50pax"] = {};
-      if (!pricingData["100pax"]) pricingData["100pax"] = {};
+      const minPax = pkg.minCapacity || 50;
+      const maxPax = pkg.maxCapacity || 100;
+      
+      // Ensure the dynamic keys exist
+      if (!pricingData[`${minPax}pax`]) pricingData[`${minPax}pax`] = {};
+      if (!pricingData[`${maxPax}pax`]) pricingData[`${maxPax}pax`] = {};
+      
+      // Initialize all sessions to 0 if missing
+      ["Day", "Night", "22hrs"].forEach(session => {
+        if (!pricingData[`${minPax}pax`][session]) pricingData[`${minPax}pax`][session] = 0;
+        if (!pricingData[`${maxPax}pax`][session]) pricingData[`${maxPax}pax`][session] = 0;
+      });
     } else {
       // Regular packages: load session prices (they may be objects or numbers)
       const rawPricing = pkg.pricing || {};
@@ -231,11 +260,14 @@ const PackageManagement = () => {
 
   const getPricingPreview = (pkg) => {
     if (pkg.name === "Package C") {
-      const fiftyPaxPrice = pkg.pricing?.["50pax"]?.Day || 0;
-      return `₱${fiftyPaxPrice.toLocaleString()}`;
+      const minPax = pkg.minCapacity || 50;
+      const price = pkg.pricing?.[`${minPax}pax`]?.Day || 0;
+      return `₱${price.toLocaleString()}`;
     }
     const firstPrice = Object.values(pkg.pricing || {})[0] || 0;
-    return `₱${firstPrice.toLocaleString()}`;
+    // If it's an object with weekday/weekend, extract the number
+    const price = typeof firstPrice === 'object' ? (firstPrice.weekday || firstPrice.weekend || 0) : firstPrice;
+    return `₱${price.toLocaleString()}`;
   };
 
   // ── SIMPLIFIED PRICING FIELDS (no weekday/weekend) ────────
