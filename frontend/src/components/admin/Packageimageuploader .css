@@ -1,0 +1,449 @@
+/* src/components/admin/PackageImageUploader.css */
+/* ============================================ */
+/* MULTI-IMAGE UPLOADER - Polished admin UI */
+/* ============================================ */
+
+.pkg-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Drop Zone ───────────────────────────────── */
+.pkg-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+.pkg-dropzone:hover:not(.at-limit) {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.pkg-dropzone.drag-over {
+  border-color: #0284c7;
+  background: #e0f2fe;
+  transform: scale(1.01);
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.1);
+}
+
+.pkg-dropzone.at-limit {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.dropzone-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: #94a3b8;
+}
+
+.dropzone-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.dropzone-primary {
+  font-size: 0.95rem;
+  color: #334155;
+  margin: 0 0 4px;
+}
+
+.dropzone-secondary {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 8px;
+}
+
+.dropzone-link {
+  color: #0284c7;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dropzone-hint {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.dropzone-limit {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ── Upload Progress ─────────────────────────── */
+.pkg-upload-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-ring {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+
+.progress-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.progress-ring circle {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 4;
+  stroke-dasharray: 113px;
+}
+
+.progress-ring circle:last-child {
+  stroke: #0284c7;
+  stroke-dashoffset: 113px;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-ring span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0284c7;
+  transform: none;
+}
+
+.pkg-upload-progress p {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Gallery ─────────────────────────────────── */
+.pkg-gallery {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.pkg-gallery-header {
+  margin-bottom: 14px;
+}
+
+.gallery-label {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.pkg-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+}
+
+/* ── Thumbnail ───────────────────────────────── */
+.pkg-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: grab;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  background: #e2e8f0;
+}
+
+.pkg-thumb:active {
+  cursor: grabbing;
+}
+
+.pkg-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.pkg-thumb:hover img {
+  transform: scale(1.05);
+}
+
+.pkg-thumb.primary {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.pkg-thumb.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.pkg-thumb.drop-target {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.3);
+}
+
+/* Primary badge */
+.primary-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #0284c7;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+
+/* Hover actions */
+.thumb-actions {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.pkg-thumb:hover .thumb-actions {
+  opacity: 1;
+}
+
+.thumb-delete,
+.thumb-view {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.thumb-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.thumb-delete:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.thumb-view {
+  background: white;
+  color: #334155;
+}
+
+.thumb-view:hover {
+  transform: scale(1.1);
+}
+
+.thumb-delete svg,
+.thumb-view svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Drag handle */
+.thumb-drag-handle {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.pkg-thumb:hover .thumb-drag-handle {
+  opacity: 1;
+}
+
+.thumb-drag-handle svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Add more slot */
+.pkg-thumb.add-more {
+  border: 2px dashed #cbd5e1;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pkg-thumb.add-more:hover {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.pkg-thumb.add-more svg {
+  width: 22px;
+  height: 22px;
+  color: #94a3b8;
+}
+
+.pkg-thumb.add-more:hover svg {
+  color: #0284c7;
+}
+
+.pkg-thumb.add-more span {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.pkg-thumb.add-more:hover span {
+  color: #0284c7;
+}
+
+/* ── Lightbox ────────────────────────────────── */
+.pkg-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: lbFadeIn 0.2s ease;
+}
+
+@keyframes lbFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lightbox-inner {
+  position: relative;
+  max-width: 1000px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.lightbox-inner > img {
+  max-height: 70vh;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+}
+
+.lb-close {
+  position: absolute;
+  top: -16px;
+  right: -16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  z-index: 2;
+}
+
+.lb-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.lb-close svg { width: 18px; height: 18px; }
+
+.lb-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  z-index: 2;
+}
+
+.lb-nav:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.lb-nav svg { width: 22px; height: 22px; }
+.lb-prev { left: -64px; }
+.lb-next { right: -64px; }
+
+.lb-counter {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+}
+
+.lb-thumbs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 600px;
+}
+
+.lb-thumbs img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.lb-thumbs img:hover,
+.lb-thumbs img.active {
+  border-color: #0284c7;
+  opacity: 1;
+}

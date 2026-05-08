@@ -1,11 +1,12 @@
 // frontend/src/pages/admin/PackageManagement.jsx
 // ============================================
-// PACKAGE MANAGEMENT - Admin only with image upload
+// PACKAGE MANAGEMENT - Admin only with multi-image upload
 // ============================================
 
 import React, { useState, useEffect } from "react";
 import * as packageApi from "../../services/admin/packages";
 import { refreshAllData } from "../../constants/packages";
+import PackageImageUploader from "../../components/admin/PackageImageUploader";
 import "./PackageManagement.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
@@ -16,8 +17,6 @@ const PackageManagement = () => {
   const [selectedOasis, setSelectedOasis] = useState("Oasis 1");
   const [editingPackage, setEditingPackage] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
   const [formData, setFormData] = useState({
     oasis: "Oasis 1",
     name: "",
@@ -30,6 +29,7 @@ const PackageManagement = () => {
     displayOrder: 1,
     isActive: true,
     image: "",
+    images: [],
   });
   const [inclusionInput, setInclusionInput] = useState("");
 
@@ -49,58 +49,22 @@ const PackageManagement = () => {
     }
   };
 
-  const isPackageC = () => {
-    return formData.name === "Package C";
+  const isPackageC = () => formData.name === "Package C";
+
+  // ── Images handler ───────────────────────────────────────
+  const handleImagesChange = (newImages) => {
+    setFormData((prev) => ({
+      ...prev,
+      images: newImages,
+      // Keep legacy `image` field synced to first image
+      image: newImages[0] || "",
+    }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadImage = async () => {
-    if (!imageFile) return formData.image;
-
-    const uploadFormData = new FormData();
-    uploadFormData.append("image", imageFile);
-
-    const token = localStorage.getItem("token");
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/packages/upload-image`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: uploadFormData,
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.imageUrl;
-      }
-      return formData.image;
-    } catch (error) {
-      console.error("Error uploading image:", error);
-      return formData.image;
-    }
-  };
-
+  // ── Inclusions ───────────────────────────────────────────
   const handleAddInclusion = () => {
     if (inclusionInput.trim()) {
-      setFormData({
-        ...formData,
-        inclusions: [...formData.inclusions, inclusionInput.trim()],
-      });
+      setFormData({ ...formData, inclusions: [...formData.inclusions, inclusionInput.trim()] });
       setInclusionInput("");
     }
   };
@@ -111,17 +75,16 @@ const PackageManagement = () => {
     setFormData({ ...formData, inclusions: newInclusions });
   };
 
+  // ── Pricing ──────────────────────────────────────────────
   const handlePricingChange = (session, paxLevel, dayType, value) => {
     const newPricing = { ...formData.pricing };
     const numValue = parseInt(value) || 0;
 
     if (isPackageC() && paxLevel) {
-      // Package C uses pax-based pricing (50pax, 100pax)
       if (!newPricing[paxLevel]) newPricing[paxLevel] = {};
       if (!newPricing[paxLevel][session]) newPricing[paxLevel][session] = { weekday: 0, weekend: 0 };
       newPricing[paxLevel][session].weekday = numValue;
     } else {
-      // Regular packages
       if (!newPricing[session]) newPricing[session] = { weekday: 0, weekend: 0 };
       newPricing[session][dayType] = numValue;
     }
@@ -132,15 +95,13 @@ const PackageManagement = () => {
   const handleSessionToggle = (session) => {
     const current = [...formData.availableSessions];
     if (current.includes(session)) {
-      setFormData({
-        ...formData,
-        availableSessions: current.filter((s) => s !== session),
-      });
+      setFormData({ ...formData, availableSessions: current.filter((s) => s !== session) });
     } else {
       setFormData({ ...formData, availableSessions: [...current, session] });
     }
   };
 
+  // ── Submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!formData.name) {
       alert("Package name is required");
@@ -148,15 +109,12 @@ const PackageManagement = () => {
     }
 
     try {
-      let imageUrl = formData.image;
+      const packageData = {
+        ...formData,
+        // Ensure legacy image field mirrors first in array
+        image: formData.images[0] || formData.image || "",
+      };
 
-      if (imageFile) {
-        imageUrl = await uploadImage();
-      }
-
-      const packageData = { ...formData, image: imageUrl };
-      
-      // Debug log
       console.log("Submitting package data:", JSON.stringify(packageData, null, 2));
 
       if (editingPackage) {
@@ -176,10 +134,8 @@ const PackageManagement = () => {
     }
   };
 
+  // ── Edit ─────────────────────────────────────────────────
   const handleEdit = (pkg) => {
-    console.log("Editing package:", pkg.name);
-    console.log("Pricing data:", pkg.pricing);
-
     setEditingPackage(pkg);
 
     let pricingData = pkg.pricing || {};
@@ -187,11 +143,20 @@ const PackageManagement = () => {
     if (pkg.name === "Package C") {
       if (!pricingData["50pax"]) pricingData["50pax"] = {};
       if (!pricingData["100pax"]) pricingData["100pax"] = {};
-
       ["Day", "Night", "22hrs"].forEach((session) => {
         if (!pricingData["50pax"][session]) pricingData["50pax"][session] = { weekday: 0 };
         if (!pricingData["100pax"][session]) pricingData["100pax"][session] = { weekday: 0 };
       });
+    }
+
+    // Build images array — use pkg.images if available, else fall back to legacy pkg.image
+    let existingImages = [];
+    if (pkg.images && pkg.images.length > 0) {
+      existingImages = pkg.images;
+    } else if (pkg.image) {
+      // Legacy single image — wrap in array (resolve relative URLs)
+      const imgUrl = pkg.image.startsWith("http") ? pkg.image : `${API_BASE_URL}${pkg.image}`;
+      existingImages = [imgUrl];
     }
 
     setFormData({
@@ -206,10 +171,9 @@ const PackageManagement = () => {
       displayOrder: pkg.displayOrder || 1,
       isActive: pkg.isActive !== false,
       image: pkg.image || "",
+      images: existingImages,
     });
 
-    setImagePreview(pkg.image ? `${API_BASE_URL}${pkg.image}` : null);
-    setImageFile(null);
     setShowModal(true);
   };
 
@@ -241,16 +205,13 @@ const PackageManagement = () => {
       displayOrder: 1,
       isActive: true,
       image: "",
+      images: [],
     });
-    setImagePreview(null);
-    setImageFile(null);
     setInclusionInput("");
   };
 
   const getCapacityDisplay = (pkg) => {
-    if (pkg.minCapacity && pkg.minCapacity > 0) {
-      return `${pkg.minCapacity} - ${pkg.maxCapacity} pax`;
-    }
+    if (pkg.minCapacity && pkg.minCapacity > 0) return `${pkg.minCapacity} - ${pkg.maxCapacity} pax`;
     return `Up to ${pkg.maxCapacity} pax`;
   };
 
@@ -263,6 +224,7 @@ const PackageManagement = () => {
     return `₱${firstPrice.toLocaleString()}`;
   };
 
+  // ── Pricing fields (unchanged logic) ────────────────────
   const renderPricingFields = () => {
     if (isPackageC()) {
       const minPax = formData.minCapacity || 50;
@@ -271,79 +233,42 @@ const PackageManagement = () => {
       return (
         <div className="form-section">
           <h4>Pricing (₱)</h4>
-
           <div className="pricing-group">
-            <h5 style={{ margin: "16px 0 8px 0", color: "#0284c7" }}>
-              📊 PAX-Based Pricing
-            </h5>
+            <h5 style={{ margin: "16px 0 8px 0", color: "#0284c7" }}>📊 PAX-Based Pricing</h5>
             <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
               Based on min capacity ({minPax} PAX) and max capacity ({maxPax} PAX)
             </p>
 
-            {/* 50 PAX or minPax */}
-            <div style={{ marginBottom: "16px" }}>
-              <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>{minPax} PAX</h6>
-              <div className="pricing-table">
-                <div className="pricing-header">
-                  <div className="pricing-cell">Session</div>
-                  <div className="pricing-cell">Price</div>
-                </div>
-                {["Day", "Night", "22hrs"].map((session) =>
-                  formData.availableSessions.includes(session) && (
-                    <div key={session} className="pricing-row">
-                      <div className="pricing-cell">{session}</div>
-                      <div className="pricing-cell">
-                        <input
-                          type="number"
-                          value={formData.pricing[`${minPax}pax`]?.[session]?.weekday || ""}
-                          onChange={(e) =>
-                            handlePricingChange(session, `${minPax}pax`, "weekday", e.target.value)
-                          }
-                          placeholder={`Price for ${minPax} PAX`}
-                        />
+            {[minPax, maxPax].map((pax) => (
+              <div key={pax} style={{ marginBottom: "16px" }}>
+                <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>{pax} PAX</h6>
+                <div className="pricing-table">
+                  <div className="pricing-header">
+                    <div className="pricing-cell">Session</div>
+                    <div className="pricing-cell">Price</div>
+                  </div>
+                  {["Day", "Night", "22hrs"].map((session) =>
+                    formData.availableSessions.includes(session) && (
+                      <div key={session} className="pricing-row">
+                        <div className="pricing-cell">{session}</div>
+                        <div className="pricing-cell">
+                          <input
+                            type="number"
+                            value={formData.pricing[`${pax}pax`]?.[session]?.weekday || ""}
+                            onChange={(e) => handlePricingChange(session, `${pax}pax`, "weekday", e.target.value)}
+                            placeholder={`Price for ${pax} PAX`}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* 100 PAX or maxPax */}
-            <div style={{ marginBottom: "16px" }}>
-              <h6 style={{ margin: "0 0 8px 0", color: "#1e293b" }}>{maxPax} PAX</h6>
-              <div className="pricing-table">
-                <div className="pricing-header">
-                  <div className="pricing-cell">Session</div>
-                  <div className="pricing-cell">Price</div>
+                    )
+                  )}
                 </div>
-                {["Day", "Night", "22hrs"].map((session) =>
-                  formData.availableSessions.includes(session) && (
-                    <div key={session} className="pricing-row">
-                      <div className="pricing-cell">{session}</div>
-                      <div className="pricing-cell">
-                        <input
-                          type="number"
-                          value={formData.pricing[`${maxPax}pax`]?.[session]?.weekday || ""}
-                          onChange={(e) =>
-                            handlePricingChange(session, `${maxPax}pax`, "weekday", e.target.value)
-                          }
-                          placeholder={`Price for ${maxPax} PAX`}
-                        />
-                      </div>
-                    </div>
-                  )
-                )}
               </div>
-            </div>
+            ))}
           </div>
 
           <div className="pricing-group" style={{ marginTop: "24px" }}>
-            <h5 style={{ margin: "0 0 8px 0", color: "#f59e0b" }}>
-              📅 Weekday / Weekend Pricing (Alternative)
-            </h5>
-            <p style={{ fontSize: "12px", color: "#64748b", marginBottom: "12px" }}>
-              Use this for standard pricing based on day of week
-            </p>
+            <h5 style={{ margin: "0 0 8px 0", color: "#f59e0b" }}>📅 Weekday / Weekend Pricing (Alternative)</h5>
             <div className="pricing-table">
               <div className="pricing-header">
                 <div className="pricing-cell">Session</div>
@@ -355,20 +280,10 @@ const PackageManagement = () => {
                   <div key={session} className="pricing-row">
                     <div className="pricing-cell">{session}</div>
                     <div className="pricing-cell">
-                      <input
-                        type="number"
-                        value={formData.pricing[session]?.weekday || ""}
-                        onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)}
-                        placeholder="Weekday"
-                      />
+                      <input type="number" value={formData.pricing[session]?.weekday || ""} onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)} placeholder="Weekday" />
                     </div>
                     <div className="pricing-cell">
-                      <input
-                        type="number"
-                        value={formData.pricing[session]?.weekend || ""}
-                        onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)}
-                        placeholder="Weekend"
-                      />
+                      <input type="number" value={formData.pricing[session]?.weekend || ""} onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)} placeholder="Weekend" />
                     </div>
                   </div>
                 )
@@ -377,47 +292,38 @@ const PackageManagement = () => {
           </div>
         </div>
       );
-    } else {
-      return (
-        <div className="form-section">
-          <h4>Pricing (₱)</h4>
-          <div className="pricing-table">
-            <div className="pricing-header">
-              <div className="pricing-cell">Session</div>
-              <div className="pricing-cell">Monday - Thursday</div>
-              <div className="pricing-cell">Friday - Sunday</div>
-            </div>
-            {["Day", "Night", "22hrs"].map((session) =>
-              formData.availableSessions.includes(session) && (
-                <div key={session} className="pricing-row">
-                  <div className="pricing-cell">{session}</div>
-                  <div className="pricing-cell">
-                    <input
-                      type="number"
-                      value={formData.pricing[session]?.weekday || ""}
-                      onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)}
-                      placeholder="Weekday"
-                    />
-                  </div>
-                  <div className="pricing-cell">
-                    <input
-                      type="number"
-                      value={formData.pricing[session]?.weekend || ""}
-                      onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)}
-                      placeholder="Weekend"
-                    />
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      );
     }
+
+    return (
+      <div className="form-section">
+        <h4>Pricing (₱)</h4>
+        <div className="pricing-table">
+          <div className="pricing-header">
+            <div className="pricing-cell">Session</div>
+            <div className="pricing-cell">Monday - Thursday</div>
+            <div className="pricing-cell">Friday - Sunday</div>
+          </div>
+          {["Day", "Night", "22hrs"].map((session) =>
+            formData.availableSessions.includes(session) && (
+              <div key={session} className="pricing-row">
+                <div className="pricing-cell">{session}</div>
+                <div className="pricing-cell">
+                  <input type="number" value={formData.pricing[session]?.weekday || ""} onChange={(e) => handlePricingChange(session, null, "weekday", e.target.value)} placeholder="Weekday" />
+                </div>
+                <div className="pricing-cell">
+                  <input type="number" value={formData.pricing[session]?.weekend || ""} onChange={(e) => handlePricingChange(session, null, "weekend", e.target.value)} placeholder="Weekend" />
+                </div>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    );
   };
 
   const filteredPackages = packages.filter((p) => p.oasis === selectedOasis);
 
+  // ── Render ───────────────────────────────────────────────
   return (
     <div className="package-management">
       <div className="package-hero">
@@ -430,28 +336,19 @@ const PackageManagement = () => {
 
       <div className="package-container">
         <div className="oasis-selector">
-          <button
-            className={`oasis-tab ${selectedOasis === "Oasis 1" ? "active" : ""}`}
-            onClick={() => setSelectedOasis("Oasis 1")}
-          >
-            <i className="fas fa-water"></i> Oasis 1
-          </button>
-          <button
-            className={`oasis-tab ${selectedOasis === "Oasis 2" ? "active" : ""}`}
-            onClick={() => setSelectedOasis("Oasis 2")}
-          >
-            <i className="fas fa-palm-tree"></i> Oasis 2
-          </button>
+          {["Oasis 1", "Oasis 2"].map((oasis) => (
+            <button
+              key={oasis}
+              className={`oasis-tab ${selectedOasis === oasis ? "active" : ""}`}
+              onClick={() => setSelectedOasis(oasis)}
+            >
+              <i className={`fas fa-${oasis === "Oasis 1" ? "water" : "palm-tree"}`}></i> {oasis}
+            </button>
+          ))}
         </div>
 
         <div className="package-actions-bar">
-          <button
-            className="btn-add-package"
-            onClick={() => {
-              resetForm();
-              setShowModal(true);
-            }}
-          >
+          <button className="btn-add-package" onClick={() => { resetForm(); setShowModal(true); }}>
             <i className="fas fa-plus"></i> Add New Package
           </button>
         </div>
@@ -464,32 +361,42 @@ const PackageManagement = () => {
         ) : (
           <div className="packages-grid">
             {filteredPackages.map((pkg) => (
-              <div
-                key={pkg._id}
-                className={`package-card ${!pkg.isActive ? "inactive" : ""}`}
-              >
+              <div key={pkg._id} className={`package-card ${!pkg.isActive ? "inactive" : ""}`}>
                 <div className="package-header">
                   <div className="package-badge">{pkg.name}</div>
                   <div className="package-actions">
-                    <button
-                      className="btn-icon edit"
-                      onClick={() => handleEdit(pkg)}
-                    >
+                    <button className="btn-icon edit" onClick={() => handleEdit(pkg)}>
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button
-                      className="btn-icon delete"
-                      onClick={() => handleDelete(pkg)}
-                    >
+                    <button className="btn-icon delete" onClick={() => handleDelete(pkg)}>
                       <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
-                {pkg.image && (
-                  <div className="package-image">
-                    <img src={`${API_BASE_URL}${pkg.image}`} alt={pkg.name} />
-                  </div>
-                )}
+
+                {/* Show first image or multi-image count badge */}
+                <div className="package-image">
+                  {(pkg.images?.length > 0 || pkg.image) ? (
+                    <div className="pkg-card-img-wrap">
+                      <img
+                        src={pkg.images?.[0] || (pkg.image?.startsWith("http") ? pkg.image : `${API_BASE_URL}${pkg.image}`)}
+                        alt={pkg.name}
+                        onError={(e) => { e.target.style.display = "none"; }}
+                      />
+                      {pkg.images?.length > 1 && (
+                        <span className="img-count-badge">
+                          <i className="fas fa-images"></i> {pkg.images.length}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="pkg-card-img-placeholder">
+                      <i className="fas fa-image"></i>
+                      <span>No image</span>
+                    </div>
+                  )}
+                </div>
+
                 <p className="package-description">{pkg.description}</p>
 
                 <div className="package-details">
@@ -499,15 +406,11 @@ const PackageManagement = () => {
                   </div>
                   <div className="detail-item">
                     <span className="label">Sessions:</span>
-                    <span className="value">
-                      {pkg.availableSessions?.join(", ")}
-                    </span>
+                    <span className="value">{pkg.availableSessions?.join(", ")}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Status:</span>
-                    <span
-                      className={`status-badge ${pkg.isActive ? "active" : "inactive"}`}
-                    >
+                    <span className={`status-badge ${pkg.isActive ? "active" : "inactive"}`}>
                       {pkg.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
@@ -515,9 +418,7 @@ const PackageManagement = () => {
 
                 <div className="package-pricing-preview">
                   <div className="pricing-preview-title">Starting from</div>
-                  <div className="pricing-preview-amount">
-                    {getPricingPreview(pkg)}
-                  </div>
+                  <div className="pricing-preview-amount">{getPricingPreview(pkg)}</div>
                   <div className="pricing-preview-note">
                     {pkg.name === "Package C" ? "for 50 PAX" : "weekday rate"}
                   </div>
@@ -531,177 +432,78 @@ const PackageManagement = () => {
       {/* Add/Edit Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div
-            className="modal-container package-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-container package-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>{editingPackage ? "Edit Package" : "Add New Package"}</h3>
-              <button
-                className="modal-close"
-                onClick={() => setShowModal(false)}
-              >
-                ✕
-              </button>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
 
             <div className="modal-body">
               <form className="package-form">
+                {/* Basic Info */}
                 <div className="form-section">
                   <h4>Basic Information</h4>
                   <div className="form-row">
                     <div className="form-group">
                       <label>Oasis *</label>
-                      <select
-                        value={formData.oasis}
-                        onChange={(e) =>
-                          setFormData({ ...formData, oasis: e.target.value })
-                        }
-                      >
+                      <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })}>
                         <option value="Oasis 1">Oasis 1</option>
                         <option value="Oasis 2">Oasis 2</option>
                       </select>
                     </div>
                     <div className="form-group">
                       <label>Package Name *</label>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, name: e.target.value })
-                        }
-                        placeholder="e.g., Package 1"
-                      />
+                      <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Package 1" />
                     </div>
                   </div>
                   <div className="form-group">
                     <label>Description</label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          description: e.target.value,
-                        })
-                      }
-                      rows="2"
-                      placeholder="Brief description of the package"
-                    />
+                    <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" placeholder="Brief description of the package" />
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>Maximum Capacity *</label>
-                      <input
-                        type="number"
-                        value={formData.maxCapacity}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            maxCapacity: parseInt(e.target.value),
-                          })
-                        }
-                        min="1"
-                      />
+                      <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
                     </div>
                     <div className="form-group">
-                      <label>Minimum Capacity (if required)</label>
-                      <input
-                        type="number"
-                        value={formData.minCapacity}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            minCapacity: parseInt(e.target.value),
-                          })
-                        }
-                        min="0"
-                      />
-                      <small>Leave 0 for no minimum requirement</small>
+                      <label>Minimum Capacity</label>
+                      <input type="number" value={formData.minCapacity} onChange={(e) => setFormData({ ...formData, minCapacity: parseInt(e.target.value) })} min="0" />
+                      <small>Leave 0 for no minimum</small>
                     </div>
                     <div className="form-group">
                       <label>Display Order</label>
-                      <input
-                        type="number"
-                        value={formData.displayOrder}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            displayOrder: parseInt(e.target.value),
-                          })
-                        }
-                        min="1"
-                      />
+                      <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })} min="1" />
                     </div>
                   </div>
                 </div>
 
-                {/* Image Upload */}
+                {/* ── MULTI-IMAGE UPLOAD ── */}
                 <div className="form-section">
-                  <h4>Package Image</h4>
-                  <div className="image-upload-container">
-                    {imagePreview ? (
-                      <div className="image-preview">
-                        <img src={imagePreview} alt="Package preview" />
-                        <button
-                          type="button"
-                          className="remove-image-btn"
-                          onClick={() => {
-                            setImagePreview(null);
-                            setImageFile(null);
-                            setFormData({ ...formData, image: "" });
-                          }}
-                        >
-                          <i className="fas fa-times"></i> Remove
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="image-upload-area">
-                        <label className="image-upload-label">
-                          <i className="fas fa-cloud-upload-alt"></i>
-                          <span>Click to upload package image</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            hidden
-                          />
-                        </label>
-                        <p className="image-hint">
-                          Recommended size: 800x600px, Max 5MB
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  <h4>Package Images</h4>
+                  <p className="section-hint">
+                    Upload up to 10 images. The first image is used as the cover photo.
+                    Drag thumbnails to reorder.
+                  </p>
+                  <PackageImageUploader
+                    images={formData.images}
+                    onChange={handleImagesChange}
+                  />
                 </div>
 
-                {/* Available Sessions */}
+                {/* Sessions */}
                 <div className="form-section">
                   <h4>Available Sessions</h4>
                   <div className="checkbox-group">
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.availableSessions.includes("Day")}
-                        onChange={() => handleSessionToggle("Day")}
-                      />
-                      <span>Day Session (8AM - 5PM)</span>
-                    </label>
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.availableSessions.includes("Night")}
-                        onChange={() => handleSessionToggle("Night")}
-                      />
-                      <span>Night Session (8PM - 6AM)</span>
-                    </label>
-                    <label className="checkbox-label">
-                      <input
-                        type="checkbox"
-                        checked={formData.availableSessions.includes("22hrs")}
-                        onChange={() => handleSessionToggle("22hrs")}
-                      />
-                      <span>22-Hour Session</span>
-                    </label>
+                    {[
+                      { key: "Day", label: "Day Session (8AM - 5PM)" },
+                      { key: "Night", label: "Night Session (8PM - 6AM)" },
+                      { key: "22hrs", label: "22-Hour Session" },
+                    ].map(({ key, label }) => (
+                      <label key={key} className="checkbox-label">
+                        <input type="checkbox" checked={formData.availableSessions.includes(key)} onChange={() => handleSessionToggle(key)} />
+                        <span>{label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
 
@@ -715,10 +517,7 @@ const PackageManagement = () => {
                     {formData.inclusions.map((inc, idx) => (
                       <div key={idx} className="inclusion-tag">
                         <span>{inc}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveInclusion(idx)}
-                        >
+                        <button type="button" onClick={() => handleRemoveInclusion(idx)}>
                           <i className="fas fa-times"></i>
                         </button>
                       </div>
@@ -729,6 +528,7 @@ const PackageManagement = () => {
                       type="text"
                       value={inclusionInput}
                       onChange={(e) => setInclusionInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddInclusion())}
                       placeholder="Add an inclusion (e.g., Free WiFi)"
                     />
                     <button type="button" onClick={handleAddInclusion}>
@@ -740,13 +540,7 @@ const PackageManagement = () => {
                 {/* Status */}
                 <div className="form-section">
                   <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={formData.isActive}
-                      onChange={(e) =>
-                        setFormData({ ...formData, isActive: e.target.checked })
-                      }
-                    />
+                    <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
                     <span>Active (visible to customers)</span>
                   </label>
                 </div>
@@ -754,12 +548,7 @@ const PackageManagement = () => {
             </div>
 
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={() => setShowModal(false)}
-              >
-                Cancel
-              </button>
+              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={handleSubmit}>
                 {editingPackage ? "Update" : "Create"} Package
               </button>
