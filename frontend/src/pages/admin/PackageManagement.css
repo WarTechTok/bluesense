@@ -500,6 +500,27 @@
   background: #dc2626;
 }
 
+/* Reduce dropzone size */
+.pkg-dropzone {
+  padding: 20px 24px !important;  /* was 40px 24px */
+}
+
+/* Reduce thumbnail size */
+.pkg-thumbs {
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;  /* was 100px */
+}
+
+/* Reduce gallery gap */
+.pkg-thumbs {
+  gap: 8px !important;  /* was 10px */
+}
+
+/* Make modal body scrollable if needed */
+.package-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
