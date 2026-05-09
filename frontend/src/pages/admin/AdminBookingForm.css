@@ -204,6 +204,54 @@
   margin-bottom: 24px;
 }
 
+/* PAX Input Controls */
+.pax-input-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pax-btn {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pax-btn:hover:not(:disabled) {
+  background: #f0f9ff;
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+.pax-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.pax-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f8fafc;
+}
+
+.pax-input {
+  flex: 1;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 12px 14px;
+}
+
 .form-group label {
   display: block;
   font-weight: 600;

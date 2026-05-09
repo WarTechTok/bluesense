@@ -175,6 +175,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       const totalPrice = getTotalPrice();
       const downpayment = getDownpayment();
 
+      // Determine booking status based on payment status
+      let bookingStatus = formData.status;
+      if (formData.paymentStatus === "Paid") {
+        bookingStatus = "Confirmed";
+      } else if (formData.paymentStatus === "Partial") {
+        bookingStatus = "Confirmed";
+      }
+
       const bookingPayload = {
         customerName: formData.customerName,
         customerContact: formData.customerContact,
@@ -188,7 +196,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         downpayment: downpayment,
         paymentMethod: formData.paymentMethod,
         paymentStatus: formData.paymentStatus || "Pending",
-        status: formData.paymentStatus === "Paid" ? "Confirmed" : formData.status,
+        status: bookingStatus,
         specialRequests: formData.specialRequests,
       };
 
@@ -362,13 +370,42 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
             <div className="form-group">
               <label>Number of Guests *</label>
-              <input
-                type="number"
-                min="1"
-                value={formData.guestCount}
-                onChange={(e) => setFormData({ ...formData, guestCount: parseInt(e.target.value) || 1 })}
-                className={errors.guestCount ? 'error' : ''}
-              />
+              <div className="pax-input-container">
+                <button
+                  type="button"
+                  className="pax-btn pax-minus"
+                  onClick={() => setFormData({ ...formData, guestCount: Math.max(1, formData.guestCount - 1) })}
+                  disabled={formData.guestCount <= 1}
+                >
+                  −
+                </button>
+                <input
+                  type="number"
+                  min="1"
+                  value={formData.guestCount}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || val === '0') {
+                      setFormData({ ...formData, guestCount: '' });
+                    } else {
+                      setFormData({ ...formData, guestCount: Math.max(1, parseInt(val) || 1) });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    if (!e.target.value) {
+                      setFormData({ ...formData, guestCount: 1 });
+                    }
+                  }}
+                  className={`pax-input ${errors.guestCount ? 'error' : ''}`}
+                />
+                <button
+                  type="button"
+                  className="pax-btn pax-plus"
+                  onClick={() => setFormData({ ...formData, guestCount: formData.guestCount + 1 })}
+                >
+                  +
+                </button>
+              </div>
               {errors.guestCount && <span className="error-text">{errors.guestCount}</span>}
               {currentPackage && (
                 <small>Capacity: {getMinCapacityForPackage() > 0 ? `${getMinCapacityForPackage()}-` : ""}${getMaxCapacityForPackage()} pax</small>
