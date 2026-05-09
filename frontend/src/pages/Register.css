@@ -146,6 +146,38 @@
   margin: 0 10px;
 }
 
+/* Input with left icon */
+.input-icon-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Override top for textarea — pin icon to top of field */
+.textarea-icon-wrapper .textarea-icon {
+  top: 18px;
+  transform: none;
+}
+
+.input-with-icon {
+  padding-left: 42px !important;
+}
+
+/* Password fields: left icon + right eye button */
+.password-wrapper.input-icon-wrapper .input-with-icon {
+  padding-right: 45px;
+}
+
 /* Form */
 .register-form {
   display: flex;

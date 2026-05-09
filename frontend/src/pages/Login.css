@@ -129,6 +129,52 @@
   margin: 0 0 24px;
 }
 
+/* Input with left icon */
+.input-icon-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.input-with-icon {
+  width: 100%;
+  padding: 12px 14px 12px 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: white;
+}
+
+.input-with-icon:focus {
+  border-color: #3b82f6;
+}
+
+.input-with-icon.disabled {
+  background: #f9fafb;
+  color: #9ca3af;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+}
+
+/* Password field with both left icon and right eye button */
+.password-wrapper.input-icon-wrapper .input-with-icon {
+  padding-right: 45px;
+}
+
 /* Form */
 .login-form {
   display: flex;

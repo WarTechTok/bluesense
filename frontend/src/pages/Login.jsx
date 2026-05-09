@@ -160,19 +160,23 @@ function Login() {
 
             <form onSubmit={handleSubmit} className="login-form">
               <div className="form-group">
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  required
-                  disabled={cooldown > 0}
-                  className={cooldown > 0 ? "disabled" : ""}
-                />
+                <div className="input-icon-wrapper">
+                  <i className="fa-regular fa-envelope input-icon" />
+                  <input
+                    type="email"
+                    placeholder="Email address"
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    required
+                    disabled={cooldown > 0}
+                    className={`input-with-icon${cooldown > 0 ? " disabled" : ""}`}
+                  />
+                </div>
               </div>
 
               <div className="form-group">
-                <div className="password-wrapper">
+                <div className="password-wrapper input-icon-wrapper">
+                  <i className="fa-solid fa-lock input-icon" />
                   <input
                     type={showPassword ? "text" : "password"}
                     placeholder="Password"
@@ -180,7 +184,7 @@ function Login() {
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     required
                     disabled={cooldown > 0}
-                    className={cooldown > 0 ? "disabled" : ""}
+                    className={`input-with-icon${cooldown > 0 ? " disabled" : ""}`}
                   />
                   <button
                     type="button"

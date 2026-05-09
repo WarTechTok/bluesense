@@ -187,36 +187,43 @@ function Register() {
 
         <form onSubmit={handleSubmit} className="register-form">
           <div className="form-group">
-            <input
-              type="text"
-              placeholder="Full name"
-              value={form.name}
-              onChange={(e) => setForm({...form, name: e.target.value})}
-              required
-              className="register-input"
-            />
+            <div className="input-icon-wrapper">
+              <i className="fa-regular fa-user input-icon" />
+              <input
+                type="text"
+                placeholder="Full name"
+                value={form.name}
+                onChange={(e) => setForm({...form, name: e.target.value})}
+                required
+                className="register-input input-with-icon"
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <input
-              type="email"
-              placeholder="Email address"
-              value={form.email}
-              onChange={(e) => setForm({...form, email: e.target.value})}
-              required
-              className="register-input"
-            />
+            <div className="input-icon-wrapper">
+              <i className="fa-regular fa-envelope input-icon" />
+              <input
+                type="email"
+                placeholder="Email address"
+                value={form.email}
+                onChange={(e) => setForm({...form, email: e.target.value})}
+                required
+                className="register-input input-with-icon"
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <div className="password-wrapper">
+            <div className="password-wrapper input-icon-wrapper">
+              <i className="fa-solid fa-lock input-icon" />
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={form.password}
                 onChange={(e) => setForm({...form, password: e.target.value})}
                 required
-                className="register-input password-input"
+                className="register-input input-with-icon password-input"
               />
               <button
                 type="button"
@@ -239,14 +246,15 @@ function Register() {
           </div>
 
           <div className="form-group">
-            <div className="password-wrapper">
+            <div className="password-wrapper input-icon-wrapper">
+              <i className="fa-solid fa-shield-halved input-icon" />
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
                 value={form.confirmPassword}
                 onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
                 required
-                className="register-input password-input"
+                className="register-input input-with-icon password-input"
               />
               <button
                 type="button"
@@ -273,23 +281,29 @@ function Register() {
           </p>
 
           <div className="form-group">
-            <input
-              type="tel"
-              placeholder="Phone number (optional) - e.g., 09123456789"
-              value={form.phone}
-              onChange={handlePhoneChange}
-              className="register-input"
-            />
+            <div className="input-icon-wrapper">
+              <i className="fa-solid fa-phone input-icon" />
+              <input
+                type="tel"
+                placeholder="Phone number (optional) - e.g., 09123456789"
+                value={form.phone}
+                onChange={handlePhoneChange}
+                className="register-input input-with-icon"
+              />
+            </div>
           </div>
 
           <div className="form-group">
-            <textarea
-              placeholder="Address (optional)"
-              value={form.address}
-              onChange={(e) => setForm({...form, address: e.target.value})}
-              rows="2"
-              className="register-textarea"
-            />
+            <div className="input-icon-wrapper textarea-icon-wrapper">
+              <i className="fa-solid fa-house input-icon textarea-icon" />
+              <textarea
+                placeholder="Address (optional)"
+                value={form.address}
+                onChange={(e) => setForm({...form, address: e.target.value})}
+                rows="2"
+                className="register-textarea input-with-icon"
+              />
+            </div>
           </div>
 
           <button 
