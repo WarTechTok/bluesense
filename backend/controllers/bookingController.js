@@ -192,6 +192,18 @@ const createBooking = async (req, res) => {
     // VALIDATE REQUIRED FIELDS
     // ============================================
 
+    console.log("🔍 Validation check:");
+    console.log(`   customerName: ${customerName}`);
+    console.log(`   customerEmail: ${customerEmail}`);
+    console.log(`   oasis: ${oasis}`);
+    console.log(`   packageName: ${packageName}`);
+    console.log(`   session: ${session}`);
+    console.log(`   bookingDate: ${bookingDate}`);
+    console.log(`   pax: ${pax}`);
+    console.log(`   totalPrice: ${totalPrice}`);
+    console.log(`   downpayment: ${downpayment}`);
+    console.log(`   paymentMethod: ${paymentMethod}`);
+
     if (!customerName || !customerEmail) {
       return res.status(400).json({
         success: false,
@@ -206,10 +218,10 @@ const createBooking = async (req, res) => {
       });
     }
 
-    if (!bookingDate || !pax || !totalPrice || !downpayment) {
+    if (!bookingDate || !pax || !totalPrice || downpayment === undefined || downpayment === null) {
       return res.status(400).json({
         success: false,
-        message: "Booking date, number of guests, total price, and downpayment are required",
+        message: `Booking date, number of guests, total price, and downpayment are required. Received: bookingDate=${bookingDate}, pax=${pax}, totalPrice=${totalPrice}, downpayment=${downpayment}`,
       });
     }
 

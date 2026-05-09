@@ -39,7 +39,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     specialRequests: "",
     paymentMethod: "GCash",
     paymentStatus: "Partial",
-    status: "Pending",
   });
 
   const [errors, setErrors] = useState({});
@@ -82,7 +81,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       specialRequests: "",
       paymentMethod: "GCash",
       paymentStatus: "Partial",
-      status: "Pending",
     });
     setErrors({});
     setStep(1);
@@ -136,7 +134,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         specialRequests: editingBooking.specialRequests || "",
         paymentMethod: editingBooking.paymentMethod || "GCash",
         paymentStatus: editingBooking.paymentStatus === "Fully Paid" ? "Fully Paid" : "Partial",
-        status: editingBooking.status || "Pending",
       });
       setStep(1);
       fetchPackagesForOasis(editingBooking.oasis);
@@ -306,10 +303,34 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const handleSubmit = async () => {
     if (!validateStep(step)) return;
 
+    // Additional safety checks before submission
+    if (!selectedPackage) {
+      alert("Package is required");
+      return;
+    }
+    
+    if (!selectedSession) {
+      alert("Session is required");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const totalPrice = getTotalPrice();
       const downpayment = getDownpayment();
+
+      // Validation
+      if (!totalPrice || totalPrice === 0) {
+        alert("Unable to calculate total price. Please ensure all fields are filled correctly.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (downpayment === undefined || downpayment === null) {
+        alert("Unable to calculate downpayment. Please check session data.");
+        setIsSubmitting(false);
+        return;
+      }
 
       // Always auto-confirm regardless of payment status
       const bookingStatus = "Confirmed";
@@ -331,6 +352,12 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         specialRequests: formData.specialRequests,
         addons: Object.keys(selectedAddOns).length > 0 ? selectedAddOns : {},
       };
+
+      console.log("📤 Booking Payload:", bookingPayload);
+      console.log("   - totalPrice:", totalPrice, typeof totalPrice);
+      console.log("   - downpayment:", downpayment, typeof downpayment);
+      console.log("   - selectedSession:", selectedSession);
+      console.log("   - selectedPackage:", selectedPackage);
 
       if (editingBooking) {
         await adminApi.updateBooking(editingBooking._id, bookingPayload);
@@ -649,18 +676,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 <option value="Fully Paid">Fully Paid</option>
               </select>
             </div>
-
-            <div className="form-group">
-              <label>Booking Status</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-              >
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
           </div>
         )}
 
@@ -756,9 +771,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 <div className="review-item status-auto-update">
                   <span className="label">Booking Status:</span>
                   <span className={`value booking-status-confirmed`}>
-                    🟢 Confirmed
+                    🟢 Confirmed (Auto-confirmed)
                   </span>
-                  <small className="auto-update-note">(Auto-confirmed due to payment)</small>
                 </div>
               </div>
             </div>
