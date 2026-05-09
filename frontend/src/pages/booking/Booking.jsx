@@ -74,15 +74,11 @@ function Booking() {
 
   // ============================================
   // currentPackage — SINGLE SOURCE OF TRUTH
-  // This is the API-fetched, transformed package object.
-  // It carries correct pricing, capacity, and sessions from the DB.
-  // All price/capacity calculations MUST read from this object.
   // ============================================
   const currentPackage = (() => {
     if (!preselectedPackage) return null;
     return {
       ...preselectedPackage,
-      // Ensure sessions field is populated (transformPackageData sets this)
       sessions: preselectedPackage.sessions?.length > 0
         ? preselectedPackage.sessions
         : preselectedPackage.availableSessions || [],
@@ -99,7 +95,6 @@ function Booking() {
   // PRICING (from API via currentPackage)
   // ============================================
 
-  // Base package price — reads currentPackage.pricing, NOT hardcoded table
   const calculatePrice = () => {
     if (!selectedSession || !formData.reservationDate) return 0;
     return getPriceFromPackage(
@@ -113,7 +108,6 @@ function Booking() {
   const calculateAddonsTotal = () =>
     Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
 
-  // Extra-guest charge: ₱150 per guest over maxCapacity
   const calculateExtraGuestCharges = () =>
     getExtraGuestCharge(currentPackage, formData.guestCount);
 
@@ -137,7 +131,6 @@ function Booking() {
 
   const calculateNights = () => 1;
 
-  // Downpayment: prefer DB value set by admin
   const getDownpayment = () =>
     getDownpaymentAmount(selectedSession, sessionData);
 
@@ -161,7 +154,6 @@ function Booking() {
     if (!token) navigate("/login?redirect=/booking");
   }, [navigate]);
 
-  // Fetch session config (downpayment amounts) from DB
   useEffect(() => {
     const fetchSessions = async () => {
       try {
@@ -191,15 +183,20 @@ function Booking() {
     setFormData((prev) => ({ ...prev, [name]: newValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    // Update extra-guest warning using API capacity
     if (name === "guestCount") {
       const maxCap   = getMaxCapacityForPackage();
+      const minCap   = getMinCapacityForPackage();
       const guests   = parseInt(value) || 0;
+      
       if (guests > maxCap && maxCap > 0) {
         const extra    = guests - maxCap;
         const extraCost = extra * 150;
         setExtraGuestWarning(
-          `⚠️ Extra charge: ${extra} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added.`
+          `ℹ️ +${extra} guest(s) beyond standard capacity (${maxCap}). Additional ₱150/guest = ₱${extraCost.toLocaleString()} will be added to total.`
+        );
+      } else if (guests < minCap && minCap > 0) {
+        setExtraGuestWarning(
+          `⚠️ Minimum ${minCap} guests required for this package.`
         );
       } else {
         setExtraGuestWarning("");
@@ -219,12 +216,17 @@ function Booking() {
       const minCap = getMinCapacityForPackage();
       const maxCap = getMaxCapacityForPackage();
 
-      if (minCap > 0 && formData.guestCount < minCap)
+      // ONLY block if below minimum capacity
+      if (minCap > 0 && formData.guestCount < minCap) {
         newErrors.guestCount = `Minimum ${minCap} guests required for this package`;
-      if (formData.guestCount > maxCap)
-        newErrors.guestCount = `Maximum ${maxCap} guests only. For larger groups, contact us directly.`;
-      if (!infoConfirmed)
+      }
+      
+      // DO NOT block if above max capacity - just show warning (handled in handleChange)
+      // The extra charge will be added automatically
+
+      if (!infoConfirmed) {
         newErrors.confirmInfo = "Please confirm your information first";
+      }
     }
 
     if (step === 2) {
