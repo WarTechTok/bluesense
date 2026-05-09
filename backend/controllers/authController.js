@@ -7,18 +7,32 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
 const sendEmail = require("../utils/sendEmail");
 const { uploadAvatar } = require("../utils/cloudinary");
 
 // ============================================
-// LOAD LOGO AS BASE64
+// LOGO URL — hosted on Vercel frontend (works in all email clients)
 // ============================================
-const logoPath = path.join(__dirname, "../public/images/Logo.jpg");
-const logoBase64 = fs.existsSync(logoPath)
-  ? `data:image/jpeg;base64,${fs.readFileSync(logoPath).toString("base64")}`
-  : null;
+const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+
+// Shared email header HTML used by all transactional emails
+const emailHeader = (logoUrl) => `
+  <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+    <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+      <img src="${logoUrl}" alt="Catherine's Oasis" width="80" height="80"
+           style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+           onerror="this.style.display='none'">
+    </div>
+    <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+  </div>
+`;
+
+const emailFooter = `
+  <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+  <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+    Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+  </p>
+`;
 
 // ============================================
 // PASSWORD VALIDATION
@@ -50,12 +64,7 @@ const sendVerificationEmailFunc = async (email, name, verificationToken) => {
 
   const verificationHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-      <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
-          ${logoBase64 ? `<img src="${logoBase64}" alt="Catherine's Oasis" style="width: 100%; height: auto; display: block; border-radius: 16px;">` : `<div style="width:80px;height:80px;background:#0284c7;border-radius:16px;"></div>`}
-        </div>
-        <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
-      </div>
+      ${emailHeader(LOGO_URL)}
       <div style="padding: 40px 32px; background: #ffffff;">
         <h2 style="margin: 0 0 12px; color: #0c4a6e; font-size: 20px;">Welcome, ${name}!</h2>
         <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
@@ -69,10 +78,7 @@ const sendVerificationEmailFunc = async (email, name, verificationToken) => {
         <p style="margin: 0 0 32px; color: #64748b; font-size: 14px; text-align: center;">
           This link will expire in <strong>24 hours</strong>.
         </p>
-        <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
-        <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
-          Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
-        </p>
+        ${emailFooter}
       </div>
     </div>
   `;
@@ -92,12 +98,7 @@ const sendWelcomeEmailFunc = async (email, name) => {
 
   const welcomeHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-      <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
-        <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
-          ${logoBase64 ? `<img src="${logoBase64}" alt="Catherine's Oasis" style="width: 100%; height: auto; display: block; border-radius: 16px;">` : `<div style="width:80px;height:80px;background:#0284c7;border-radius:16px;"></div>`}
-        </div>
-        <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
-      </div>
+      ${emailHeader(LOGO_URL)}
       <div style="padding: 40px 32px; background: #ffffff;">
         <h2 style="margin: 0 0 12px; color: #0c4a6e; font-size: 20px;">Welcome to Catherine's Oasis, ${name}! 🎉</h2>
         <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
@@ -108,10 +109,7 @@ const sendWelcomeEmailFunc = async (email, name) => {
             Log In Now
           </a>
         </div>
-        <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
-        <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
-          Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
-        </p>
+        ${emailFooter}
       </div>
     </div>
   `;
@@ -471,11 +469,23 @@ const forgotPassword = async (req, res) => {
     const resetURL = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
 
     const message = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-        <h2>Reset Your Password</h2>
-        <p>Click the link below to reset your password:</p>
-        <a href="${resetURL}" style="display: inline-block; padding: 10px 20px; background: #0284c7; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a>
-        <p>This link expires in 1 hour.</p>
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+        ${emailHeader(LOGO_URL)}
+        <div style="padding: 40px 32px; background: #ffffff;">
+          <h2 style="margin: 0 0 12px; color: #0c4a6e; font-size: 20px;">Reset Your Password</h2>
+          <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+            We received a request to reset your password. Click the button below to choose a new one.
+          </p>
+          <div style="text-align: center; margin: 0 0 32px;">
+            <a href="${resetURL}" style="background: #0284c7; color: white; padding: 14px 32px; text-decoration: none; border-radius: 40px; font-weight: 600; font-size: 16px; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          <p style="margin: 0 0 32px; color: #64748b; font-size: 14px; text-align: center;">
+            This link will expire in <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email.
+          </p>
+          ${emailFooter}
+        </div>
       </div>
     `;
 

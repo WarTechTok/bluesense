@@ -532,103 +532,6 @@ const updatePaymentStatus = async (req, res) => {
 };
 
 // ============================================
-// UPDATE BOOKING - Admin can edit booking details
-// ============================================
-
-const updateBooking = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const {
-      customerName,
-      customerContact,
-      customerEmail,
-      oasis,
-      package: packageName,
-      session,
-      bookingDate,
-      pax,
-      totalPrice,
-      downpayment,
-      paymentMethod,
-      paymentStatus,
-      status,
-    } = req.body;
-
-    // Check if booking exists
-    const existingBooking = await Booking.findById(id);
-    if (!existingBooking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
-    }
-
-    // Validate required fields
-    if (!customerName || !customerEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer name and email are required",
-      });
-    }
-
-    if (!oasis || !packageName || !session) {
-      return res.status(400).json({
-        success: false,
-        message: "Oasis, package, and session selection are required",
-      });
-    }
-
-    if (!bookingDate || !pax || !totalPrice || !downpayment) {
-      return res.status(400).json({
-        success: false,
-        message: "Booking date, number of guests, total price, and downpayment are required",
-      });
-    }
-
-    if (!paymentMethod) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment method is required",
-      });
-    }
-
-    // Prepare update data
-    const updateData = {
-      customerName,
-      customerContact,
-      customerEmail,
-      oasis,
-      package: packageName,
-      session,
-      bookingDate,
-      pax,
-      totalAmount: totalPrice,
-      downpayment,
-      paymentMethod,
-      paymentStatus: paymentStatus || "Pending",
-      status: status || "Pending",
-    };
-
-    // Update the booking
-    const updatedBooking = await Booking.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "Booking updated successfully",
-      booking: updatedBooking,
-    });
-  } catch (error) {
-    console.error("Update booking error:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-// ============================================
 // GET BOOKINGS BY CUSTOMER EMAIL - public (no auth)
 // ============================================
 
@@ -893,30 +796,75 @@ const verifyPayment = async (req, res) => {
 
     // Send email notification to customer
     const sendEmail = require("../utils/sendEmail");
+    const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
     try {
+      const isFullyPaid = booking.paymentType === 'fullpayment' || isRemainingPayment;
+      const remainingBalance = booking.totalAmount - booking.downpayment;
+
       await sendEmail({
         to: booking.customerEmail,
-        subject: isRemainingPayment ? "Final Payment Confirmed - Catherine's Oasis" : "Booking Confirmation - Catherine's Oasis",
+        subject: isRemainingPayment
+          ? "Final Payment Confirmed - Catherine's Oasis"
+          : "Booking Confirmed - Catherine's Oasis",
         html: `
-          <h2>${isRemainingPayment ? 'Payment Complete!' : 'Booking Confirmed!'}</h2>
-          <p>Dear ${booking.customerName},</p>
-          <p>${isRemainingPayment ? 'Your final payment has been verified and your booking is now fully paid.' : 'Your payment has been verified and your booking is now confirmed.'}</p>
-          
-          <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px;">
-            <h3>Booking Details:</h3>
-            <p><strong>Venue:</strong> ${booking.oasis}</p>
-            <p><strong>Package:</strong> ${booking.package}</p>
-            <p><strong>Booking Date:</strong> ${new Date(booking.bookingDate).toLocaleDateString()}</p>
-            <p><strong>Number of Guests:</strong> ${booking.pax}</p>
-            ${isRemainingPayment ? `<p><strong>Final Payment Verified:</strong> ✓</p><p><strong>Total Paid:</strong> ₱${booking.totalAmount.toLocaleString()}</p>` : `<p><strong>Amount Paid:</strong> ₱${booking.downpayment.toLocaleString()}</p>
-            ${booking.paymentType === 'downpayment' ? `<p><strong>Remaining Balance:</strong> ₱${(booking.totalAmount - booking.downpayment).toLocaleString()} (payable on-site)</p>` : ''}`}
-            <p><strong>Payment Status:</strong> ${paymentStatus}</p>
-            <p><strong>Status:</strong> Confirmed</p>
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+              <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+                <img src="${LOGO_URL}" alt="Catherine's Oasis" width="80" height="80"
+                     style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+                     onerror="this.style.display='none'">
+              </div>
+              <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+            </div>
+
+            <div style="padding: 40px 32px; background: #ffffff;">
+              <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">
+                ${isRemainingPayment ? "Payment Complete! 🎉" : "Booking Confirmed! 🎉"}
+              </h2>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Dear ${booking.customerName},<br/>
+                ${isRemainingPayment
+                  ? "Your final payment has been verified and your booking is now fully paid."
+                  : "Your payment has been verified and your booking is confirmed."}
+              </p>
+
+              <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
+                <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 45%;">Venue</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.oasis}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Package</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.package}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Date</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${new Date(booking.bookingDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Guests</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.pax} pax</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Total Amount</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">₱${booking.totalAmount.toLocaleString()}</td></tr>
+                  ${isRemainingPayment
+                    ? `<tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Total Paid</td>
+                           <td style="padding: 8px 0; color: #16a34a; font-size: 14px; font-weight: 700;">₱${booking.totalAmount.toLocaleString()} ✓</td></tr>`
+                    : `<tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Amount Paid</td>
+                           <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">₱${booking.downpayment.toLocaleString()}</td></tr>
+                       ${!isFullyPaid ? `<tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Remaining</td>
+                           <td style="padding: 8px 0; color: #d97706; font-size: 14px; font-weight: 600;">₱${remainingBalance.toLocaleString()} (payable on-site)</td></tr>` : ""}`}
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Status</td>
+                      <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">
+                        <span style="background: #dcfce7; color: #16a34a; padding: 2px 10px; border-radius: 20px;">Confirmed</span>
+                      </td></tr>
+                </table>
+              </div>
+
+              <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+                Please keep this email for your records. Show this confirmation to our staff when you arrive.
+              </p>
+
+              <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+              <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+              </p>
+            </div>
           </div>
-          
-          <p>Please keep this email for your records. You can now show this booking confirmation to our staff when you arrive.</p>
-          <p>If you have any questions, feel free to contact us.</p>
-          <p>Thank you,<br/>Catherine's Oasis Team</p>
         `,
       });
     } catch (emailError) {
@@ -1317,7 +1265,6 @@ module.exports = {
   getAllBookings,
   getBookingById,
   getBookingsByCustomerEmail,
-  updateBooking,
   updateBookingStatus,
   updatePaymentStatus,
   deleteBooking,
