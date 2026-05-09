@@ -43,6 +43,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   });
 
   const [errors, setErrors] = useState({});
+  const [bookedSessions, setBookedSessions] = useState({});
 
   // Fetch packages based on selected oasis
   const fetchPackagesForOasis = useCallback(async (oasis) => {
@@ -160,6 +161,58 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     return sessionMap[session] || session;
   };
 
+  // Get minimum date (tomorrow) - require 1 day advance booking
+  const getMinimumDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow;
+  };
+
+  // Convert date to YYYY-MM-DD format
+  const formatDateToString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Fetch booked sessions for selected date
+  useEffect(() => {
+    if (!formData.reservationDate || !selectedOasis || !selectedPackage) {
+      setBookedSessions({});
+      return;
+    }
+
+    const fetchBookedSessions = async () => {
+      try {
+        const url = `${API_BASE_URL}/api/bookings/booked-dates?oasis=${encodeURIComponent(selectedOasis)}`;
+        const response = await fetch(url);
+        
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.success && data.bookedDates) {
+            const dateStr = formData.reservationDate;
+            const dateBookings = data.bookedDates[dateStr] || {};
+            
+            const bookedSessionData = {};
+            if (dateBookings.Day?.booked) bookedSessionData.Day = true;
+            if (dateBookings.Night?.booked) bookedSessionData.Night = true;
+            if (dateBookings['22hrs']?.booked) bookedSessionData['22hrs'] = true;
+            
+            console.log('📅 Booked sessions for this date:', bookedSessionData);
+            setBookedSessions(bookedSessionData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching booked sessions:', error);
+      }
+    };
+
+    fetchBookedSessions();
+  }, [formData.reservationDate, selectedOasis, selectedPackage]);
+
   const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
   const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
 
@@ -212,7 +265,23 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
     if (stepNum === 2) {
       if (!formData.reservationDate) newErrors.reservationDate = "Reservation date is required";
+      
+      // Check if date is at least 1 day in advance
+      if (formData.reservationDate) {
+        const selectedDate = new Date(formData.reservationDate);
+        const tomorrow = getMinimumDate();
+        if (selectedDate < tomorrow) {
+          newErrors.reservationDate = "Booking must be made at least 1 day in advance";
+        }
+      }
+      
       if (!selectedSession) newErrors.session = "Session is required";
+      
+      // Check if the selected session is already booked
+      if (selectedSession && bookedSessions[selectedSession]) {
+        newErrors.session = "This session is already fully booked on this date";
+      }
+      
       if (formData.guestCount < 1) newErrors.guestCount = "Guest count must be at least 1";
       const minCap = getMinCapacityForPackage();
       if (minCap > 0 && formData.guestCount < minCap) {
@@ -408,6 +477,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 type="date"
                 value={formData.reservationDate}
                 onChange={(e) => setFormData({ ...formData, reservationDate: e.target.value })}
+                min={formatDateToString(getMinimumDate())}
                 className={errors.reservationDate ? 'error' : ''}
               />
               {errors.reservationDate && <span className="error-text">{errors.reservationDate}</span>}
@@ -422,12 +492,23 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 className={errors.session ? 'error' : ''}
               >
                 <option value="">Select Session</option>
-                {currentPackage?.sessions?.map((session) => (
-                  <option key={session} value={session}>
-                    {getSessionDisplay(session)}
-                  </option>
-                ))}
+                {currentPackage?.sessions && currentPackage.sessions.length > 0 ? (
+                  currentPackage.sessions.map((session) => (
+                    <option 
+                      key={session} 
+                      value={session}
+                      disabled={bookedSessions[session] ? true : false}
+                    >
+                      {getSessionDisplay(session)}{bookedSessions[session] ? ' (BOOKED)' : ''}
+                    </option>
+                  ))
+                ) : (
+                  <option disabled>No sessions available for this package</option>
+                )}
               </select>
+              {currentPackage && (!currentPackage.sessions || currentPackage.sessions.length === 0) && (
+                <small style={{color: 'red'}}>⚠️ Debug: No sessions found. Available sessions: {JSON.stringify(currentPackage.sessions)}</small>
+              )}
               {errors.session && <span className="error-text">{errors.session}</span>}
             </div>
 
