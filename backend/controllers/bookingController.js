@@ -219,9 +219,21 @@ const createBooking = async (req, res) => {
     }
 
     if (!bookingDate || !pax || !totalPrice || downpayment === undefined || downpayment === null) {
+      const missingFields = [];
+      if (!bookingDate) missingFields.push("bookingDate");
+      if (!pax) missingFields.push("pax");
+      if (!totalPrice) missingFields.push("totalPrice");
+      if (downpayment === undefined || downpayment === null) missingFields.push("downpayment");
+      
       return res.status(400).json({
         success: false,
-        message: `Booking date, number of guests, total price, and downpayment are required. Received: bookingDate=${bookingDate}, pax=${pax}, totalPrice=${totalPrice}, downpayment=${downpayment}`,
+        message: `❌ VALIDATION FAILED - Missing fields: ${missingFields.join(", ")}`,
+        details: {
+          bookingDate: bookingDate || "MISSING",
+          pax: pax || "MISSING",
+          totalPrice: totalPrice || "MISSING",
+          downpayment: downpayment !== undefined && downpayment !== null ? downpayment : "MISSING"
+        }
       });
     }
 

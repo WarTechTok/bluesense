@@ -214,13 +214,22 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
 
   const calculatePrice = () => {
-    if (!selectedSession || !formData.reservationDate || !currentPackage) return 0;
-    return getPriceFromPackage(
+    if (!selectedSession || !formData.reservationDate || !currentPackage) {
+      console.log("❌ Missing price calculation requirements:", {
+        selectedSession,
+        reservationDate: formData.reservationDate,
+        currentPackage: currentPackage?.name
+      });
+      return 0;
+    }
+    const price = getPriceFromPackage(
       currentPackage,
       selectedSession,
       formData.reservationDate,
       formData.guestCount
     );
+    console.log("📦 Base package price:", price, "for", currentPackage.name, selectedSession, formData.guestCount, "pax");
+    return price;
   };
 
   const calculateExtraGuestCharges = () =>
@@ -233,7 +242,13 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     const base = calculatePrice();
     const extraGuest = calculateExtraGuestCharges();
     const addons = calculateAddonsTotal();
-    return base + extraGuest + addons;
+    const total = base + extraGuest + addons;
+    console.log("💰 Price Calculation:");
+    console.log("   - base:", base);
+    console.log("   - extraGuest:", extraGuest);
+    console.log("   - addons:", addons);
+    console.log("   - TOTAL:", total);
+    return total;
   };
 
   const handleAddonToggle = (addon) => {
@@ -246,8 +261,11 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     setSelectedAddOns(newSelected);
   };
 
-  const getDownpayment = () =>
-    getDownpaymentAmount(selectedSession, sessionData);
+  const getDownpayment = () => {
+    const dp = getDownpaymentAmount(selectedSession, sessionData);
+    console.log("💳 Downpayment calculated:", dp, "for session:", selectedSession);
+    return dp;
+  };
 
   const validateStep = (stepNum) => {
     const newErrors = {};
@@ -319,6 +337,24 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       const totalPrice = getTotalPrice();
       const downpayment = getDownpayment();
 
+      console.log("\n🚀 SUBMISSION DEBUG INFO:");
+      console.log("===============================");
+      console.log("Form Data State:");
+      console.log("  - customerName:", formData.customerName, typeof formData.customerName);
+      console.log("  - customerEmail:", formData.customerEmail, typeof formData.customerEmail);
+      console.log("  - guestCount:", formData.guestCount, typeof formData.guestCount);
+      console.log("  - reservationDate:", formData.reservationDate, typeof formData.reservationDate);
+      console.log("Selected Data:");
+      console.log("  - selectedOasis:", selectedOasis, typeof selectedOasis);
+      console.log("  - selectedPackage:", selectedPackage?.name, typeof selectedPackage?.name);
+      console.log("  - selectedSession:", selectedSession, typeof selectedSession);
+      console.log("Calculated Data:");
+      console.log("  - totalPrice:", totalPrice, typeof totalPrice);
+      console.log("  - downpayment:", downpayment, typeof downpayment);
+      console.log("  - paymentMethod:", formData.paymentMethod, typeof formData.paymentMethod);
+      console.log("  - paymentStatus:", formData.paymentStatus, typeof formData.paymentStatus);
+      console.log("===============================\n");
+
       // Validation
       if (!totalPrice || totalPrice === 0) {
         alert("Unable to calculate total price. Please ensure all fields are filled correctly.");
@@ -358,6 +394,11 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       console.log("   - downpayment:", downpayment, typeof downpayment);
       console.log("   - selectedSession:", selectedSession);
       console.log("   - selectedPackage:", selectedPackage);
+      console.log("   - customerName:", formData.customerName);
+      console.log("   - customerEmail:", formData.customerEmail);
+      console.log("   - oasis:", selectedOasis);
+      console.log("   - bookingDate:", formData.reservationDate);
+      console.log("   - pax:", formData.guestCount);
 
       if (editingBooking) {
         await adminApi.updateBooking(editingBooking._id, bookingPayload);
@@ -368,7 +409,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       onBookingCreated();
     } catch (error) {
       console.error("Error saving booking:", error);
-      alert(error.message || "Error saving booking");
+      const errorMsg = error.message || error.toString();
+      alert(`Error saving booking:\n\n${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
