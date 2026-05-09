@@ -99,7 +99,7 @@ const transformPackageData = (apiPackage) => {
     maxCapacity: apiPackage.maxCapacity,
     inclusions: apiPackage.inclusions || [],
     addons: [],
-    sessions: apiPackage.availableSessions || ["Day", "Night"],
+    sessions: apiPackage.availableSessions || ["Day", "Night", "22hrs"],
     pricing: pricing,
     isActive: apiPackage.isActive,
   };
@@ -138,11 +138,19 @@ export const fetchAllPackages = async () => {
 
       const oasis1Packages = data
         .filter((pkg) => pkg.oasis === "Oasis 1" && pkg.isActive === true)
-        .map((pkg) => transformPackageData(pkg));
+        .map((pkg) => {
+          const transformed = transformPackageData(pkg);
+          console.log(`📦 Package "${pkg.name}" sessions:`, pkg.availableSessions, "→", transformed.sessions);
+          return transformed;
+        });
 
       const oasis2Packages = data
         .filter((pkg) => pkg.oasis === "Oasis 2" && pkg.isActive === true)
-        .map((pkg) => transformPackageData(pkg));
+        .map((pkg) => {
+          const transformed = transformPackageData(pkg);
+          console.log(`📦 Package "${pkg.name}" sessions:`, pkg.availableSessions, "→", transformed.sessions);
+          return transformed;
+        });
 
       dataCache.Oasis1Packages = oasis1Packages;
       dataCache.Oasis2Packages = oasis2Packages;
