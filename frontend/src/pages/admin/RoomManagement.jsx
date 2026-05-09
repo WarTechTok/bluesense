@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-// Remove unused DataTable import
-// import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
 import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as adminApi from '../../services/admin';
@@ -28,7 +26,6 @@ const RoomManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     capacity: '',
-    price: '',
     description: '',
     status: 'Available',
     oasis: 'Oasis 1',
@@ -82,7 +79,6 @@ const RoomManagement = () => {
       setFormData({
         name: room.name,
         capacity: room.capacity,
-        price: room.price,
         description: room.description,
         status: room.status,
         oasis: room.oasis || 'Oasis 1',
@@ -96,7 +92,6 @@ const RoomManagement = () => {
       setFormData({
         name: '',
         capacity: '',
-        price: '',
         description: '',
         status: 'Available',
         oasis: 'Oasis 1',
@@ -111,7 +106,8 @@ const RoomManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      const validation = validateRoom(formData);
+      // Remove price from validation
+      const validation = validateRoom({ ...formData, price: 0 });
       if (!validation.isValid) {
         showConfirmationModal('Validation Error', validation.error, null, 'OK');
         return;
@@ -119,7 +115,12 @@ const RoomManagement = () => {
 
       // Convert appliances string to array
       let roomData = {
-        ...formData,
+        name: formData.name,
+        capacity: formData.capacity,
+        description: formData.description,
+        status: formData.status,
+        oasis: formData.oasis,
+        packageName: formData.packageName,
         appliances: formData.appliances
           ? formData.appliances.split(',').map(a => a.trim()).filter(a => a !== '')
           : []
@@ -127,9 +128,6 @@ const RoomManagement = () => {
 
       // Handle file upload if a new file is selected
       if (formData.imageFile) {
-        const formDataWithFile = new FormData();
-        formDataWithFile.append('image', formData.imageFile);
-        
         try {
           const uploadRes = await adminApi.uploadRoomImage(formData.imageFile);
           roomData.image = uploadRes.imagePath;
@@ -229,12 +227,10 @@ const RoomManagement = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         showConfirmationModal('Validation Error', 'Please select a valid image file', null, 'OK');
         return;
       }
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         showConfirmationModal('Validation Error', 'Image size must be less than 5MB', null, 'OK');
         return;
@@ -242,16 +238,6 @@ const RoomManagement = () => {
       setFormData({ ...formData, imageFile: file });
     }
   };
-
-  // Remove the unused columns variable or comment it out
-  // const columns = [
-  //   { key: 'name', label: 'Room Name' },
-  //   { key: 'capacity', label: 'Capacity' },
-  //   { key: 'price', label: 'Price', render: (value) => `₱${value}` },
-  //   { key: 'oasis', label: 'Oasis' },
-  //   { key: 'description', label: 'Description' },
-  //   { key: 'status', label: 'Status', render: (value) => <span className={`status-badge status-${value.toLowerCase()}`}>{value}</span> }
-  // ];
 
   return (
     <div className="management-page">
@@ -277,15 +263,11 @@ const RoomManagement = () => {
               <p className="oasis-badge">{room.oasis} - {room.packageName || 'General'}</p>
               <p className="description">{room.description}</p>
               
-              {/* Stats */}
+              {/* Stats - Price removed */}
               <div className="room-stats">
                 <div className="stat">
                   <span className="label">Capacity:</span>
                   <span className="value">{room.capacity} pax</span>
-                </div>
-                <div className="stat">
-                  <span className="label">Price:</span>
-                  <span className="value">₱{room.price.toLocaleString()}</span>
                 </div>
                 <div className="stat">
                   <span className="label">Status:</span>
@@ -371,17 +353,7 @@ const RoomManagement = () => {
                   required
                 />
               </div>
-              <div className="form-group">
-                <label>Price per Night (₱) *</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  required
-                />
-              </div>
+              {/* Price field removed */}
               <div className="form-group">
                 <label>Description</label>
                 <textarea
