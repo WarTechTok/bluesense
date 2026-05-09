@@ -41,12 +41,12 @@ exports.getRoomById = async (req, res) => {
 /**
  * POST /api/admin/rooms
  * Create a new room (Admin only)
- * Body: { name, capacity, price, description, status }
- * Validation: capacity must be > 0, price must be >= 0
+ * Body: { name, capacity, description, status }
+ * Note: price removed — pricing handled at the package level
  */
 exports.createRoom = async (req, res) => {
   try {
-    const { name, capacity, price, description, status } = req.body;
+    const { name, capacity, description, status } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -69,21 +69,11 @@ exports.createRoom = async (req, res) => {
       return res.status(400).json({ error: 'Capacity must be greater than 0' });
     }
 
-    if (price === undefined || price === null || price === '') {
-      return res.status(400).json({ error: 'Price per Night is required' });
-    }
-    const parsedPrice = parseFloat(price);
-    if (isNaN(parsedPrice)) {
-      return res.status(400).json({ error: 'Price must be a valid number' });
-    }
-    if (parsedPrice < 0) {
-      return res.status(400).json({ error: 'Price cannot be negative' });
-    }
+    // Price validation removed — pricing is handled at the package level
 
     const room = new Room({ 
       name: name.trim(), 
       capacity: parsedCapacity, 
-      price: parsedPrice, 
       description, 
       status 
     });
@@ -97,11 +87,11 @@ exports.createRoom = async (req, res) => {
 /**
  * PUT /api/admin/rooms/:id
  * Update room details (Admin only)
- * Validation: capacity must be > 0, price must be >= 0
+ * Note: price removed — pricing handled at the package level
  */
 exports.updateRoom = async (req, res) => {
   try {
-    const { name, capacity, price, description, status } = req.body;
+    const { name, capacity, description, status } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -125,17 +115,9 @@ exports.updateRoom = async (req, res) => {
       }
     }
 
-    if (price !== undefined && price !== null) {
-      const parsedPrice = parseFloat(price);
-      if (isNaN(parsedPrice)) {
-        return res.status(400).json({ error: 'Price must be a valid number' });
-      }
-      if (parsedPrice < 0) {
-        return res.status(400).json({ error: 'Price cannot be negative' });
-      }
-    }
+    // Price validation removed — pricing is handled at the package level
 
-    const updateData = { name, capacity, price, description, status };
+    const updateData = { name, capacity, description, status };
     // Remove undefined values
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
