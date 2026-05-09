@@ -110,8 +110,8 @@ export const validateInventoryUsage = (usageData) => {
 };
 
 /**
- * Validate Room
- * @param {Object} formData - { name, capacity, price, description, status }
+ * Validate Room - PRICE FIELD REMOVED
+ * @param {Object} formData - { name, capacity, description, status }
  * @returns {Object} - { isValid: boolean, error: string }
  */
 export const validateRoom = (formData) => {
@@ -135,17 +135,7 @@ export const validateRoom = (formData) => {
     return { isValid: false, error: '❌ Capacity must be greater than 0' };
   }
 
-  // Price validation
-  if (formData.price === '' || formData.price === null) {
-    return { isValid: false, error: '❌ Price per Night is required' };
-  }
-  const price = parseFloat(formData.price);
-  if (isNaN(price)) {
-    return { isValid: false, error: '❌ Price must be a valid number' };
-  }
-  if (price < 0) {
-    return { isValid: false, error: '❌ Price cannot be negative' };
-  }
+  // ✅ PRICE VALIDATION REMOVED - Pricing is handled at package level
 
   return { isValid: true, error: null };
 };
