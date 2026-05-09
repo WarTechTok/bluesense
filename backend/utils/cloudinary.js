@@ -25,6 +25,7 @@ const FOLDERS = {
   PAYMENT_PROOFS: 'bluesense/payment-proofs',
   REFUND_PROOFS:  'bluesense/refund-proofs',
   AVATARS:        'bluesense/avatars',
+  ROOM_IMAGES:    'bluesense/room-images',
 };
 
 // ============================================
@@ -94,6 +95,11 @@ const uploadPackageImage = (buffer) =>
     transformation: [{ width: 1200, height: 800, crop: 'limit', quality: 'auto' }],
   });
 
+const uploadRoomImage = (buffer) =>
+  uploadToCloudinary(buffer, FOLDERS.ROOM_IMAGES, {
+    transformation: [{ width: 1200, height: 800, crop: 'limit', quality: 'auto' }],
+  });
+
 const uploadPaymentProof = (buffer) =>
   uploadToCloudinary(buffer, FOLDERS.PAYMENT_PROOFS, {
     transformation: [{ width: 2000, height: 2000, crop: 'limit', quality: 'auto' }],
@@ -113,6 +119,7 @@ const uploadAvatar = (buffer, userId) =>
 
 module.exports = {
   uploadPackageImage,
+  uploadRoomImage,
   uploadPaymentProof,
   uploadRefundProof,
   uploadAvatar,

@@ -1,4 +1,5 @@
 const Room = require('../models/Room');
+const { uploadRoomImage: uploadToCloud, deleteFromCloudinary } = require('../utils/cloudinary');
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const TaskAssignment = require('../models/TaskAssignment');
@@ -296,16 +297,17 @@ exports.uploadRoomImage = async (req, res) => {
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Generate the image path that will be served
-    const imagePath = `/uploads/room-images/${req.file.filename}`;
+    // Upload buffer to Cloudinary (memoryStorage — no local disk write)
+    const { url, publicId } = await uploadToCloud(req.file.buffer);
 
     res.json({
       success: true,
-      imagePath: imagePath,
+      imagePath: url,   // Cloudinary HTTPS URL — persists across redeploys
+      publicId,
       message: 'Image uploaded successfully'
     });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error uploading room image:', error);
     res.status(500).json({ error: error.message });
   }
 };
