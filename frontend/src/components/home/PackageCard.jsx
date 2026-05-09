@@ -78,15 +78,18 @@ function PackageCard({ pkg, oasis }) {
   };
 
   const getStartingPrice = () => {
+    // Package C: show the total price for min capacity (50pax)
     if (pkg.name === "Package C") {
-      return pkg.pricing?.["50pax"]?.Day?.weekday || 19000;
+      const minPax = pkg.minCapacity || 50;
+      const priceForMinPax = pkg.pricing?.[`${minPax}pax`]?.Day || 0;
+      return priceForMinPax;
     }
-    if (pkg.pricing?.weekday?.Day) return pkg.pricing.weekday.Day;
+    // Regular packages
     const firstPrice = Object.values(pkg.pricing || {})[0];
     if (typeof firstPrice === "object") {
       return firstPrice.weekday || firstPrice.Day || 0;
     }
-    return 0;
+    return firstPrice || 0;
   };
 
   const startingPrice = getStartingPrice();
