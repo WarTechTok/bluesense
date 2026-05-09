@@ -532,6 +532,103 @@ const updatePaymentStatus = async (req, res) => {
 };
 
 // ============================================
+// UPDATE BOOKING - Admin can edit booking details
+// ============================================
+
+const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      customerName,
+      customerContact,
+      customerEmail,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      totalPrice,
+      downpayment,
+      paymentMethod,
+      paymentStatus,
+      status,
+    } = req.body;
+
+    // Check if booking exists
+    const existingBooking = await Booking.findById(id);
+    if (!existingBooking) {
+      return res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+    }
+
+    // Validate required fields
+    if (!customerName || !customerEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer name and email are required",
+      });
+    }
+
+    if (!oasis || !packageName || !session) {
+      return res.status(400).json({
+        success: false,
+        message: "Oasis, package, and session selection are required",
+      });
+    }
+
+    if (!bookingDate || !pax || !totalPrice || !downpayment) {
+      return res.status(400).json({
+        success: false,
+        message: "Booking date, number of guests, total price, and downpayment are required",
+      });
+    }
+
+    if (!paymentMethod) {
+      return res.status(400).json({
+        success: false,
+        message: "Payment method is required",
+      });
+    }
+
+    // Prepare update data
+    const updateData = {
+      customerName,
+      customerContact,
+      customerEmail,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      totalAmount: totalPrice,
+      downpayment,
+      paymentMethod,
+      paymentStatus: paymentStatus || "Pending",
+      status: status || "Pending",
+    };
+
+    // Update the booking
+    const updatedBooking = await Booking.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Booking updated successfully",
+      booking: updatedBooking,
+    });
+  } catch (error) {
+    console.error("Update booking error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ============================================
 // GET BOOKINGS BY CUSTOMER EMAIL - public (no auth)
 // ============================================
 
@@ -1220,6 +1317,7 @@ module.exports = {
   getAllBookings,
   getBookingById,
   getBookingsByCustomerEmail,
+  updateBooking,
   updateBookingStatus,
   updatePaymentStatus,
   deleteBooking,

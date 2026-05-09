@@ -45,6 +45,16 @@ export const createBooking = async (bookingData) => {
   }
 };
 
+export const updateBooking = async (id, bookingData) => {
+  try {
+    const res = await bookingsApiClient.put(`/bookings/${id}`, bookingData);
+    return res.data;
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    throw error;
+  }
+};
+
 export const updateBookingStatus = async (id, status) => {
   try {
     const res = await bookingsApiClient.patch(`/bookings/${id}/status`, { status });

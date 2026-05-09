@@ -33,6 +33,7 @@ const BookingManagement = () => {
     session: "",
     bookingDate: "",
     pax: "1",
+    totalPrice: "",
     downpayment: "",
     paymentMethod: "GCash",
     paymentStatus: "Pending",
@@ -122,6 +123,7 @@ const BookingManagement = () => {
         session: "",
         bookingDate: "",
         pax: "1",
+        totalPrice: "",
         downpayment: "",
         paymentMethod: "GCash",
         paymentStatus: "Pending",
@@ -230,9 +232,17 @@ const BookingManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || !formData.session || !formData.bookingDate || !formData.pax || !formData.downpayment || !formData.paymentMethod) {
-        showConfirmationModal("Validation Error", "Please fill in all required fields", null, "OK");
+      if (!formData.customerName || !formData.customerContact || !formData.customerEmail || !formData.oasis || !formData.package || !formData.session || !formData.bookingDate || !formData.pax || !formData.totalPrice || !formData.downpayment || !formData.paymentMethod) {
+        showConfirmationModal("Validation Error", "Please fill in all required fields (including Total Price and Email)", null, "OK");
         return;
+      }
+
+      // Determine booking status based on payment status
+      let bookingStatus = formData.status || "Pending";
+      if (formData.paymentStatus === "Paid") {
+        bookingStatus = "Confirmed";
+      } else if (formData.paymentStatus === "Partial") {
+        bookingStatus = formData.status === "Confirmed" ? "Confirmed" : "Pending";
       }
 
       const bookingPayload = {
@@ -244,15 +254,15 @@ const BookingManagement = () => {
         session: formData.session,
         bookingDate: formData.bookingDate,
         pax: parseInt(formData.pax),
+        totalPrice: parseFloat(formData.totalPrice),
         downpayment: parseFloat(formData.downpayment),
         paymentMethod: formData.paymentMethod,
         paymentStatus: formData.paymentStatus || "Pending",
-        status: formData.status || "Pending",
+        status: bookingStatus,
       };
 
       if (editingBooking) {
-        bookingPayload._id = editingBooking._id;
-        await adminApi.createBooking(bookingPayload);
+        await adminApi.updateBooking(editingBooking._id, bookingPayload);
       } else {
         await adminApi.createBooking(bookingPayload);
       }
@@ -469,8 +479,8 @@ const BookingManagement = () => {
                 <input type="tel" value={formData.customerContact} onChange={(e) => setFormData({ ...formData, customerContact: e.target.value })} required />
               </div>
               <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={formData.customerEmail} onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })} />
+                <label>Email *</label>
+                <input type="email" value={formData.customerEmail} onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })} required />
               </div>
               <div className="form-group">
                 <label>Location *</label>
@@ -502,6 +512,10 @@ const BookingManagement = () => {
                 <input type="number" value={formData.pax} onChange={(e) => setFormData({ ...formData, pax: e.target.value })} min="1" required />
               </div>
               <div className="form-group">
+                <label>Total Price *</label>
+                <input type="number" value={formData.totalPrice} onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })} min="0" step="0.01" placeholder="Enter total price" required />
+              </div>
+              <div className="form-group">
                 <label>Down Payment *</label>
                 <input type="number" value={formData.downpayment} onChange={(e) => setFormData({ ...formData, downpayment: e.target.value })} min="0" step="0.01" required />
               </div>
@@ -513,6 +527,15 @@ const BookingManagement = () => {
                   <option value="GoTyme">GoTyme</option>
                   <option value="SeaBank">SeaBank</option>
                   <option value="Cash">Cash</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Payment Status</label>
+                <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}>
+                  <option value="Pending">Pending</option>
+                  <option value="Partial">Partial</option>
+                  <option value="Paid">Paid (Full Payment)</option>
+                  <option value="Rejected">Rejected</option>
                 </select>
               </div>
               <div className="form-group">

@@ -12,6 +12,7 @@ const {
   getAllBookings,
   getBookingById,
   getBookingsByCustomerEmail,
+  updateBooking,
   updateBookingStatus,
   updatePaymentStatus,
   deleteBooking,
@@ -62,6 +63,7 @@ router.get('/customer/:email', getBookingsByCustomerEmail);
 router.get('/',    verifyToken, isStaff, getAllBookings);
 router.get('/:id', getBookingById);
 
+router.put('/:id', verifyToken, isStaff, updateBooking);
 router.patch('/:id/status',  verifyToken, isStaff, updateBookingStatus);
 router.patch('/:id/payment', verifyToken, isStaff, updatePaymentStatus);
 router.patch('/:id/verify',  verifyToken, isStaff, verifyPayment);
