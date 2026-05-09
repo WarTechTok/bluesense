@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 const RoomSchema = new mongoose.Schema({
   name: { type: String, required: true }, // Room/Pool name (e.g., "Deluxe Pool Room")
   capacity: { type: Number, required: true }, // Maximum number of guests
-  price: { type: Number, required: true }, // Price per night in USD
+  // ✅ PRICE FIELD REMOVED - Pricing is handled at package level, not per room
   description: { type: String }, // Detailed description of the room
   status: { 
     type: String, 
