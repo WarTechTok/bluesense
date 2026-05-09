@@ -1,24 +1,21 @@
 // src/pages/admin/BookingManagement.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
-import Modal from "../../components/admin/Modal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import PaymentVerificationModal from "../../components/admin/PaymentVerificationModal";
+import AdminBookingForm from "./AdminBookingForm";
 import * as adminApi from '../../services/admin';
-import { fetchAllPackages } from "../../constants/packages";
 import "./BookingManagement.css";
 
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [selectedBookingForVerification, setSelectedBookingForVerification] = useState(null);
-  const [packages, setPackages] = useState([]); // Available packages from API
-  const [loadingPackages, setLoadingPackages] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: "",
@@ -26,21 +23,6 @@ const BookingManagement = () => {
     onConfirm: null,
     confirmText: "Confirm",
     cancelText: "Cancel",
-  });
-  const [formData, setFormData] = useState({
-    customerName: "",
-    customerContact: "",
-    customerEmail: "",
-    oasis: "",
-    package: "",
-    session: "",
-    bookingDate: "",
-    pax: "1",
-    totalPrice: "",
-    downpayment: "",
-    paymentMethod: "GCash",
-    paymentStatus: "Pending",
-    status: "Pending",
   });
 
   // Helper function to get display status based on date
@@ -54,28 +36,6 @@ const BookingManagement = () => {
       return 'Completed';
     }
     return booking.status;
-  }, []);
-
-  // Fetch packages based on selected oasis
-  const fetchPackagesForOasis = useCallback(async (oasis) => {
-    if (!oasis) {
-      setPackages([]);
-      return;
-    }
-    
-    setLoadingPackages(true);
-    try {
-      const data = await fetchAllPackages();
-      const filteredPackages = oasis === "Oasis 1" 
-        ? (data.Oasis1Packages || [])
-        : (data.Oasis2Packages || []);
-      setPackages(filteredPackages);
-    } catch (error) {
-      console.error("Error fetching packages:", error);
-      setPackages([]);
-    } finally {
-      setLoadingPackages(false);
-    }
   }, []);
 
   const fetchBookings = useCallback(async () => {
@@ -136,31 +96,10 @@ const BookingManagement = () => {
   const handleOpenModal = (booking = null) => {
     if (booking) {
       setEditingBooking(booking);
-      setFormData(booking);
-      // Load packages for the existing booking's oasis
-      if (booking.oasis) {
-        fetchPackagesForOasis(booking.oasis);
-      }
     } else {
       setEditingBooking(null);
-      setFormData({
-        customerName: "",
-        customerContact: "",
-        customerEmail: "",
-        oasis: "",
-        package: "",
-        session: "",
-        bookingDate: "",
-        pax: "1",
-        totalPrice: "",
-        downpayment: "",
-        paymentMethod: "GCash",
-        paymentStatus: "Pending",
-        status: "Pending",
-      });
-      setPackages([]);
     }
-    setIsModalOpen(true);
+    setShowBookingForm(true);
   };
 
   const handleCancel = async (id) => {
@@ -260,49 +199,11 @@ const BookingManagement = () => {
     );
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (!formData.customerName || !formData.customerContact || !formData.customerEmail || !formData.oasis || !formData.package || !formData.session || !formData.bookingDate || !formData.pax || !formData.totalPrice || !formData.downpayment || !formData.paymentMethod) {
-        showConfirmationModal("Validation Error", "Please fill in all required fields (including Total Price and Email)", null, "OK");
-        return;
-      }
-
-      // Determine booking status based on payment status
-      let bookingStatus = formData.status || "Pending";
-      if (formData.paymentStatus === "Paid") {
-        bookingStatus = "Confirmed";
-      } else if (formData.paymentStatus === "Partial") {
-        bookingStatus = formData.status === "Confirmed" ? "Confirmed" : "Pending";
-      }
-
-      const bookingPayload = {
-        customerName: formData.customerName,
-        customerContact: formData.customerContact,
-        customerEmail: formData.customerEmail,
-        oasis: formData.oasis,
-        package: formData.package,
-        session: formData.session,
-        bookingDate: formData.bookingDate,
-        pax: parseInt(formData.pax),
-        totalPrice: parseFloat(formData.totalPrice),
-        downpayment: parseFloat(formData.downpayment),
-        paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentStatus || "Pending",
-        status: bookingStatus,
-      };
-
-      if (editingBooking) {
-        await adminApi.updateBooking(editingBooking._id, bookingPayload);
-      } else {
-        await adminApi.createBooking(bookingPayload);
-      }
-      setIsModalOpen(false);
-      fetchBookings();
-      showConfirmationModal("Success", "Booking saved successfully!", null, "OK");
-    } catch (error) {
-      console.error("Error saving booking:", error);
-      showConfirmationModal("Error", error.message || "Error saving booking", null, "OK");
-    }
+  const handleBookingCreated = () => {
+    setShowBookingForm(false);
+    setEditingBooking(null);
+    fetchBookings();
+    showConfirmationModal("Success", editingBooking ? "Booking updated successfully!" : "Booking created successfully!", null, "OK");
   };
 
   const getBalance = (booking) => {
@@ -491,111 +392,17 @@ const BookingManagement = () => {
         </table>
       </div>
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <div className="modal-header">
-            <h3>{editingBooking ? "✎ Edit Booking" : "➕ Add New Booking"}</h3>
-            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+      {/* Booking Form Modal */}
+      {showBookingForm && (
+        <div className="modal-overlay" onClick={() => setShowBookingForm(false)}>
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <AdminBookingForm
+              editingBooking={editingBooking}
+              onClose={() => setShowBookingForm(false)}
+              onBookingCreated={handleBookingCreated}
+            />
           </div>
-          <div className="modal-body" style={{ maxHeight: "600px", overflowY: "auto" }}>
-            <form className="form landscape">
-              <div className="form-group">
-                <label>Customer Name *</label>
-                <input type="text" value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Contact Number *</label>
-                <input type="tel" value={formData.customerContact} onChange={(e) => setFormData({ ...formData, customerContact: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Email *</label>
-                <input type="email" value={formData.customerEmail} onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Location *</label>
-                <select value={formData.oasis} onChange={(e) => {
-                  setFormData({ ...formData, oasis: e.target.value, package: "" });
-                  fetchPackagesForOasis(e.target.value);
-                }} required>
-                  <option value="">Select Location</option>
-                  <option value="Oasis 1">Oasis 1</option>
-                  <option value="Oasis 2">Oasis 2</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Package *</label>
-                <select value={formData.package} onChange={(e) => setFormData({ ...formData, package: e.target.value })} required disabled={!formData.oasis || loadingPackages}>
-                  <option value="">
-                    {loadingPackages ? "Loading packages..." : "Select Package"}
-                  </option>
-                  {packages.map((pkg) => (
-                    <option key={pkg.id || pkg.name} value={pkg.name}>
-                      {pkg.name} {pkg.capacity ? `(${pkg.capacity})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Time Slot (Session) *</label>
-                <select value={formData.session || ""} onChange={(e) => setFormData({ ...formData, session: e.target.value })} required>
-                  <option value="">Select Time Slot</option>
-                  <option value="Day">Day (6AM - 5PM)</option>
-                  <option value="Night">Night (5PM - 10PM)</option>
-                  <option value="22hrs">Whole Day (6AM - 4AM)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Booking Date *</label>
-                <input type="date" value={formData.bookingDate} onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Number of Pax *</label>
-                <input type="number" value={formData.pax} onChange={(e) => setFormData({ ...formData, pax: e.target.value })} min="1" required />
-              </div>
-              <div className="form-group">
-                <label>Total Price *</label>
-                <input type="number" value={formData.totalPrice} onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })} min="0" step="0.01" placeholder="Enter total price" required />
-              </div>
-              <div className="form-group">
-                <label>Down Payment *</label>
-                <input type="number" value={formData.downpayment} onChange={(e) => setFormData({ ...formData, downpayment: e.target.value })} min="0" step="0.01" required />
-              </div>
-              <div className="form-group">
-                <label>Payment Method *</label>
-                <select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} required>
-                  <option value="GCash">GCash</option>
-                  <option value="Maya">Maya</option>
-                  <option value="GoTyme">GoTyme</option>
-                  <option value="SeaBank">SeaBank</option>
-                  <option value="Cash">Cash</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Payment Status</label>
-                <select value={formData.paymentStatus} onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}>
-                  <option value="Pending">Pending</option>
-                  <option value="Partial">Partial</option>
-                  <option value="Paid">Paid (Full Payment)</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Booking Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                  <option value="Pending">Pending</option>
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-            </form>
-          </div>
-          <div className="modal-footer">
-            <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleSubmit}>{editingBooking ? "Update" : "Create"} Booking</button>
-          </div>
-        </Modal>
+        </div>
       )}
 
       {/* Confirmation Modal */}
