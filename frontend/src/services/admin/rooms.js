@@ -59,10 +59,18 @@ export const uploadRoomImage = async (imageFile) => {
   try {
     const formData = new FormData();
     formData.append('image', imageFile);
+    // NOTE: do NOT set Content-Type header — let the browser set multipart boundary
     const res = await apiClient.post('/rooms/upload-image', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
-    return res.data;
+    // Backend returns { imagePath: <cloudinary url>, publicId, success, message }
+    // Guard against any key-name variation
+    const data = res.data;
+    const url = data.imagePath || data.imageUrl || data.url || null;
+    if (!url) {
+      throw new Error('Upload succeeded but no image URL was returned from the server.');
+    }
+    return { imagePath: url, publicId: data.publicId };
   } catch (error) {
     console.error('Error uploading room image:', error);
     throw error;

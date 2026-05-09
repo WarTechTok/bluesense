@@ -251,11 +251,28 @@ const RoomManagement = () => {
         {rooms.map((room) => (
           <div key={room._id} className="room-card">
             {/* Room Image */}
-            {room.image && (
-              <div className="room-image">
-                <img src={room.image} alt={room.name} onError={(e) => e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'} />
+            <div className="room-image-wrap">
+              {room.image ? (
+                <img
+                  src={room.image}
+                  alt={room.name}
+                  className="room-img"
+                  onError={(e) => {
+                    // Swap to placeholder on any load failure (broken local path, etc.)
+                    e.target.onerror = null;
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              <div
+                className="room-img-placeholder"
+                style={{ display: room.image ? 'none' : 'flex' }}
+              >
+                <span style={{ fontSize: '2rem' }}>🏊</span>
+                <span style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '4px' }}>No image</span>
               </div>
-            )}
+            </div>
             
             {/* Room Info */}
             <div className="room-info">
@@ -394,25 +411,58 @@ const RoomManagement = () => {
               </div>
               <div className="form-group">
                 <label>Room Image</label>
+                {/* Show current saved image (Cloudinary URL or legacy path) */}
                 {formData.image && !formData.imageFile && (
                   <div className="current-image">
-                    <img src={formData.image} alt="Room" style={{ maxWidth: '100px', maxHeight: '100px', borderRadius: '6px' }} />
-                    <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '8px 0' }}>Current image</p>
+                    <img
+                      src={formData.image}
+                      alt="Current room"
+                      style={{ maxWidth: '120px', maxHeight: '120px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0' }}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    {/* Shown only if image fails to load (old relative path) */}
+                    <p style={{ display: 'none', fontSize: '0.8rem', color: '#ef4444', margin: '4px 0' }}>
+                      ⚠️ Existing image path is no longer valid — please re-upload.
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '6px 0 0' }}>
+                      Current image · <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+                        onClick={() => setFormData({ ...formData, image: '', imageFile: null })}
+                      >Remove</button>
+                    </p>
                   </div>
                 )}
+                {/* Preview of newly selected (not yet uploaded) file */}
                 {formData.imageFile && (
                   <div className="current-image">
-                    <img src={URL.createObjectURL(formData.imageFile)} alt="New room" style={{ maxWidth: '100px', maxHeight: '100px', borderRadius: '6px' }} />
-                    <p style={{ fontSize: '0.85rem', color: '#10b981', margin: '8px 0' }}>New image selected</p>
+                    <img
+                      src={URL.createObjectURL(formData.imageFile)}
+                      alt="New room preview"
+                      style={{ maxWidth: '120px', maxHeight: '120px', borderRadius: '8px', objectFit: 'cover', border: '2px solid #10b981' }}
+                    />
+                    <p style={{ fontSize: '0.8rem', color: '#10b981', margin: '6px 0 0' }}>
+                      ✓ New image selected (will upload on save) · <button
+                        type="button"
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem', padding: 0 }}
+                        onClick={() => setFormData({ ...formData, imageFile: null })}
+                      >Cancel</button>
+                    </p>
                   </div>
                 )}
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
-                  style={{ marginTop: formData.image || formData.imageFile ? '10px' : '0' }}
+                  style={{ marginTop: (formData.image || formData.imageFile) ? '10px' : '0' }}
                 />
-                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '8px' }}>Supported formats: JPG, PNG, GIF, WebP. Max size: 5MB</p>
+                <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
+                  Supported: JPG, PNG, WebP · Max 5 MB · Uploaded to Cloudinary
+                </p>
               </div>
               <div className="form-group">
                 <label>Appliances & Amenities</label>

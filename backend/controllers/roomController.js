@@ -47,7 +47,8 @@ exports.getRoomById = async (req, res) => {
  */
 exports.createRoom = async (req, res) => {
   try {
-    const { name, capacity, description, status } = req.body;
+    // ── Destructure ALL fields the frontend sends ──────────────
+    const { name, capacity, description, status, oasis, packageName, image, appliances } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -70,15 +71,26 @@ exports.createRoom = async (req, res) => {
       return res.status(400).json({ error: 'Capacity must be greater than 0' });
     }
 
-    // Price validation removed — pricing is handled at the package level
+    // Normalize appliances — frontend sends a comma-separated string OR an array
+    let appliancesArray = [];
+    if (Array.isArray(appliances)) {
+      appliancesArray = appliances.filter(a => a && a.trim() !== '');
+    } else if (typeof appliances === 'string' && appliances.trim()) {
+      appliancesArray = appliances.split(',').map(a => a.trim()).filter(a => a !== '');
+    }
 
-    const room = new Room({ 
-      name: name.trim(), 
-      capacity: parsedCapacity, 
-      description, 
-      status 
+    const room = new Room({
+      name: name.trim(),
+      capacity: parsedCapacity,
+      description: description || '',
+      status: status || 'Available',
+      oasis: oasis || 'Oasis 1',
+      packageName: packageName || null,
+      image: image || null,          // ← Cloudinary URL saved here
+      appliances: appliancesArray,
     });
     await room.save();
+    console.log(`✅ Room created: ${room.name} | image: ${room.image || 'none'}`);
     res.status(201).json(room);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -92,7 +104,8 @@ exports.createRoom = async (req, res) => {
  */
 exports.updateRoom = async (req, res) => {
   try {
-    const { name, capacity, description, status } = req.body;
+    // ── Destructure ALL fields the frontend may send ───────────
+    const { name, capacity, description, status, oasis, packageName, image, appliances } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -116,14 +129,28 @@ exports.updateRoom = async (req, res) => {
       }
     }
 
-    // Price validation removed — pricing is handled at the package level
+    // Normalize appliances — frontend sends a comma-separated string OR an array
+    let appliancesArray;
+    if (appliances !== undefined) {
+      if (Array.isArray(appliances)) {
+        appliancesArray = appliances.filter(a => a && a.trim() !== '');
+      } else if (typeof appliances === 'string') {
+        appliancesArray = appliances.trim()
+          ? appliances.split(',').map(a => a.trim()).filter(a => a !== '')
+          : [];
+      }
+    }
 
-    const updateData = { name, capacity, description, status };
-    // Remove undefined values
+    // Build update object — only include fields that were sent
+    const updateData = { name, capacity, description, status, oasis, packageName, image };
+    if (appliancesArray !== undefined) updateData.appliances = appliancesArray;
+
+    // Remove fields that were not sent (undefined) so we don't wipe existing values
     Object.keys(updateData).forEach(key => updateData[key] === undefined && delete updateData[key]);
 
     const room = await Room.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!room) return res.status(404).json({ error: 'Room not found' });
+    console.log(`✅ Room updated: ${room.name} | image: ${room.image || 'none'}`);
     res.json(room);
   } catch (error) {
     res.status(400).json({ error: error.message });

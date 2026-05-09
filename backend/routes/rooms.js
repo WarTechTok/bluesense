@@ -13,6 +13,13 @@ const { uploadSingle } = require('../middleware/upload'); // memoryStorage — C
 
 
 // ============================================
+// UPLOAD ROOM IMAGE - Must come BEFORE /:id routes
+// so Express doesn't treat "upload-image" as a room ID
+// POST /api/admin/rooms/upload-image
+// ============================================
+router.post('/upload-image', authenticate, authorize('admin'), uploadSingle('image'), roomController.uploadRoomImage);
+
+// ============================================
 // GET ALL ROOMS - retrieve all available rooms/pools
 // ============================================
 router.get('/', authenticate, roomController.getAllRooms);
@@ -55,10 +62,5 @@ router.get('/:id/staff', authenticate, roomController.getRoomStaff);
 // DELETE ROOM - remove room/pool from system (Admin only)
 // ============================================
 router.delete('/:id', authenticate, authorize('admin'), roomController.deleteRoom);
-
-// ============================================
-// UPLOAD ROOM IMAGE - upload image for room/pool (Admin only)
-// ============================================
-router.post('/upload-image', authenticate, authorize('admin'), uploadSingle('image'), roomController.uploadRoomImage);
 
 module.exports = router;
