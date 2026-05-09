@@ -1,30 +1,87 @@
 /* frontend/src/pages/admin/AdminBookingForm.css */
 
-.admin-booking-form {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 30px 20px;
+/* ============================================ */
+/* MODAL STRUCTURE - Scrollable Modal Form */
+/* ============================================ */
+
+.admin-booking-modal {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 90vh;
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
-/* Step Indicator */
+/* Modal Header */
+.booking-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  background: linear-gradient(to right, #f8fafc, white);
+}
+
+.booking-modal-header h2 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.modal-subtitle {
+  margin: 4px 0 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* ============================================ */
+/* STEP INDICATOR */
+/* ============================================ */
+
 .step-indicator {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 40px;
+  padding: 20px 28px;
   position: relative;
+  flex-shrink: 0;
+  background: #f8fafc;
+  gap: 12px;
 }
 
 .step-indicator::before {
   content: "";
   position: absolute;
-  top: 20px;
-  left: 0;
-  right: 0;
+  top: 30px;
+  left: 50px;
+  right: 50px;
   height: 2px;
-  background: #e0e0e0;
+  background: #e0e7ff;
   z-index: 0;
 }
 
@@ -41,49 +98,80 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background: white;
-  border: 2px solid #e0e0e0;
-  color: #999;
-  font-weight: bold;
+  border: 2px solid #e0e7ff;
+  color: #9ca3af;
+  font-weight: 700;
+  font-size: 0.95rem;
   margin-bottom: 8px;
   transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .step.active span {
   border-color: #0284c7;
   background: #0284c7;
   color: white;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
 }
 
 .step.completed span {
   border-color: #10b981;
   background: #10b981;
   color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .step p {
   font-size: 0.85rem;
-  color: #999;
+  color: #9ca3af;
   margin: 0;
   text-align: center;
-  font-weight: 500;
+  font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 .step.active p {
   color: #0284c7;
+  font-weight: 700;
 }
 
 .step.completed p {
   color: #10b981;
 }
 
-/* Form Content */
+/* ============================================ */
+/* FORM CONTENT - Scrollable Area */
+/* ============================================ */
+
 .form-content {
-  min-height: 300px;
-  margin-bottom: 30px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 28px;
+  background: white;
+}
+
+/* Custom scrollbar styling */
+.form-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.form-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.form-content::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.form-content::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .form-step {
@@ -93,7 +181,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -103,32 +191,43 @@
 
 .form-step h3 {
   color: #1e293b;
-  margin-bottom: 20px;
-  font-size: 1.2rem;
+  margin: 0 0 24px 0;
+  font-size: 1.25rem;
+  font-weight: 700;
 }
 
+/* ============================================ */
+/* FORM GROUPS */
+/* ============================================ */
+
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .form-group label {
   display: block;
   font-weight: 600;
   color: #334155;
-  margin-bottom: 8px;
-  font-size: 0.95rem;
+  margin-bottom: 10px;
+  font-size: 0.96rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  border-radius: 8px;
+  font-size: 0.96rem;
   font-family: inherit;
   transition: all 0.2s ease;
+  background: white;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #cbd5e1;
 }
 
 .form-group input:focus,
@@ -137,62 +236,86 @@
   outline: none;
   border-color: #0284c7;
   box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+  background: #f0f9ff;
 }
 
 .form-group input.error,
 .form-group select.error {
   border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.form-group input.error:focus,
+.form-group select.error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .form-group textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 100px;
 }
 
 .form-group small {
   display: block;
-  color: #999;
+  color: #64748b;
   font-size: 0.85rem;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .error-text {
   color: #ef4444;
   font-size: 0.85rem;
   display: block;
-  margin-top: 6px;
+  margin-top: 8px;
+  font-weight: 500;
 }
 
-/* Price Summary */
+/* ============================================ */
+/* PRICE SUMMARY */
+/* ============================================ */
+
 .price-summary {
-  background: #f8fafc;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  padding: 24px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  border: 2px solid #bfdbfe;
   border-left: 4px solid #0284c7;
 }
 
 .price-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 0.95rem;
+  margin-bottom: 14px;
+  font-size: 0.96rem;
+  color: #334155;
+}
+
+.price-row:last-child {
+  margin-bottom: 0;
 }
 
 .price-row.total {
   font-weight: 700;
   color: #0284c7;
-  border-top: 1px solid #e2e8f0;
-  padding-top: 12px;
+  border-top: 2px solid #bfdbfe;
+  padding-top: 14px;
+  margin-top: 14px;
   font-size: 1.1rem;
 }
 
 .price-row .highlight {
-  color: #10b981;
-  font-weight: 600;
+  color: #059669;
+  font-weight: 700;
+  background: #ecfdf5;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-/* Review Section */
+/* ============================================ */
+/* REVIEW SECTION */
+/* ============================================ */
+
 .review-section {
   display: flex;
   flex-direction: column;
@@ -200,24 +323,29 @@
 }
 
 .review-block {
-  background: #f8fafc;
-  padding: 20px;
-  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 22px;
+  border-radius: 10px;
+  border-left: 4px solid #0284c7;
+  border: 1px solid #e2e8f0;
   border-left: 4px solid #0284c7;
 }
 
 .review-block h4 {
   color: #0284c7;
-  margin: 0 0 15px 0;
-  font-size: 1rem;
+  margin: 0 0 16px 0;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
 
 .review-item {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
+  align-items: center;
+  padding: 12px 0;
   border-bottom: 1px solid #e2e8f0;
   font-size: 0.95rem;
+  gap: 16px;
 }
 
 .review-item:last-child {
@@ -226,93 +354,143 @@
 
 .review-item .label {
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
+  flex: 0 0 auto;
 }
 
 .review-item .value {
   color: #1e293b;
   font-weight: 600;
+  text-align: right;
+  flex: 1;
 }
 
-/* Form Actions */
-.form-actions {
+/* ============================================ */
+/* MODAL FOOTER - Action Buttons */
+/* ============================================ */
+
+.booking-modal-footer {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
+  padding: 24px 28px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8fafc;
+  flex-shrink: 0;
 }
 
 .btn-primary,
 .btn-secondary,
 .btn-success {
-  padding: 10px 24px;
+  padding: 12px 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 100px;
+  text-align: center;
 }
 
 .btn-primary {
-  background: #0284c7;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #0369a1;
+  background: linear-gradient(135deg, #0369a1 0%, #0256a4 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
 }
 
 .btn-secondary {
   background: #e2e8f0;
   color: #334155;
+  border: 1px solid #cbd5e1;
 }
 
 .btn-secondary:hover {
   background: #cbd5e1;
+  border-color: #94a3b8;
 }
 
 .btn-success {
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .btn-success:hover:not(:disabled) {
-  background: #059669;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
 }
 
 .btn-primary:disabled,
 .btn-success:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-/* Responsive */
+/* ============================================ */
+/* RESPONSIVE DESIGN */
+/* ============================================ */
+
 @media (max-width: 640px) {
-  .admin-booking-form {
-    padding: 20px 15px;
+  .admin-booking-modal {
+    max-height: 95vh;
+  }
+
+  .booking-modal-header {
+    padding: 16px 20px;
+  }
+
+  .booking-modal-header h2 {
+    font-size: 1.25rem;
   }
 
   .step-indicator {
-    margin-bottom: 30px;
+    padding: 16px 20px;
+    gap: 8px;
+  }
+
+  .step-indicator::before {
+    left: 35px;
+    right: 35px;
   }
 
   .step span {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
+    width: 38px;
+    height: 38px;
+    font-size: 0.85rem;
   }
 
   .step p {
     font-size: 0.75rem;
   }
 
-  .form-actions {
+  .form-content {
+    padding: 20px;
+  }
+
+  .form-step h3 {
+    font-size: 1.1rem;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .price-summary {
+    padding: 18px;
+  }
+
+  .booking-modal-footer {
+    padding: 16px 20px;
     flex-direction: column;
   }
 
@@ -320,9 +498,35 @@
   .btn-secondary,
   .btn-success {
     width: 100%;
+    padding: 12px 16px;
   }
 
   .price-row {
     font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-booking-modal {
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .booking-modal-header {
+    padding: 12px 16px;
+  }
+
+  .booking-modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .step span {
+    width: 36px;
+    height: 36px;
+  }
+
+  .form-content {
+    padding: 16px;
   }
 }

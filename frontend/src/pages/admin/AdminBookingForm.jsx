@@ -211,7 +211,18 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const downpayment = getDownpayment();
 
   return (
-    <div className="admin-booking-form">
+    <div className="admin-booking-modal">
+      {/* Modal Header */}
+      <div className="booking-modal-header">
+        <div>
+          <h2>{editingBooking ? "Edit Booking" : "Create New Booking"}</h2>
+          <p className="modal-subtitle">Step {step} of 4</p>
+        </div>
+        <button className="modal-close" onClick={onClose}>
+          ✕
+        </button>
+      </div>
+
       {/* Step Indicator */}
       <div className="step-indicator">
         <div className={`step ${step === 1 ? 'active' : step > 1 ? 'completed' : ''}`}>
@@ -232,7 +243,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         </div>
       </div>
 
-      {/* Form Content */}
+      {/* Form Content - Scrollable */}
       <div className="form-content">
         {/* Step 1: Customer Info */}
         {step === 1 && (
@@ -510,8 +521,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         )}
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="form-actions">
+      {/* Modal Footer - Navigation Buttons */}
+      <div className="booking-modal-footer">
         <button
           className="btn-secondary"
           onClick={step === 1 ? onClose : handlePrevStep}
