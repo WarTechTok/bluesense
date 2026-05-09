@@ -438,7 +438,97 @@ const getBookingById = async (req, res) => {
 };
 
 // ============================================
-// UPDATE BOOKING STATUS - confirm or cancel
+// UPDATE BOOKING - full update for admin edits
+// ============================================
+
+const updateBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      customerName,
+      customerContact,
+      customerEmail,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      totalPrice,
+      downpayment,
+      paymentMethod,
+      paymentStatus,
+      status,
+      specialRequests,
+      addons,
+    } = req.body;
+
+    // Get current booking to check status
+    const currentBooking = await Booking.findById(id);
+    if (!currentBooking) {
+      return res.status(404).json({ message: "Booking not found" });
+    }
+
+    // Prevent edits on completed bookings
+    if (currentBooking.status === "Completed") {
+      return res.status(400).json({ message: "Cannot modify a completed booking" });
+    }
+
+    // Build update object with provided fields
+    const updateData = {};
+    if (customerName !== undefined) updateData.customerName = customerName;
+    if (customerContact !== undefined) updateData.customerContact = customerContact;
+    if (customerEmail !== undefined) updateData.customerEmail = customerEmail;
+    if (oasis !== undefined) updateData.oasis = oasis;
+    if (packageName !== undefined) updateData.package = packageName;
+    if (session !== undefined) updateData.session = session;
+    if (bookingDate !== undefined) updateData.bookingDate = bookingDate;
+    if (pax !== undefined) updateData.pax = pax;
+    if (totalPrice !== undefined) updateData.totalPrice = totalPrice;
+    if (downpayment !== undefined) updateData.downpayment = downpayment;
+    if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod;
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+    if (status !== undefined) updateData.status = status;
+    if (specialRequests !== undefined) updateData.specialRequests = specialRequests;
+    if (addons !== undefined) updateData.addons = addons || {};
+
+    // Update the booking
+    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+
+    // Handle sale record creation/updates based on status change
+    if (status === "Confirmed" && (!currentBooking.status || currentBooking.status !== "Confirmed")) {
+      const existingSale = await Sale.findOne({ booking: id });
+      if (!existingSale && booking.totalPrice) {
+        const sale = new Sale({
+          booking: id,
+          amount: booking.totalPrice,
+          bookingNumber: booking.bookingNumber || 0,
+          bookingReference: booking.bookingReference,
+          location: booking.oasis,
+          date: new Date(),
+        });
+        await sale.save();
+        console.log(`✅ Sale record created for confirmed booking ${id}`);
+      }
+    }
+
+    // Delete sale record if booking is cancelled
+    if (status === "Cancelled" && currentBooking.status !== "Cancelled") {
+      const deletedSale = await Sale.findOneAndDelete({ booking: id });
+      if (deletedSale) {
+        console.log(`🗑️ Sale record deleted for cancelled booking ${id}`);
+      }
+    }
+
+    res.json({
+      message: "Booking updated successfully",
+      booking,
+    });
+  } catch (error) {
+    console.error("Error updating booking:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
 // ============================================
 
 const updateBookingStatus = async (req, res) => {
@@ -1264,6 +1354,7 @@ module.exports = {
   createBooking,
   getAllBookings,
   getBookingById,
+  updateBooking,
   getBookingsByCustomerEmail,
   updateBookingStatus,
   updatePaymentStatus,
