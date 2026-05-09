@@ -1,6 +1,6 @@
 // frontend/src/pages/booking/Booking.jsx
 // ============================================
-// BOOKING PAGE - Pre-fills selections from previous page
+// BOOKING PAGE — all prices from API via currentPackage
 // ============================================
 
 import React, { useState, useEffect } from "react";
@@ -20,213 +20,155 @@ import PaymentStep from "./PaymentStep";
 import ReviewStep from "./ReviewStep";
 import AddonsSelector from "../../components/booking/AddonsSelector";
 import {
-  getPackagePrice,
-  oasisPackages,
-  getMaxCapacity,
+  getPriceFromPackage,
+  getExtraGuestCharge,
+  getDownpaymentAmount,
+  getMaxCapacityFromPackage,
+  getMinCapacityFromPackage,
 } from "../../config/packageData";
 import "./Booking.css";
 
 function Booking() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showPendingModal, setShowPendingModal] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [step, setStep]                           = useState(1);
+  const [isSubmitting, setIsSubmitting]           = useState(false);
+  const [showSuccessModal, setShowSuccessModal]   = useState(false);
+  const [showPendingModal, setShowPendingModal]   = useState(false);
+  const [showLimitModal, setShowLimitModal]       = useState(false);
   const [showDoubleBookingModal, setShowDoubleBookingModal] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
-  const [selectedAddons, setSelectedAddons] = useState({});
-  const [infoConfirmed, setInfoConfirmed] = useState(false);
+  const [bookingDetails, setBookingDetails]       = useState(null);
+  const [selectedAddons, setSelectedAddons]       = useState({});
+  const [infoConfirmed, setInfoConfirmed]         = useState(false);
   const [extraGuestWarning, setExtraGuestWarning] = useState("");
-  // Sessions fetched from DB - includes downpaymentAmount set by admin
-  const [sessionData, setSessionData] = useState([]);
+  // Sessions fetched from DB — includes downpaymentAmount set by admin
+  const [sessionData, setSessionData]             = useState([]);
 
-  // Get preselected data from navigation state
-  const preselectedOasis = location.state?.oasis || null;
-  const preselectedPackage = location.state?.package || null;
+  // Pre-selected data from navigation state (set by PackageCard → handleBook)
+  const preselectedOasis   = location.state?.oasis   || null;
+  const preselectedPackage = location.state?.package || null; // full API-transformed object
 
-  // Package selection state (pre-filled from previous page)
-  const [selectedOasis] = useState(preselectedOasis || "");
+  const [selectedOasis]   = useState(preselectedOasis || "");
   const [selectedPackage] = useState(preselectedPackage?.name || null);
   const [selectedSession, setSelectedSession] = useState(null);
 
-  // Get logged-in user data from localStorage
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [formData, setFormData] = useState({
-    fullName: loggedInUser.name || "",
-    email: loggedInUser.email || "",
-    phone: loggedInUser.phone || "",
-    guestCount: 1,
+    fullName:        loggedInUser.name  || "",
+    email:           loggedInUser.email || "",
+    phone:           loggedInUser.phone || "",
+    guestCount:      1,
     reservationDate: "",
-    checkoutDate: "",
+    checkoutDate:    "",
     specialRequests: "",
-    paymentMethod: "",
-    paymentType: "downpayment",
-    agreeTerms: false,
-    session: "",
-    paymentProof: null,
+    paymentMethod:   "",
+    paymentType:     "downpayment",
+    agreeTerms:      false,
+    session:         "",
+    paymentProof:    null,
   });
 
   const [errors, setErrors] = useState({});
 
-  const getMinCapacityForPackage = () => {
-    if (selectedOasis === "Oasis 1" && selectedPackage === "Package 5+")
-      return 30;
-    if (selectedOasis === "Oasis 2" && selectedPackage === "Package C")
-      return 50;
-    return 0;
-  };
-
-  // Get max capacity for current package
-  const getMaxCapacityForPackage = () => {
-    if (!selectedOasis || !selectedPackage) return 100;
-    return getMaxCapacity(selectedOasis, selectedPackage);
-  };
-
-  // Check if selections are missing
-  useEffect(() => {
-    if (!preselectedOasis || !preselectedPackage) {
-      const confirm = window.confirm(
-        "Please select a package first. Go to homepage?",
-      );
-      if (confirm) {
-        navigate("/");
-      }
-    }
-  }, [preselectedOasis, preselectedPackage, navigate]);
-
-  // Get current package data.
-  // IMPORTANT: preselectedPackage comes from the homepage/PackageCard and was
-  // transformed by transformPackageData() — it has the correct `sessions` array
-  // from the database (e.g. ["Day","Night"] for Package 1).
-  // oasisPackages has the pricing details but NO `sessions` key.
-  // We merge both so SessionSelector gets the right sessions AND pricing works.
+  // ============================================
+  // currentPackage — SINGLE SOURCE OF TRUTH
+  // This is the API-fetched, transformed package object.
+  // It carries correct pricing, capacity, and sessions from the DB.
+  // All price/capacity calculations MUST read from this object.
+  // ============================================
   const currentPackage = (() => {
-    const hardcoded = (selectedOasis && selectedPackage)
-      ? oasisPackages[selectedOasis]?.packages[selectedPackage]
-      : null;
-
-    if (!hardcoded) return preselectedPackage || null;
-
-    // Prefer sessions from the API-fetched preselectedPackage (reflects DB),
-    // fall back to hardcoded sessions (added in packageData.js as safety net).
-    const sessions =
-      preselectedPackage?.sessions?.length > 0
+    if (!preselectedPackage) return null;
+    return {
+      ...preselectedPackage,
+      // Ensure sessions field is populated (transformPackageData sets this)
+      sessions: preselectedPackage.sessions?.length > 0
         ? preselectedPackage.sessions
-        : hardcoded.sessions || [];
-
-    return { ...hardcoded, sessions };
+        : preselectedPackage.availableSessions || [],
+    };
   })();
 
-  // Get available sessions for this package
-  const getAvailableSessions = () => {
-    if (!currentPackage) return [];
-    return currentPackage.sessions || [];
-  };
+  // ============================================
+  // CAPACITY (from API)
+  // ============================================
+  const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
+  const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
 
-  // Calculate base package price
+  // ============================================
+  // PRICING (from API via currentPackage)
+  // ============================================
+
+  // Base package price — reads currentPackage.pricing, NOT hardcoded table
   const calculatePrice = () => {
-    if (
-      !selectedOasis ||
-      !selectedPackage ||
-      !selectedSession ||
-      !formData.reservationDate
-    ) {
-      return 0;
-    }
-    return getPackagePrice(
-      selectedOasis,
-      selectedPackage,
+    if (!selectedSession || !formData.reservationDate) return 0;
+    return getPriceFromPackage(
+      currentPackage,
       selectedSession,
       formData.reservationDate,
-      formData.guestCount,
+      formData.guestCount
     );
   };
 
-  const calculateAddonsTotal = () => {
-    return Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
-  };
+  const calculateAddonsTotal = () =>
+    Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
 
-  // Calculate extra guest charges (₱150 per person over base capacity)
-  const calculateExtraGuestCharges = () => {
-    const packageData = oasisPackages[selectedOasis]?.packages[selectedPackage];
-    if (!packageData) return 0;
+  // Extra-guest charge: ₱150 per guest over maxCapacity
+  const calculateExtraGuestCharges = () =>
+    getExtraGuestCharge(currentPackage, formData.guestCount);
 
-    // Get base capacity (included guests with no extra charge)
-    const baseCapacity = packageData.baseCapacity || packageData.capacity || 0;
-    const currentGuests = formData.guestCount;
-
-    if (currentGuests > baseCapacity) {
-      const extraGuests = currentGuests - baseCapacity;
-      return extraGuests * 150; // ₱150 per extra guest
-    }
-    return 0;
-  };
-
-  // Calculate total price including base price, extra guests, and addons
   const getTotalPrice = () => {
-    const basePrice = calculatePrice();
-    const extraGuestCharges = calculateExtraGuestCharges();
-    const addonsTotal = calculateAddonsTotal();
-    const total = basePrice + extraGuestCharges + addonsTotal;
+    const base       = calculatePrice();
+    const extraGuest = calculateExtraGuestCharges();
+    const addons     = calculateAddonsTotal();
+    const total      = base + extraGuest + addons;
 
-    // Debug log to verify calculations
-    console.log("💰 Price Breakdown:", {
-      basePrice,
-      extraGuestCharges,
-      addonsTotal,
-      total,
-      guestCount: formData.guestCount,
-      baseCapacity:
-        oasisPackages[selectedOasis]?.packages[selectedPackage]?.baseCapacity ||
-        oasisPackages[selectedOasis]?.packages[selectedPackage]?.capacity,
-      selectedPackage,
+    console.log("💰 Price breakdown:", {
+      base, extraGuest, addons, total,
+      guestCount:  formData.guestCount,
+      maxCapacity: getMaxCapacityForPackage(),
+      package:     selectedPackage,
+      session:     selectedSession,
+      date:        formData.reservationDate,
     });
 
     return total;
   };
 
-  // Calculate nights based on session
-  const calculateNights = () => {
-    if (!formData.reservationDate) return 1;
-    if (selectedSession === "22hrs") return 1;
-    if (selectedSession === "Night") return 1;
-    if (selectedSession === "Day") return 1;
-    return 1;
-  };
+  const calculateNights = () => 1;
 
-  // Get downpayment from DB session data set by admin
-  const getDownpaymentAmount = () => {
-    if (sessionData.length > 0) {
-      const match = sessionData.find((s) => s.name === selectedSession);
-      if (match) return match.downpaymentAmount;
+  // Downpayment: prefer DB value set by admin
+  const getDownpayment = () =>
+    getDownpaymentAmount(selectedSession, sessionData);
+
+  // ============================================
+  // AVAILABLE SESSIONS (from API)
+  // ============================================
+  const getAvailableSessions = () => currentPackage?.sessions || [];
+
+  // ============================================
+  // LIFECYCLE
+  // ============================================
+  useEffect(() => {
+    if (!preselectedOasis || !preselectedPackage) {
+      const confirm = window.confirm("Please select a package first. Go to homepage?");
+      if (confirm) navigate("/");
     }
-    // Fallback to hardcoded values if API hasn't loaded yet
-    if (selectedSession === "22hrs") return 5000;
-    return 3000;
-  };
+  }, [preselectedOasis, preselectedPackage, navigate]);
 
-  // Check authentication
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login?redirect=/booking");
-    }
+    if (!token) navigate("/login?redirect=/booking");
   }, [navigate]);
 
-  // Fetch sessions from DB so downpayment reflects what admin set
+  // Fetch session config (downpayment amounts) from DB
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
-        const res = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+        const res  = await fetch(`${API_BASE_URL}/api/admin/sessions`);
         const data = await res.json();
-        if (Array.isArray(data)) {
-          setSessionData(data);
-        }
+        if (Array.isArray(data)) setSessionData(data);
       } catch (err) {
         console.error("Failed to fetch session data:", err);
       }
@@ -234,35 +176,30 @@ function Booking() {
     fetchSessions();
   }, []);
 
+  // ============================================
+  // HANDLERS
+  // ============================================
   const handleSessionSelect = (session) => {
     setSelectedSession(session);
-    setFormData((prev) => ({ ...prev, session: session }));
-    if (errors.session) {
-      setErrors((prev) => ({ ...prev, session: "" }));
-    }
+    setFormData((prev) => ({ ...prev, session }));
+    if (errors.session) setErrors((prev) => ({ ...prev, session: "" }));
   };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    const newValue = type === "checkbox" ? checked : value;
+    setFormData((prev) => ({ ...prev, [name]: newValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    // Update extra guest warning when guest count changes
+    // Update extra-guest warning using API capacity
     if (name === "guestCount") {
-      const packageData =
-        oasisPackages[selectedOasis]?.packages[selectedPackage];
-      const baseCapacity =
-        packageData?.baseCapacity || packageData?.capacity || 0;
-      const guestCount = parseInt(value) || 0;
-
-      if (guestCount > baseCapacity) {
-        const extraCount = guestCount - baseCapacity;
-        const extraCost = extraCount * 150;
+      const maxCap   = getMaxCapacityForPackage();
+      const guests   = parseInt(value) || 0;
+      if (guests > maxCap && maxCap > 0) {
+        const extra    = guests - maxCap;
+        const extraCost = extra * 150;
         setExtraGuestWarning(
-          `⚠️ Extra charge: ${extraCount} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added to your total.`,
+          `⚠️ Extra charge: ${extra} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added.`
         );
       } else {
         setExtraGuestWarning("");
@@ -274,68 +211,36 @@ function Booking() {
     const newErrors = {};
 
     if (step === 1) {
-      // Required contact info validation
-      if (!formData.fullName || formData.fullName.trim() === "") {
-        newErrors.fullName = "Full name is required";
-      }
-      if (!formData.email || formData.email.trim() === "") {
-        newErrors.email = "Email is required";
-      }
-
-
-      // Guest info validation
-      if (!formData.guestCount || formData.guestCount < 1) {
+      if (!formData.fullName?.trim()) newErrors.fullName = "Full name is required";
+      if (!formData.email?.trim())    newErrors.email    = "Email is required";
+      if (!formData.guestCount || formData.guestCount < 1)
         newErrors.guestCount = "Number of guests is required";
-      }
 
-      // Capacity validation - check both minimum and maximum
-      const minCapacity = getMinCapacityForPackage();
-      const maxCapacity = getMaxCapacityForPackage();
+      const minCap = getMinCapacityForPackage();
+      const maxCap = getMaxCapacityForPackage();
 
-      if (minCapacity > 0 && formData.guestCount < minCapacity) {
-        newErrors.guestCount = `Minimum ${minCapacity} guests required for this package`;
-      }
-
-      if (formData.guestCount > maxCapacity) {
-        newErrors.guestCount = `Maximum ${maxCapacity} guests only. For groups larger than ${maxCapacity}, please contact us directly.`;
-      }
-
-      // Check if info is confirmed
-      if (!infoConfirmed) {
+      if (minCap > 0 && formData.guestCount < minCap)
+        newErrors.guestCount = `Minimum ${minCap} guests required for this package`;
+      if (formData.guestCount > maxCap)
+        newErrors.guestCount = `Maximum ${maxCap} guests only. For larger groups, contact us directly.`;
+      if (!infoConfirmed)
         newErrors.confirmInfo = "Please confirm your information first";
-      }
     }
 
     if (step === 2) {
-      if (!formData.reservationDate) {
-        newErrors.reservationDate = "Reservation date is required";
-      }
-      if (!selectedSession) {
-        newErrors.session = "Please select a session";
-      }
+      if (!formData.reservationDate) newErrors.reservationDate = "Reservation date is required";
+      if (!selectedSession)          newErrors.session = "Please select a session";
     }
 
     if (step === 3) {
-      if (!formData.paymentMethod) {
-        newErrors.paymentMethod = "Please select a payment method";
-      }
-      if (!formData.paymentType) {
-        newErrors.paymentType =
-          "Please select a payment type (downpayment or full payment)";
-      }
-      // Payment proof required for digital payments
-      if (
-        formData.paymentMethod &&
-        formData.paymentMethod !== "cash" &&
-        !formData.paymentProof
-      ) {
+      if (!formData.paymentMethod) newErrors.paymentMethod = "Please select a payment method";
+      if (!formData.paymentType)   newErrors.paymentType   = "Please select a payment type";
+      if (formData.paymentMethod && formData.paymentMethod !== "cash" && !formData.paymentProof)
         newErrors.paymentProof = "Please upload payment proof";
-      }
     }
 
-    if (step === 4 && !formData.agreeTerms) {
+    if (step === 4 && !formData.agreeTerms)
       newErrors.agreeTerms = "You must agree to the terms";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -343,13 +248,9 @@ function Booking() {
 
   const handleNext = () => {
     if (step === 1 && !infoConfirmed) {
-      setErrors({
-        ...errors,
-        confirmInfo: "Please confirm your information first",
-      });
+      setErrors({ ...errors, confirmInfo: "Please confirm your information first" });
       return;
     }
-
     if (validateStep()) {
       setStep(step + 1);
       window.scrollTo(0, 0);
@@ -361,17 +262,8 @@ function Booking() {
     window.scrollTo(0, 0);
   };
 
-  const handleViewBookings = () => {
-    setShowPendingModal(false);
-    setShowLimitModal(false);
-    navigate("/my-bookings");
-  };
-
-  const handleDoubleBookingClose = () => {
-    setShowDoubleBookingModal(false);
-    setStep(2);
-    window.scrollTo(0, 0);
-  };
+  const handleViewBookings    = () => { setShowPendingModal(false); setShowLimitModal(false); navigate("/my-bookings"); };
+  const handleDoubleBookingClose = () => { setShowDoubleBookingModal(false); setStep(2); window.scrollTo(0, 0); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -379,115 +271,73 @@ function Booking() {
     setIsSubmitting(true);
 
     try {
-      // Helper function to map payment method to proper casing
-      const mapPaymentMethod = (method) => {
-        const mapping = {
-          cash: "Cash",
-          gcash: "GCash",
-          maya: "Maya",
-          seabank: "SeaBank",
-          gotyme: "GoTyme",
-        };
-        return mapping[method] || method;
-      };
+      const mapPaymentMethod = (m) => ({
+        cash: "Cash", gcash: "GCash", maya: "Maya", seabank: "SeaBank", gotyme: "GoTyme",
+      }[m] || m);
 
-      // Create FormData to handle file upload
-      const formDataToSend = new FormData();
-      formDataToSend.append("customerName", formData.fullName);
-      formDataToSend.append("customerContact", formData.phone);
-      formDataToSend.append("customerEmail", formData.email);
-      formDataToSend.append("oasis", selectedOasis);
-      formDataToSend.append("package", selectedPackage);
-      formDataToSend.append("session", selectedSession);
-      formDataToSend.append("bookingDate", formData.reservationDate);
-      formDataToSend.append("pax", Number(formData.guestCount));
-      formDataToSend.append("totalPrice", getTotalPrice());
-      formDataToSend.append("downpayment", getDownpaymentAmount());
-      formDataToSend.append("paymentType", formData.paymentType);
-      formDataToSend.append(
-        "paymentMethod",
-        mapPaymentMethod(formData.paymentMethod),
-      );
-      formDataToSend.append("specialRequests", formData.specialRequests || "");
-      formDataToSend.append("addons", JSON.stringify(selectedAddons || {}));
+      const fd = new FormData();
+      fd.append("customerName",    formData.fullName);
+      fd.append("customerContact", formData.phone);
+      fd.append("customerEmail",   formData.email);
+      fd.append("oasis",           selectedOasis);
+      fd.append("package",         selectedPackage);
+      fd.append("session",         selectedSession);
+      fd.append("bookingDate",     formData.reservationDate);
+      fd.append("pax",             Number(formData.guestCount));
+      fd.append("totalPrice",      getTotalPrice());
+      fd.append("downpayment",     getDownpayment());
+      fd.append("paymentType",     formData.paymentType);
+      fd.append("paymentMethod",   mapPaymentMethod(formData.paymentMethod));
+      fd.append("specialRequests", formData.specialRequests || "");
+      fd.append("addons",          JSON.stringify(selectedAddons || {}));
+      if (formData.paymentProof) fd.append("paymentProof", formData.paymentProof);
 
-      // Add payment proof file if uploaded
-      if (formData.paymentProof) {
-        formDataToSend.append("paymentProof", formData.paymentProof);
-      }
+      console.log("📤 Submitting booking — total:", getTotalPrice(), "down:", getDownpayment());
 
-      // Debug log
-      console.log("📤 Booking with file:", formData.paymentProof);
-      console.log("💰 Total Price:", getTotalPrice());
-      console.log("💰 Downpayment:", getDownpaymentAmount());
-
-      const result = await createBooking(formDataToSend);
-
-      console.log("✅ Booking Response:", result);
+      const result = await createBooking(fd);
 
       if (result.booking) {
         setBookingDetails({
-          bookingId:
-            result.booking.bookingReference ||
-            result.booking._id?.slice(-6).toUpperCase() ||
-            Math.random().toString(36).substr(2, 6).toUpperCase(),
-          oasis: selectedOasis,
-          package: selectedPackage,
-          session: selectedSession,
-          checkIn: new Date(formData.reservationDate).toLocaleDateString(),
-          guests: formData.guestCount,
+          bookingId:   result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase(),
+          oasis:       selectedOasis,
+          package:     selectedPackage,
+          session:     selectedSession,
+          checkIn:     new Date(formData.reservationDate).toLocaleDateString(),
+          guests:      formData.guestCount,
           totalAmount: getTotalPrice(),
-          downpayment: getDownpaymentAmount(),
+          downpayment: getDownpayment(),
           paymentType: formData.paymentType,
         });
         setShowSuccessModal(true);
       } else {
-        console.error("❌ Booking failed:", result);
         alert(result.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
-      console.error("❌ Booking error:", error);
-
-      // Get error message and status from the error object
-      const errorMsg =
-        error?.data?.message ||
-        error?.message ||
-        "Failed to submit booking. Please try again.";
-      const errorStatus = error?.status;
-
-      // ============================================
-      // HANDLE DOUBLE BOOKING ERROR (409 Conflict)
-      // ============================================
-      if (errorStatus === 409 || errorMsg.includes("already booked")) {
+      const msg    = error?.data?.message || error?.message || "Failed to submit booking.";
+      const status = error?.status;
+      if (status === 409 || msg.includes("already booked")) {
         setShowDoubleBookingModal(true);
-        return;
-      }
-
-      // Check for other error types
-      if (
-        errorMsg.includes("pending booking") ||
-        errorMsg.includes("complete your payment first")
-      ) {
+      } else if (msg.includes("pending booking") || msg.includes("complete your payment first")) {
         setShowPendingModal(true);
-      } else if (
-        errorMsg.includes("2 upcoming bookings") ||
-        errorMsg.includes("booking limit")
-      ) {
+      } else if (msg.includes("2 upcoming bookings") || msg.includes("booking limit")) {
         setShowLimitModal(true);
-      } else if (!errorMsg.includes("already have a booking on this date")) {
-        alert(errorMsg);
+      } else if (!msg.includes("already have a booking on this date")) {
+        alert(msg);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Derived values passed to child components
   const pricePerNight = calculatePrice();
-  const totalPrice = getTotalPrice();
-  const nights = calculateNights();
-  const downpayment = getDownpaymentAmount();
+  const totalPrice    = getTotalPrice();
+  const nights        = calculateNights();
+  const downpayment   = getDownpayment();
 
-  // Show message if no package selected
+  // ============================================
+  // GUARD: no package selected
+  // ============================================
   if (!preselectedOasis || !preselectedPackage) {
     return (
       <div className="booking-page">
@@ -496,9 +346,7 @@ function Booking() {
           <div className="booking-hero-content">
             <h1>No Package Selected</h1>
             <p>Please select a package from our Oasis pages first.</p>
-            <a href="/" className="hero-btn">
-              Go to Homepage
-            </a>
+            <a href="/" className="hero-btn">Go to Homepage</a>
           </div>
         </div>
         <Footer />
@@ -514,9 +362,7 @@ function Booking() {
         <div className="booking-hero-content">
           <span className="hero-badge">Secure Your Stay</span>
           <h1>Complete Your Reservation</h1>
-          <p>
-            {selectedOasis} - {selectedPackage}
-          </p>
+          <p>{selectedOasis} - {selectedPackage}</p>
         </div>
       </div>
 
@@ -540,6 +386,7 @@ function Booking() {
           <div className="booking-form-wrapper">
             <StepIndicator currentStep={step} />
             <form className="booking-form" onSubmit={handleSubmit}>
+
               {step === 1 && (
                 <>
                   <div className="selected-info">
@@ -552,7 +399,6 @@ function Booking() {
                       <span className="info-value">{selectedPackage}</span>
                     </div>
                   </div>
-
                   <GuestInfoStep
                     formData={formData}
                     errors={errors}
@@ -560,14 +406,11 @@ function Booking() {
                     onConfirm={() => setInfoConfirmed(true)}
                     isConfirmed={infoConfirmed}
                     extraGuestWarning={extraGuestWarning}
-                    selectedOasis={selectedOasis} // ADD THIS
-                    selectedPackage={selectedPackage} // ADD THIS
+                    selectedOasis={selectedOasis}
+                    selectedPackage={selectedPackage}
                   />
-
                   {errors.confirmInfo && (
-                    <span className="error-message confirm-error">
-                      {errors.confirmInfo}
-                    </span>
+                    <span className="error-message confirm-error">{errors.confirmInfo}</span>
                   )}
                 </>
               )}
@@ -582,7 +425,7 @@ function Booking() {
                   onSessionSelect={handleSessionSelect}
                   selectedSession={selectedSession}
                   availableSessions={getAvailableSessions()}
-                  packageData={currentPackage} // ← ADD THIS LINE
+                  packageData={currentPackage}
                 />
               )}
 
@@ -623,11 +466,7 @@ function Booking() {
 
               <div className="form-navigation">
                 {step > 1 && (
-                  <button
-                    type="button"
-                    className="btn-prev"
-                    onClick={handlePrev}
-                  >
+                  <button type="button" className="btn-prev" onClick={handlePrev}>
                     <i className="fas fa-arrow-left"></i> Back
                   </button>
                 )}
@@ -641,20 +480,11 @@ function Booking() {
                     Continue <i className="fas fa-arrow-right"></i>
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    className="btn-submit"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin"></i> Processing...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-check-circle"></i> Confirm Booking
-                      </>
-                    )}
+                  <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                    {isSubmitting
+                      ? <><i className="fas fa-spinner fa-spin"></i> Processing...</>
+                      : <><i className="fas fa-check-circle"></i> Confirm Booking</>
+                    }
                   </button>
                 )}
               </div>
@@ -662,7 +492,9 @@ function Booking() {
           </div>
         </div>
       </div>
+
       <Footer />
+
       <BookingSuccessModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
