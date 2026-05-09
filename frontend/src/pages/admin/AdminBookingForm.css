@@ -319,6 +319,92 @@
 }
 
 /* ============================================ */
+/* ADD-ONS SECTION */
+/* ============================================ */
+
+.addons-section {
+  background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid #ede9fe;
+  margin-bottom: 24px;
+}
+
+.addons-section h4 {
+  margin: 0 0 16px 0;
+  color: #7c3aed;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.addons-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.addon-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: white;
+  border: 2px solid #e0e7ff;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.addon-option:hover {
+  background: #f8fafc;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.1);
+}
+
+.addon-option input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.addon-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  gap: 12px;
+}
+
+.addon-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.addon-price {
+  color: #7c3aed;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.selected-addons-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f3e8ff;
+  border-radius: 6px;
+  text-align: right;
+  color: #5b21b6;
+}
+
+.loading-text,
+.no-addons-text {
+  color: #64748b;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 12px 0;
+}
+
+/* ============================================ */
 /* PRICE SUMMARY */
 /* ============================================ */
 
@@ -411,6 +497,61 @@
   font-weight: 600;
   text-align: right;
   flex: 1;
+}
+
+/* Status colors in review */
+.review-item .value.payment-status-pending {
+  color: #f59e0b;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-item .value.payment-status-partial {
+  color: #3b82f6;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-item .value.payment-status-paid {
+  color: #10b981;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-item .value.payment-status-rejected {
+  color: #ef4444;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-item.status-auto-update {
+  position: relative;
+}
+
+.review-item .value.booking-status-confirmed {
+  color: #059669;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.review-item .value.booking-status-pending {
+  color: #f59e0b;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.auto-update-note {
+  display: block;
+  color: #059669;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 /* ============================================ */

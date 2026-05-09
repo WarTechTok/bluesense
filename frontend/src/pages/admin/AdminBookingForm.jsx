@@ -21,11 +21,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
+  const [addOns, setAddOns] = useState([]);
+  const [loadingAddOns, setLoadingAddOns] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedOasis, setSelectedOasis] = useState("");
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [selectedSession, setSelectedSession] = useState("");
   const [sessionData, setSessionData] = useState([]);
+  const [selectedAddOns, setSelectedAddOns] = useState({});
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -35,7 +38,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     reservationDate: "",
     specialRequests: "",
     paymentMethod: "GCash",
-    paymentStatus: "Pending",
+    paymentStatus: "Partial",
     status: "Pending",
   });
 
@@ -63,20 +66,31 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     }
   }, []);
 
-  // Fetch sessions on mount
+  // Fetch sessions and add-ons on mount
   useEffect(() => {
-    const loadSessions = async () => {
+    const loadData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/sessions`);
-        if (response.ok) {
-          const data = await response.json();
+        // Fetch sessions
+        const sessionResponse = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+        if (sessionResponse.ok) {
+          const data = await sessionResponse.json();
           setSessionData(data);
         }
+
+        // Fetch add-ons
+        setLoadingAddOns(true);
+        const addonsResponse = await fetch(`${API_BASE_URL}/api/addons`);
+        if (addonsResponse.ok) {
+          const data = await addonsResponse.json();
+          setAddOns(data);
+        }
       } catch (error) {
-        console.error("Error fetching sessions:", error);
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoadingAddOns(false);
       }
     };
-    loadSessions();
+    loadData();
   }, []);
 
   // Initialize with editing booking if provided
@@ -92,7 +106,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         reservationDate: editingBooking.bookingDate || "",
         specialRequests: editingBooking.specialRequests || "",
         paymentMethod: editingBooking.paymentMethod || "GCash",
-        paymentStatus: editingBooking.paymentStatus || "Pending",
+        paymentStatus: editingBooking.paymentStatus === "Fully Paid" ? "Fully Paid" : "Partial",
         status: editingBooking.status || "Pending",
       });
       fetchPackagesForOasis(editingBooking.oasis);
@@ -123,10 +137,24 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const calculateExtraGuestCharges = () =>
     getExtraGuestCharge(currentPackage, formData.guestCount);
 
+  const calculateAddonsTotal = () =>
+    Object.values(selectedAddOns).reduce((sum, price) => sum + price, 0);
+
   const getTotalPrice = () => {
     const base = calculatePrice();
     const extraGuest = calculateExtraGuestCharges();
-    return base + extraGuest;
+    const addons = calculateAddonsTotal();
+    return base + extraGuest + addons;
+  };
+
+  const handleAddonToggle = (addon) => {
+    const newSelected = { ...selectedAddOns };
+    if (newSelected[addon.name]) {
+      delete newSelected[addon.name];
+    } else {
+      newSelected[addon.name] = addon.price;
+    }
+    setSelectedAddOns(newSelected);
   };
 
   const getDownpayment = () =>
@@ -175,9 +203,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       const totalPrice = getTotalPrice();
       const downpayment = getDownpayment();
 
-      // Determine booking status based on payment status
-      let bookingStatus = formData.status;
-      if (formData.paymentStatus === "Paid") {
+      // Determine booking status based on payment status - auto-confirm for both Fully Paid and Partial
+      let bookingStatus = "Confirmed";
+      if (formData.paymentStatus === "Fully Paid") {
         bookingStatus = "Confirmed";
       } else if (formData.paymentStatus === "Partial") {
         bookingStatus = "Confirmed";
@@ -198,6 +226,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         paymentStatus: formData.paymentStatus || "Pending",
         status: bookingStatus,
         specialRequests: formData.specialRequests,
+        addons: Object.keys(selectedAddOns).length > 0 ? selectedAddOns : {},
       };
 
       if (editingBooking) {
@@ -448,6 +477,39 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
               </div>
             </div>
 
+            {/* Add-ons Section */}
+            <div className="addons-section">
+              <h4>Add-ons (Optional)</h4>
+              {loadingAddOns ? (
+                <p className="loading-text">Loading add-ons...</p>
+              ) : addOns.length > 0 ? (
+                <div className="addons-grid">
+                  {addOns.map((addon) => (
+                    <label key={addon._id} className="addon-option">
+                      <input
+                        type="checkbox"
+                        checked={!!selectedAddOns[addon.name]}
+                        onChange={() => handleAddonToggle(addon)}
+                      />
+                      <div className="addon-info">
+                        <span className="addon-name">{addon.name}</span>
+                        <span className="addon-price">+ ₱{addon.price.toLocaleString()}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="no-addons-text">No add-ons available</p>
+              )}
+              {Object.keys(selectedAddOns).length > 0 && (
+                <div className="selected-addons-summary">
+                  <small>
+                    <strong>Selected Add-ons Total:</strong> ₱{calculateAddonsTotal().toLocaleString()}
+                  </small>
+                </div>
+              )}
+            </div>
+
             <div className="form-group">
               <label>Payment Method *</label>
               <select
@@ -468,10 +530,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 value={formData.paymentStatus}
                 onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
               >
-                <option value="Pending">Pending</option>
                 <option value="Partial">Partial</option>
-                <option value="Paid">Paid (Full Payment)</option>
-                <option value="Rejected">Rejected</option>
+                <option value="Fully Paid">Fully Paid</option>
               </select>
             </div>
 
@@ -532,14 +592,38 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                   <span className="label">Guests:</span>
                   <span className="value">{formData.guestCount} pax</span>
                 </div>
+                {formData.specialRequests && (
+                  <div className="review-item">
+                    <span className="label">Special Requests:</span>
+                    <span className="value">{formData.specialRequests}</span>
+                  </div>
+                )}
               </div>
 
+              {Object.keys(selectedAddOns).length > 0 && (
+                <div className="review-block">
+                  <h4>Selected Add-ons</h4>
+                  {Object.entries(selectedAddOns).map(([name, price]) => (
+                    <div key={name} className="review-item">
+                      <span className="label">{name}:</span>
+                      <span className="value">+ ₱{price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="review-block">
-                <h4>Payment</h4>
+                <h4>Payment & Status</h4>
                 <div className="review-item">
                   <span className="label">Total Amount:</span>
                   <span className="value">₱{totalPrice.toLocaleString()}</span>
                 </div>
+                {calculateAddonsTotal() > 0 && (
+                  <div className="review-item">
+                    <span className="label">Add-ons Total:</span>
+                    <span className="value">₱{calculateAddonsTotal().toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="review-item">
                   <span className="label">Down Payment:</span>
                   <span className="value">₱{downpayment.toLocaleString()}</span>
@@ -550,7 +634,16 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 </div>
                 <div className="review-item">
                   <span className="label">Payment Status:</span>
-                  <span className="value">{formData.paymentStatus}</span>
+                  <span className={`value payment-status-${formData.paymentStatus.toLowerCase()}`}>
+                    {formData.paymentStatus}
+                  </span>
+                </div>
+                <div className="review-item status-auto-update">
+                  <span className="label">Booking Status:</span>
+                  <span className={`value booking-status-confirmed`}>
+                    🟢 Confirmed
+                  </span>
+                  <small className="auto-update-note">(Auto-confirmed due to payment)</small>
                 </div>
               </div>
             </div>
