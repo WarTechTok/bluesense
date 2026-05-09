@@ -66,6 +66,27 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     }
   }, []);
 
+  // Reset form state for new booking
+  const resetFormState = useCallback(() => {
+    setSelectedOasis("");
+    setSelectedPackage(null);
+    setSelectedSession("");
+    setSelectedAddOns({});
+    setFormData({
+      customerName: "",
+      customerContact: "",
+      customerEmail: "",
+      guestCount: 1,
+      reservationDate: "",
+      specialRequests: "",
+      paymentMethod: "GCash",
+      paymentStatus: "Partial",
+      status: "Pending",
+    });
+    setErrors({});
+    setStep(1);
+  }, []);
+
   // Fetch sessions and add-ons on mount
   useEffect(() => {
     const loadData = async () => {
@@ -77,9 +98,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
           setSessionData(data);
         }
 
-        // Fetch add-ons
+        // Fetch add-ons from correct endpoint
         setLoadingAddOns(true);
-        const addonsResponse = await fetch(`${API_BASE_URL}/api/addons`);
+        const addonsResponse = await fetch(`${API_BASE_URL}/api/admin/addons/active`);
         if (addonsResponse.ok) {
           const data = await addonsResponse.json();
           setAddOns(data);
@@ -92,6 +113,13 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     };
     loadData();
   }, []);
+
+  // Reset form when not editing (new booking)
+  useEffect(() => {
+    if (!editingBooking) {
+      resetFormState();
+    }
+  }, [editingBooking, resetFormState]);
 
   // Initialize with editing booking if provided
   useEffect(() => {
@@ -109,9 +137,10 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         paymentStatus: editingBooking.paymentStatus === "Fully Paid" ? "Fully Paid" : "Partial",
         status: editingBooking.status || "Pending",
       });
+      setStep(1);
       fetchPackagesForOasis(editingBooking.oasis);
     }
-  }, [editingBooking]);
+  }, [editingBooking, fetchPackagesForOasis]);
 
   // Get current package data
   const currentPackage = selectedPackage ? {
@@ -120,6 +149,16 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       ? selectedPackage.sessions
       : selectedPackage.availableSessions || [],
   } : null;
+
+  const getSessionDisplay = (session) => {
+    if (!session) return session;
+    const sessionMap = {
+      Day: "Day (8AM - 5PM)",
+      Night: "Night (6PM - 6AM)",
+      "22hrs": "22-Hour Session (Flexible)",
+    };
+    return sessionMap[session] || session;
+  };
 
   const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
   const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
@@ -203,13 +242,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       const totalPrice = getTotalPrice();
       const downpayment = getDownpayment();
 
-      // Determine booking status based on payment status - auto-confirm for both Fully Paid and Partial
-      let bookingStatus = "Confirmed";
-      if (formData.paymentStatus === "Fully Paid") {
-        bookingStatus = "Confirmed";
-      } else if (formData.paymentStatus === "Partial") {
-        bookingStatus = "Confirmed";
-      }
+      // Always auto-confirm regardless of payment status
+      const bookingStatus = "Confirmed";
 
       const bookingPayload = {
         customerName: formData.customerName,
@@ -223,7 +257,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         totalPrice: totalPrice,
         downpayment: downpayment,
         paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentStatus || "Pending",
+        paymentStatus: formData.paymentStatus,
         status: bookingStatus,
         specialRequests: formData.specialRequests,
         addons: Object.keys(selectedAddOns).length > 0 ? selectedAddOns : {},
@@ -390,7 +424,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 <option value="">Select Session</option>
                 {currentPackage?.sessions?.map((session) => (
                   <option key={session} value={session}>
-                    {session}
+                    {getSessionDisplay(session)}
                   </option>
                 ))}
               </select>
@@ -586,7 +620,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 </div>
                 <div className="review-item">
                   <span className="label">Session:</span>
-                  <span className="value">{selectedSession}</span>
+                  <span className="value">{getSessionDisplay(selectedSession)}</span>
                 </div>
                 <div className="review-item">
                   <span className="label">Guests:</span>
