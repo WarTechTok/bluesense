@@ -38,7 +38,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     reservationDate: "",
     specialRequests: "",
     paymentMethod: "GCash",
-    paymentStatus: "Partial",
+    paymentStatus: "Partial",  // Valid values: "Pending", "Paid", "Partial", "Rejected"
   });
 
   const [errors, setErrors] = useState({});
@@ -80,7 +80,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       reservationDate: "",
       specialRequests: "",
       paymentMethod: "GCash",
-      paymentStatus: "Partial",
+      paymentStatus: "Partial",  // Valid values: "Pending", "Paid", "Partial", "Rejected"
     });
     setErrors({});
     setStep(1);
@@ -133,7 +133,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         reservationDate: editingBooking.bookingDate || "",
         specialRequests: editingBooking.specialRequests || "",
         paymentMethod: editingBooking.paymentMethod || "GCash",
-        paymentStatus: editingBooking.paymentStatus === "Fully Paid" ? "Fully Paid" : "Partial",
+        paymentStatus: editingBooking.paymentStatus === "Paid" ? "Paid" : "Partial",
       });
       setStep(1);
       fetchPackagesForOasis(editingBooking.oasis);
@@ -715,7 +715,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
               >
                 <option value="Partial">Partial</option>
-                <option value="Fully Paid">Fully Paid</option>
+                <option value="Paid">Fully Paid</option>
               </select>
             </div>
           </div>
