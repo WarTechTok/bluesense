@@ -158,6 +158,8 @@ const createBooking = async (req, res) => {
       specialRequests,
       paymentMethod,
       paymentType,
+      status,
+      paymentStatus,
     } = req.body;
 
     // Upload payment proof to Cloudinary (buffer from memoryStorage)
@@ -329,8 +331,6 @@ const createBooking = async (req, res) => {
     // CREATE BOOKING - ALL CHECKS PASSED
     // ============================================
 
-    const paymentStatusForBooking = "Pending";
-
     // Generate unique booking reference
     let bookingReference;
     let isUnique = false;
@@ -365,8 +365,8 @@ const createBooking = async (req, res) => {
       paymentMethod,
       paymentType: paymentType || "downpayment",
       paymentProof: paymentProof || null,
-      status: "Pending",
-      paymentStatus: paymentStatusForBooking,
+      status: status || "Pending",
+      paymentStatus: paymentStatus || "Partial",
       bookingReference: bookingReference,
       bookingNumber: nextBookingNumber
     });
