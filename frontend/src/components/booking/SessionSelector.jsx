@@ -1,10 +1,6 @@
 // frontend/src/components/booking/SessionSelector.jsx
 // ============================================
-// SESSION SELECTOR — prices from API packageData prop
-//
-// API pricing shape (from transformPackageData):
-//   Regular:   packageData.pricing[sessionId].weekday  / .weekend
-//   Package C: packageData.pricing["50pax"][sessionId].weekday / .weekend
+// SESSION SELECTOR — SIMPLIFIED PRICING (single price, no weekday/weekend)
 // ============================================
 
 import React, { useState, useEffect } from 'react';
@@ -17,21 +13,10 @@ function SessionSelector({
   packageName,
   bookedSessions = {},
   packageData,
-  selectedDate,    // ISO date string — pass this from DateStep so pricing shows correct day type
+  selectedDate,
 }) {
   const [sessions, setSessions]   = useState([]);
   const [loading, setLoading]     = useState(true);
-
-  // ============================================
-  // DAY TYPE — derived from the date the user picked
-  // ============================================
-  const getDayType = () => {
-    if (!selectedDate) return 'weekday';
-    const day = new Date(selectedDate).getDay();
-    return (day === 0 || day === 5 || day === 6) ? 'weekend' : 'weekday';
-  };
-
-  const dayType = getDayType();
 
   // ============================================
   // AVAILABILITY CHECKS
@@ -49,27 +34,34 @@ function SessionSelector({
   };
 
   // ============================================
-  // PRICE LOOKUP — uses correct API shape
+  // PRICE LOOKUP — SIMPLIFIED (single price, no weekday/weekend)
   // ============================================
   const getSessionPrice = (sessionId) => {
     if (!packageData?.pricing) return null;
 
     const pricing = packageData.pricing;
 
-    // Package C: pax-based tiers — just flag it, price shown elsewhere
+    // Package C: pax-based pricing
     if (packageData.name === 'Package C') {
       return { type: 'pax' };
     }
 
-    // Regular packages: pricing[sessionId] = { weekday, weekend }
+    // Regular packages: handle both old format { weekday, weekend } and new single price
     const sessionPricing = pricing[sessionId];
     if (!sessionPricing) return null;
 
-    return {
-      type:    'fixed',
-      weekday: sessionPricing.weekday || 0,
-      weekend: sessionPricing.weekend || 0,
-    };
+    // If it's an object with weekday/weekend, take weekday (same as weekend now)
+    if (typeof sessionPricing === 'object') {
+      const price = sessionPricing.weekday || sessionPricing.weekend || 0;
+      return { type: 'fixed', price };
+    }
+
+    // If it's a single number (new format)
+    if (typeof sessionPricing === 'number') {
+      return { type: 'fixed', price: sessionPricing };
+    }
+
+    return null;
   };
 
   const renderPrice = (sessionId) => {
@@ -83,23 +75,8 @@ function SessionSelector({
       return <div className="session-price">Based on guest count</div>;
     }
 
-    const { weekday, weekend } = info;
-
-    if (weekday || weekend) {
-      // Highlight the rate that applies to the selected date
-      return (
-        <div className="session-price">
-          <div className={`price-row weekday${dayType === 'weekday' ? ' active-rate' : ''}`}>
-            Mon–Thu: ₱{(weekday || 0).toLocaleString()}
-          </div>
-          <div className={`price-row weekend${dayType === 'weekend' ? ' active-rate' : ''}`}>
-            Fri–Sun: ₱{(weekend || 0).toLocaleString()}
-          </div>
-        </div>
-      );
-    }
-
-    return <div className="session-price">Price varies</div>;
+    // Single price — no Mon-Thu / Fri-Sun split
+    return <div className="session-price">₱{info.price.toLocaleString()}</div>;
   };
 
   // ============================================
@@ -125,7 +102,6 @@ function SessionSelector({
 
   // ============================================
   // FILTER sessions to those allowed by this package
-  // packageData.sessions comes from transformPackageData (reflects DB)
   // ============================================
   const packageSessions = packageData?.sessions?.length > 0
     ? packageData.sessions
