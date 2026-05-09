@@ -199,7 +199,7 @@ function Booking() {
         const extra    = guests - maxCap;
         const extraCost = extra * 150;
         setExtraGuestWarning(
-          `⚠️ Extra charge: ${extra} extra guest(s) @ ₱150/head = ₱${extraCost.toLocaleString()} will be added.`
+          `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱150/guest = ₱${extraCost.toLocaleString()} will be added to your total.`
         );
       } else {
         setExtraGuestWarning("");
@@ -217,12 +217,10 @@ function Booking() {
         newErrors.guestCount = "Number of guests is required";
 
       const minCap = getMinCapacityForPackage();
-      const maxCap = getMaxCapacityForPackage();
 
       if (minCap > 0 && formData.guestCount < minCap)
         newErrors.guestCount = `Minimum ${minCap} guests required for this package`;
-      if (formData.guestCount > maxCap)
-        newErrors.guestCount = `Maximum ${maxCap} guests only. For larger groups, contact us directly.`;
+      // No upper block — guests above maxCapacity are allowed; extra charge is added to total
       if (!infoConfirmed)
         newErrors.confirmInfo = "Please confirm your information first";
     }
