@@ -50,15 +50,23 @@ const transformPackageData = (apiPackage) => {
 
   if (apiPackage.pricing) {
     if (apiPackage.name === "Package C" && apiPackage.pricing["50pax"]) {
+      // DB shape: { "50pax": { "Day": 19000, "Night": 20000, "22hrs": 26000 } }
+      // Values may be a plain number OR a nested { weekday, weekend } object.
+      const extractPrice = (val) => {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === "number") return val;               // flat number ← actual DB shape
+        if (typeof val === "object") return val.weekday || 0; // nested object (legacy)
+        return 0;
+      };
       pricing["50pax"] = {
-        Day: apiPackage.pricing["50pax"].Day?.weekday || 0,
-        Night: apiPackage.pricing["50pax"].Night?.weekday || 0,
-        "22hrs": apiPackage.pricing["50pax"]["22hrs"]?.weekday || 0,
+        Day:     extractPrice(apiPackage.pricing["50pax"].Day),
+        Night:   extractPrice(apiPackage.pricing["50pax"].Night),
+        "22hrs": extractPrice(apiPackage.pricing["50pax"]["22hrs"]),
       };
       pricing["100pax"] = {
-        Day: apiPackage.pricing["100pax"].Day?.weekday || 0,
-        Night: apiPackage.pricing["100pax"].Night?.weekday || 0,
-        "22hrs": apiPackage.pricing["100pax"]["22hrs"]?.weekday || 0,
+        Day:     extractPrice(apiPackage.pricing["100pax"]?.Day),
+        Night:   extractPrice(apiPackage.pricing["100pax"]?.Night),
+        "22hrs": extractPrice(apiPackage.pricing["100pax"]?.["22hrs"]),
       };
     } else {
       // Regular packages - keep the pricing structure as is

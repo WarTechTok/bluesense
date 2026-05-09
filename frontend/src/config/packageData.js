@@ -31,14 +31,21 @@ export const getPriceFromPackage = (packageObj, session, date, pax = 1) => {
   const isWeekend = d.getDay() === 0 || d.getDay() === 5 || d.getDay() === 6;
   const dayType = isWeekend ? 'weekend' : 'weekday';
 
-  // Package C uses pax-based tiers
+  // Package C uses pax-based tiers.
+  // After transformPackageData, shape is: { "50pax": { Day: 19000, Night: 20000, "22hrs": 26000 } }
+  // Values are plain numbers (no nested weekday/weekend) — Package C has a single flat rate.
   if (packageObj.name === 'Package C') {
     const minCap = packageObj.minCapacity || 50;
     const maxCap = packageObj.maxCapacity || 100;
     const tier   = pax <= minCap ? `${minCap}pax` : `${maxCap}pax`;
-    return pricing[tier]?.[session]?.[dayType]
-        || pricing[tier]?.[session]?.weekday
-        || 0;
+    const tierPricing = pricing[tier];
+    if (!tierPricing) return 0;
+
+    const val = tierPricing[session];
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return val;               // flat number (actual shape)
+    if (typeof val === 'object') return val[dayType] || val.weekday || 0; // nested (legacy)
+    return 0;
   }
 
   // Regular packages: pricing[session].weekday / pricing[session].weekend
