@@ -5,6 +5,7 @@ import Modal from "../../components/admin/Modal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import PaymentVerificationModal from "../../components/admin/PaymentVerificationModal";
 import * as adminApi from '../../services/admin';
+import { fetchAllPackages } from "../../constants/packages";
 import "./BookingManagement.css";
 
 const BookingManagement = () => {
@@ -16,6 +17,8 @@ const BookingManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [selectedBookingForVerification, setSelectedBookingForVerification] = useState(null);
+  const [packages, setPackages] = useState([]); // Available packages from API
+  const [loadingPackages, setLoadingPackages] = useState(false);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: "",
@@ -51,6 +54,28 @@ const BookingManagement = () => {
       return 'Completed';
     }
     return booking.status;
+  }, []);
+
+  // Fetch packages based on selected oasis
+  const fetchPackagesForOasis = useCallback(async (oasis) => {
+    if (!oasis) {
+      setPackages([]);
+      return;
+    }
+    
+    setLoadingPackages(true);
+    try {
+      const data = await fetchAllPackages();
+      const filteredPackages = oasis === "Oasis 1" 
+        ? (data.Oasis1Packages || [])
+        : (data.Oasis2Packages || []);
+      setPackages(filteredPackages);
+    } catch (error) {
+      console.error("Error fetching packages:", error);
+      setPackages([]);
+    } finally {
+      setLoadingPackages(false);
+    }
   }, []);
 
   const fetchBookings = useCallback(async () => {
@@ -112,6 +137,10 @@ const BookingManagement = () => {
     if (booking) {
       setEditingBooking(booking);
       setFormData(booking);
+      // Load packages for the existing booking's oasis
+      if (booking.oasis) {
+        fetchPackagesForOasis(booking.oasis);
+      }
     } else {
       setEditingBooking(null);
       setFormData({
@@ -129,6 +158,7 @@ const BookingManagement = () => {
         paymentStatus: "Pending",
         status: "Pending",
       });
+      setPackages([]);
     }
     setIsModalOpen(true);
   };
@@ -484,7 +514,10 @@ const BookingManagement = () => {
               </div>
               <div className="form-group">
                 <label>Location *</label>
-                <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })} required>
+                <select value={formData.oasis} onChange={(e) => {
+                  setFormData({ ...formData, oasis: e.target.value, package: "" });
+                  fetchPackagesForOasis(e.target.value);
+                }} required>
                   <option value="">Select Location</option>
                   <option value="Oasis 1">Oasis 1</option>
                   <option value="Oasis 2">Oasis 2</option>
@@ -492,7 +525,16 @@ const BookingManagement = () => {
               </div>
               <div className="form-group">
                 <label>Package *</label>
-                <input type="text" value={formData.package} onChange={(e) => setFormData({ ...formData, package: e.target.value })} placeholder="e.g., Package 1, Package A" required />
+                <select value={formData.package} onChange={(e) => setFormData({ ...formData, package: e.target.value })} required disabled={!formData.oasis || loadingPackages}>
+                  <option value="">
+                    {loadingPackages ? "Loading packages..." : "Select Package"}
+                  </option>
+                  {packages.map((pkg) => (
+                    <option key={pkg.id || pkg.name} value={pkg.name}>
+                      {pkg.name} {pkg.capacity ? `(${pkg.capacity})` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-group">
                 <label>Time Slot (Session) *</label>
