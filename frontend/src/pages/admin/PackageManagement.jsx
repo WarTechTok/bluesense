@@ -4,9 +4,11 @@
 // ============================================
 
 import React, { useState, useEffect } from "react";
+import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import * as packageApi from "../../services/admin/packages";
 import { refreshAllData } from "../../constants/packages";
 import PackageImageUploader from "../../components/admin/PackageImageUploader";
+import Modal from "../../components/admin/Modal";
 import "./PackageManagement.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
@@ -17,6 +19,14 @@ const PackageManagement = () => {
   const [selectedOasis, setSelectedOasis] = useState("Oasis 1");
   const [editingPackage, setEditingPackage] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     oasis: "Oasis 1",
     name: "",
@@ -50,6 +60,20 @@ const PackageManagement = () => {
   };
 
   const isPackageC = () => formData.name === "Package C";
+
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
 
   // ── Images handler ───────────────────────────────────────
   const handleImagesChange = (newImages) => {
@@ -109,7 +133,7 @@ const PackageManagement = () => {
   // ── Submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!formData.name) {
-      alert("Package name is required");
+      showConfirmationModal('Validation Error', 'Package name is required', null, 'OK');
       return;
     }
 
@@ -150,10 +174,10 @@ const PackageManagement = () => {
       setShowModal(false);
       fetchPackages();
       resetForm();
-      alert(`Package ${editingPackage ? "updated" : "created"} successfully!`);
+      showConfirmationModal('Success', `Package ${editingPackage ? "updated" : "created"} successfully!`, null, 'OK');
     } catch (error) {
       console.error("Error saving package:", error);
-      alert("Error saving package: " + (error.response?.data?.error || error.message));
+      showConfirmationModal('Error', "Error saving package: " + (error.response?.data?.error || error.message), null, 'OK');
     }
   };
 
@@ -221,17 +245,23 @@ const PackageManagement = () => {
   };
 
   const handleDelete = async (pkg) => {
-    if (window.confirm(`Are you sure you want to delete "${pkg.name}"?`)) {
-      try {
-        await packageApi.deletePackage(pkg._id);
-        await refreshAllData();
-        fetchPackages();
-        alert("Package deleted successfully!");
-      } catch (error) {
-        console.error("Error deleting package:", error);
-        alert("Error deleting package");
-      }
-    }
+    showConfirmationModal(
+      'Delete Package',
+      `Are you sure you want to delete "${pkg.name}"?`,
+      async () => {
+        try {
+          await packageApi.deletePackage(pkg._id);
+          await refreshAllData();
+          fetchPackages();
+          showConfirmationModal('Success', 'Package deleted successfully!', null, 'OK');
+        } catch (error) {
+          console.error("Error deleting package:", error);
+          showConfirmationModal('Error', 'Error deleting package', null, 'OK');
+        }
+      },
+      'Yes, Delete',
+      'Cancel'
+    );
   };
 
   const resetForm = () => {
@@ -456,130 +486,139 @@ const PackageManagement = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-container package-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>{editingPackage ? "Edit Package" : "Add New Package"}</h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
-            </div>
+        <Modal onClose={() => setShowModal(false)}>
+          <div className="modal-header">
+            <h3>{editingPackage ? "Edit Package" : "Add New Package"}</h3>
+            <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
+          </div>
 
-            <div className="modal-body">
-              <form className="package-form">
-                {/* Basic Info */}
-                <div className="form-section">
-                  <h4>Basic Information</h4>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Oasis *</label>
-                      <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })}>
-                        <option value="Oasis 1">Oasis 1</option>
-                        <option value="Oasis 2">Oasis 2</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Package Name *</label>
-                      <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Package 1" />
-                    </div>
+          <div className="modal-body">
+            <form className="package-form">
+              {/* Basic Info */}
+              <div className="form-section">
+                <h4>Basic Information</h4>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Oasis *</label>
+                    <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })}>
+                      <option value="Oasis 1">Oasis 1</option>
+                      <option value="Oasis 2">Oasis 2</option>
+                    </select>
                   </div>
                   <div className="form-group">
-                    <label>Description</label>
-                    <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" placeholder="Brief description of the package" />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Maximum Capacity *</label>
-                      <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
-                    </div>
-                    <div className="form-group">
-                      <label>Minimum Capacity</label>
-                      <input type="number" value={formData.minCapacity} onChange={(e) => setFormData({ ...formData, minCapacity: parseInt(e.target.value) })} min="0" />
-                      <small>Leave 0 for no minimum</small>
-                    </div>
-                    <div className="form-group">
-                      <label>Display Order</label>
-                      <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })} min="1" />
-                    </div>
+                    <label>Package Name *</label>
+                    <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Package 1" />
                   </div>
                 </div>
+                <div className="form-group">
+                  <label>Description</label>
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" placeholder="Brief description of the package" />
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Maximum Capacity *</label>
+                    <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
+                  </div>
+                  <div className="form-group">
+                    <label>Minimum Capacity</label>
+                    <input type="number" value={formData.minCapacity} onChange={(e) => setFormData({ ...formData, minCapacity: parseInt(e.target.value) })} min="0" />
+                    <small>Leave 0 for no minimum</small>
+                  </div>
+                  <div className="form-group">
+                    <label>Display Order</label>
+                    <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })} min="1" />
+                  </div>
+                </div>
+              </div>
 
-                {/* MULTI-IMAGE UPLOAD */}
-                <div className="form-section">
-                  <h4>Package Images</h4>
-                  <p className="section-hint">
-                    Upload up to 10 images. The first image is used as the cover photo.
-                    Drag thumbnails to reorder.
-                  </p>
-                  <PackageImageUploader
-                    images={formData.images}
-                    onChange={handleImagesChange}
+              {/* MULTI-IMAGE UPLOAD */}
+              <div className="form-section">
+                <h4>Package Images</h4>
+                <p className="section-hint">
+                  Upload up to 10 images. The first image is used as the cover photo.
+                  Drag thumbnails to reorder.
+                </p>
+                <PackageImageUploader
+                  images={formData.images}
+                  onChange={handleImagesChange}
+                />
+              </div>
+
+              {/* Sessions */}
+              <div className="form-section">
+                <h4>Available Sessions</h4>
+                <div className="checkbox-group">
+                  {[
+                    { key: "Day", label: "Day Session (8AM - 5PM)" },
+                    { key: "Night", label: "Night Session (8PM - 6AM)" },
+                    { key: "22hrs", label: "22-Hour Session" },
+                  ].map(({ key, label }) => (
+                    <label key={key} className="checkbox-label">
+                      <input type="checkbox" checked={formData.availableSessions.includes(key)} onChange={() => handleSessionToggle(key)} />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pricing - Simplified */}
+              {renderPricingFields()}
+
+              {/* Inclusions */}
+              <div className="form-section">
+                <h4>Inclusions</h4>
+                <div className="inclusions-list">
+                  {formData.inclusions.map((inc, idx) => (
+                    <div key={idx} className="inclusion-tag">
+                      <span>{inc}</span>
+                      <button type="button" onClick={() => handleRemoveInclusion(idx)}>
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="add-inclusion">
+                  <input
+                    type="text"
+                    value={inclusionInput}
+                    onChange={(e) => setInclusionInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddInclusion())}
+                    placeholder="Add an inclusion (e.g., Free WiFi)"
                   />
+                  <button type="button" onClick={handleAddInclusion}>
+                    <i className="fas fa-plus"></i> Add
+                  </button>
                 </div>
+              </div>
 
-                {/* Sessions */}
-                <div className="form-section">
-                  <h4>Available Sessions</h4>
-                  <div className="checkbox-group">
-                    {[
-                      { key: "Day", label: "Day Session (8AM - 5PM)" },
-                      { key: "Night", label: "Night Session (8PM - 6AM)" },
-                      { key: "22hrs", label: "22-Hour Session" },
-                    ].map(({ key, label }) => (
-                      <label key={key} className="checkbox-label">
-                        <input type="checkbox" checked={formData.availableSessions.includes(key)} onChange={() => handleSessionToggle(key)} />
-                        <span>{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Pricing - Simplified */}
-                {renderPricingFields()}
-
-                {/* Inclusions */}
-                <div className="form-section">
-                  <h4>Inclusions</h4>
-                  <div className="inclusions-list">
-                    {formData.inclusions.map((inc, idx) => (
-                      <div key={idx} className="inclusion-tag">
-                        <span>{inc}</span>
-                        <button type="button" onClick={() => handleRemoveInclusion(idx)}>
-                          <i className="fas fa-times"></i>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="add-inclusion">
-                    <input
-                      type="text"
-                      value={inclusionInput}
-                      onChange={(e) => setInclusionInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddInclusion())}
-                      placeholder="Add an inclusion (e.g., Free WiFi)"
-                    />
-                    <button type="button" onClick={handleAddInclusion}>
-                      <i className="fas fa-plus"></i> Add
-                    </button>
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="form-section">
-                  <label className="checkbox-label">
-                    <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
-                    <span>Active (visible to customers)</span>
-                  </label>
-                </div>
-              </form>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSubmit}>
-                {editingPackage ? "Update" : "Create"} Package
-              </button>
-            </div>
+              {/* Status */}
+              <div className="form-section">
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
+                  <span>Active (visible to customers)</span>
+                </label>
+              </div>
+            </form>
           </div>
-        </div>
+
+          <div className="modal-footer">
+            <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+            <button className="btn-primary" onClick={handleSubmit}>
+              {editingPackage ? "Update" : "Create"} Package
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
     </div>
   );

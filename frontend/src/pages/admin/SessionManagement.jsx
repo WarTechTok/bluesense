@@ -5,6 +5,7 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as sessionApi from '../../services/admin/sessions';
 import './SessionManagement.css';
 
@@ -13,6 +14,14 @@ const SessionManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingSession, setEditingSession] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     name: '',
     displayName: '',
@@ -39,9 +48,23 @@ const SessionManagement = () => {
     }
   };
 
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
+
   const handleSubmit = async () => {
     if (!formData.name || !formData.startTime || !formData.endTime) {
-      alert('Session name, start time, and end time are required');
+      showConfirmationModal('Validation Error', 'Session name, start time, and end time are required', null, 'OK');
       return;
     }
     
@@ -54,10 +77,10 @@ const SessionManagement = () => {
       setShowModal(false);
       fetchSessions();
       resetForm();
-      alert(`Session ${editingSession ? 'updated' : 'created'} successfully!`);
+      showConfirmationModal('Success', `Session ${editingSession ? 'updated' : 'created'} successfully!`, null, 'OK');
     } catch (error) {
       console.error('Error saving session:', error);
-      alert('Error saving session: ' + error.message);
+      showConfirmationModal('Error', 'Error saving session: ' + error.message, null, 'OK');
     }
   };
 
@@ -218,6 +241,17 @@ const SessionManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
     </div>
   );

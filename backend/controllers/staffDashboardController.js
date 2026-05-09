@@ -10,6 +10,7 @@ const TaskAssignment = require('../models/TaskAssignment');
 const Staff = require('../models/Staff');
 const Room = require('../models/Room');
 const InspectionRecord = require('../models/InspectionRecord');
+const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
 
 /**
@@ -582,13 +583,48 @@ exports.createInspectionRecord = async (req, res) => {
       damageDescription: damageDescription || '',
       itemsNeeded: itemsNeeded || '',
       notes: notes || '',
-      rating: parseInt(rating) || 5
+      rating: parseInt(rating) || 5,
+      status: 'Submitted'
     });
 
     await inspection.save();
 
-    // If damages found, create notification for admin
+    let maintenanceRecord = null;
+
+    // If damages found, create notification for admin AND create maintenance record
     if (damageFound === 'Yes') {
+      // Generate maintenance ID
+      const lastMaintenance = await Maintenance.findOne().sort({ createdAt: -1 });
+      const lastSequence = lastMaintenance
+        ? parseInt(lastMaintenance.maintenanceId.slice(4))
+        : 0;
+      const newSequence = lastSequence + 1;
+      const maintenanceId = `MNT-${String(newSequence).padStart(4, '0')}`;
+
+      // Create maintenance record linked to the inspection
+      maintenanceRecord = new Maintenance({
+        maintenanceId,
+        title: `Damage Inspection - ${room.name}`,
+        description: damageDescription || 'Damage found during room inspection',
+        room: roomId,
+        inspectionId: inspection._id,
+        amount: 0, // Placeholder - can be updated by admin
+        currency: 'PHP',
+        category: 'General',
+        priority: 'High', // Damages are high priority
+        status: 'Pending',
+        reportedBy: staffMongoId,
+        notes: `Reported from inspection by ${staff.name}. Items needed: ${itemsNeeded || 'None specified'}`,
+        isRecurring: false
+      });
+
+      await maintenanceRecord.save();
+
+      // Update room status to Maintenance if applicable
+      if (room.status === 'Available') {
+        await Room.findByIdAndUpdate(roomId, { status: 'Maintenance' });
+      }
+
       // Create notification for all admins
       const admins = await User.find({ role: 'admin' });
       for (const admin of admins) {
@@ -602,6 +638,7 @@ exports.createInspectionRecord = async (req, res) => {
           isRead: false,
           data: {
             inspectionId: inspection._id,
+            maintenanceId: maintenanceRecord._id,
             roomId: roomId,
             staffName: staff.name,
             damageDescription
@@ -612,8 +649,11 @@ exports.createInspectionRecord = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: '✅ Inspection report submitted successfully!',
-      inspection
+      message: damageFound === 'Yes' 
+        ? '✅ Inspection report submitted! Maintenance request created.' 
+        : '✅ Inspection report submitted successfully!',
+      inspection,
+      maintenance: maintenanceRecord
     });
   } catch (error) {
     console.error('Error creating inspection record:', error);

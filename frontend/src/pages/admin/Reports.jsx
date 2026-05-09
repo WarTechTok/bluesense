@@ -4,6 +4,7 @@
 // ============================================
 
 import React, { useState, useEffect, useCallback } from "react";
+import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import "./ManagementPages.css";
 import * as adminApi from '../../services/admin';
 import * as XLSX from "xlsx";
@@ -15,6 +16,14 @@ const Reports = () => {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
 
   // Set default dates on component mount
   useEffect(() => {
@@ -32,6 +41,20 @@ const Reports = () => {
     setStartDate(startDateStr);
     setEndDate(endDateStr);
   }, []);
+
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'OK', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
 
   // Helper function to get the data array based on report type
   const getDataArray = useCallback(() => {
@@ -182,14 +205,14 @@ const Reports = () => {
       
       // Show message if no data
       if (reportType === "sales" && (!data.sales || data.sales.length === 0)) {
-        alert("No sales data found for the selected date range.");
+        showConfirmationModal("No Data", "No sales data found for the selected date range.", null, "OK");
       } else if (reportType !== "sales" && (!data || data.length === 0)) {
-        alert("No data found for the selected date range.");
+        showConfirmationModal("No Data", "No data found for the selected date range.", null, "OK");
       }
       
     } catch (error) {
       console.error("Error generating report:", error);
-      alert(`Error generating report: ${error.response?.data?.message || error.message || "Unknown error"}`);
+      showConfirmationModal("Error", `Error generating report: ${error.response?.data?.message || error.message || "Unknown error"}`, null, "OK");
       setReportData(reportType === "sales" ? { sales: [], totalSales: 0 } : []);
     } finally {
       setLoading(false);
@@ -199,7 +222,7 @@ const Reports = () => {
   const handleExport = () => {
     try {
       if (!reportData) {
-        alert("Please generate a report first");
+        showConfirmationModal("No Report", "Please generate a report first", null, "OK");
         return;
       }
 
@@ -213,7 +236,7 @@ const Reports = () => {
         const salesData = reportData.sales || [];
         
         if (salesData.length === 0) {
-          alert("No data to export");
+          showConfirmationModal("No Data", "No data to export", null, "OK");
           setExporting(false);
           return;
         }
@@ -234,7 +257,7 @@ const Reports = () => {
         const bookingData = Array.isArray(reportData) ? reportData : [];
         
         if (bookingData.length === 0) {
-          alert("No data to export");
+          showConfirmationModal("No Data", "No data to export", null, "OK");
           setExporting(false);
           return;
         }
@@ -262,7 +285,7 @@ const Reports = () => {
         const inventoryData = Array.isArray(reportData) ? reportData : [];
         
         if (inventoryData.length === 0) {
-          alert("No data to export");
+          showConfirmationModal("No Data", "No data to export", null, "OK");
           setExporting(false);
           return;
         }
@@ -294,7 +317,7 @@ const Reports = () => {
       
     } catch (error) {
       console.error("Error exporting Excel:", error);
-      alert("Error exporting report: " + error.message);
+      showConfirmationModal("Error", "Error exporting report: " + error.message, null, "OK");
     } finally {
       setExporting(false);
     }
@@ -539,6 +562,17 @@ const Reports = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
     </div>
   );

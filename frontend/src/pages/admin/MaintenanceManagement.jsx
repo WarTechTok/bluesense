@@ -281,7 +281,38 @@ const MaintenanceManagement = () => {
       label: 'ID',
       render: (value) => <span style={{ fontWeight: '600', color: '#0284c7' }}>{value}</span>
     },
-    { key: 'title', label: 'Title' },
+    {
+      key: 'title',
+      label: 'Title',
+      render: (value, record) => (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span>{value}</span>
+            {record.inspectionId && (
+              <span
+                style={{
+                  background: '#dbeafe',
+                  color: '#0284c7',
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  fontSize: '0.65rem',
+                  fontWeight: '700',
+                  border: '1px solid #0284c7'
+                }}
+                title="Created from staff inspection"
+              >
+                📋 FROM INSPECTION
+              </span>
+            )}
+          </div>
+          {record.inspectionId && record.notes && (
+            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic' }}>
+              {record.notes.substring(0, 60)}...
+            </p>
+          )}
+        </div>
+      )
+    },
     {
       key: 'category',
       label: 'Category',

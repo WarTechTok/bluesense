@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from '../../components/admin/DataTable';
 import Modal from '../../components/admin/Modal';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as adminApi from '../../services/admin';
 import { validateInventoryItem, validateInventoryUsage } from '../../utils/adminValidation';
 import './ManagementPages.css';
@@ -14,6 +15,14 @@ const InventoryManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     item: '',
     quantity: '',
@@ -95,25 +104,39 @@ const InventoryManagement = () => {
     setIsModalOpen(true);
   };
 
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       const validation = validateInventoryItem(formData);
       if (!validation.isValid) {
-        alert(validation.error);
+        showConfirmationModal('Validation Error', validation.error, null, 'OK');
         return;
       }
 
       if (editingItem) {
-        await adminApi.updateInventoryQuantity(editingItem._id, formData.quantity);
+        await adminApi.updateInventoryItem(editingItem._id, formData);
       } else {
         await adminApi.createInventoryItem(formData);
       }
       setIsModalOpen(false);
       fetchInventory();
-      alert('✅ Inventory item saved successfully!');
+      showConfirmationModal('Success', '✅ Inventory item saved successfully!', null, 'OK');
     } catch (error) {
       console.error('Error saving inventory item:', error);
-      alert('❌ Error saving inventory item');
+      showConfirmationModal('Error', '❌ Error saving inventory item', null, 'OK');
     }
   };
 
@@ -127,7 +150,7 @@ const InventoryManagement = () => {
     try {
       const validation = validateInventoryUsage(usageData);
       if (!validation.isValid) {
-        alert(validation.error);
+        showConfirmationModal('Validation Error', validation.error, null, 'OK');
         return;
       }
 
@@ -135,23 +158,30 @@ const InventoryManagement = () => {
       setIsUsageModalOpen(false);
       fetchInventory();
       fetchLowStockItems();
-      alert('✅ Usage recorded successfully!');
+      showConfirmationModal('Success', '✅ Usage recorded successfully!', null, 'OK');
     } catch (error) {
       console.error('Error recording usage:', error);
-      alert('❌ Error recording usage');
+      showConfirmationModal('Error', '❌ Error recording usage', null, 'OK');
     }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this inventory item?')) {
-      try {
-        await adminApi.deleteInventoryItem(id);
-        fetchInventory();
-      } catch (error) {
-        console.error('Error deleting inventory item:', error);
-        alert('Error deleting inventory item');
-      }
-    }
+    showConfirmationModal(
+      'Delete Item',
+      'Are you sure you want to delete this inventory item?',
+      async () => {
+        try {
+          await adminApi.deleteInventoryItem(id);
+          fetchInventory();
+          showConfirmationModal('Success', 'Item deleted successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error deleting inventory item:', error);
+          showConfirmationModal('Error', 'Error deleting inventory item', null, 'OK');
+        }
+      },
+      'Yes, Delete',
+      'Cancel'
+    );
   };
 
   const columns = [
@@ -377,6 +407,17 @@ const InventoryManagement = () => {
             <button className="btn-primary" onClick={handleSubmitUsage}>Record Usage</button>
           </div>
         </Modal>
+      )}
+
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
     </div>
   );

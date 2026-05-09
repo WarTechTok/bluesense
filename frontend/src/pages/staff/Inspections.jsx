@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as staffApi from '../../services/staffDashboardApi';
 import NotificationBell from '../../components/staff/NotificationBell';
 import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
@@ -33,6 +34,14 @@ const Inspections = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedInspection, setSelectedInspection] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
 
   // Form state
   const [formData, setFormData] = useState({
@@ -163,16 +172,30 @@ const Inspections = () => {
     }));
   };
 
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!formData.roomId) {
-      alert('Please select a room');
+      showConfirmationModal('Validation Error', 'Please select a room', null, 'OK');
       return;
     }
 
     try {
-      await staffApi.createInspectionRecord({
+      const response = await staffApi.createInspectionRecord({
         roomId: formData.roomId,
         condition: formData.condition,
         cleaningNeeded: formData.cleaningNeeded,
@@ -183,22 +206,41 @@ const Inspections = () => {
         rating: parseInt(formData.rating),
       });
 
-      alert('✅ Inspection report submitted successfully!');
-      setFormData({
-        roomId: '',
-        condition: 'Good',
-        cleaningNeeded: 'Yes',
-        damageFound: 'No',
-        damageDescription: '',
-        itemsNeeded: '',
-        notes: '',
-        rating: 5,
-      });
-      setShowForm(false);
-      fetchInspections();
+      // Show appropriate success message
+      if (formData.damageFound === 'Yes') {
+        showConfirmationModal('Success', '✅ Inspection report submitted!\n\n🔧 Maintenance request has been created and assigned to the admin dashboard for processing.', () => {
+          setFormData({
+            roomId: '',
+            condition: 'Good',
+            cleaningNeeded: 'Yes',
+            damageFound: 'No',
+            damageDescription: '',
+            itemsNeeded: '',
+            notes: '',
+            rating: 5,
+          });
+          setShowForm(false);
+          fetchInspections();
+        }, 'OK');
+      } else {
+        showConfirmationModal('Success', '✅ Inspection report submitted successfully!', () => {
+          setFormData({
+            roomId: '',
+            condition: 'Good',
+            cleaningNeeded: 'Yes',
+            damageFound: 'No',
+            damageDescription: '',
+            itemsNeeded: '',
+            notes: '',
+            rating: 5,
+          });
+          setShowForm(false);
+          fetchInspections();
+        }, 'OK');
+      }
     } catch (error) {
       console.error('Error creating inspection:', error);
-      alert('❌ Error submitting inspection report');
+      showConfirmationModal('Error', '❌ Error submitting inspection report', null, 'OK');
     }
   };
 
@@ -739,6 +781,18 @@ const Inspections = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
 
       {/* Logout Confirmation Modal */}

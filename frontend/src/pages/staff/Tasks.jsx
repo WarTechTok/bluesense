@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as staffApi from '../../services/staffDashboardApi';
 import NotificationBell from '../../components/staff/NotificationBell';
 import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
@@ -32,6 +33,14 @@ const Tasks = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
 
   useEffect(() => {
     fetchTasks();
@@ -141,15 +150,30 @@ const Tasks = () => {
     fetchTasks(status);
   };
 
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
+
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       await staffApi.updateTaskStatus(taskId, { status: newStatus });
-      alert('✅ Task status updated successfully!');
-      fetchTasks(filter);
-      setSelectedTask(null);
+      showConfirmationModal('Success', '✅ Task status updated successfully!', () => {
+        fetchTasks(filter);
+        setSelectedTask(null);
+      }, 'OK');
     } catch (error) {
       console.error('Error updating task:', error);
-      alert('❌ Error updating task');
+      showConfirmationModal('Error', '❌ Error updating task', null, 'OK');
     }
   };
 
@@ -576,6 +600,18 @@ const Tasks = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
 
       {/* Logout Confirmation Modal */}

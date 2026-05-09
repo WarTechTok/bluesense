@@ -32,6 +32,12 @@ const maintenanceSchema = new mongoose.Schema({
     default: null
   }, // Reference to room if applicable
 
+  inspectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InspectionRecord',
+    default: null
+  }, // Reference to inspection record that triggered this maintenance (if applicable)
+
   // ============================================
   // EXPENSE TRACKING
   // ============================================

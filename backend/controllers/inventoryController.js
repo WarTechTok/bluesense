@@ -121,31 +121,67 @@ exports.createInventoryItem = async (req, res) => {
 
 /**
  * PUT /api/admin/inventory/:id
- * Update inventory quantity (Admin only)
- * Body: { quantity }
+ * Update inventory item (Admin only)
+ * Body: { quantity, item, unit, price, lowStockAlert, arrivalDate, expirationDate }
  * Validation: quantity cannot be negative
  */
 exports.updateInventoryQuantity = async (req, res) => {
   try {
-    const { quantity } = req.body;
+    const { quantity, item, unit, price, lowStockAlert, arrivalDate, expirationDate } = req.body;
 
     // ============================================
-    // BACKEND VALIDATION
+    // BUILD UPDATE OBJECT
     // ============================================
-    if (quantity === undefined || quantity === null || quantity === '') {
-      return res.status(400).json({ error: 'Quantity is required' });
-    }
-    const parsedQuantity = parseInt(quantity);
-    if (isNaN(parsedQuantity)) {
-      return res.status(400).json({ error: 'Quantity must be a valid number' });
-    }
-    if (parsedQuantity < 0) {
-      return res.status(400).json({ error: 'Quantity cannot be negative' });
+    const updateData = {};
+
+    // Update quantity if provided
+    if (quantity !== undefined && quantity !== null && quantity !== '') {
+      const parsedQuantity = parseInt(quantity);
+      if (isNaN(parsedQuantity)) {
+        return res.status(400).json({ error: 'Quantity must be a valid number' });
+      }
+      if (parsedQuantity < 0) {
+        return res.status(400).json({ error: 'Quantity cannot be negative' });
+      }
+      updateData.quantity = parsedQuantity;
     }
 
-    const item = await Inventory.findByIdAndUpdate(req.params.id, { quantity: parsedQuantity }, { new: true });
-    if (!item) return res.status(404).json({ error: 'Inventory item not found' });
-    res.json(item);
+    // Update other fields if provided
+    if (item !== undefined && item !== null && item.trim() !== '') {
+      updateData.item = item.trim();
+    }
+    if (unit !== undefined && unit !== null) {
+      updateData.unit = unit.trim();
+    }
+    if (price !== undefined && price !== null && price !== '') {
+      const parsedPrice = parseFloat(price);
+      if (isNaN(parsedPrice)) {
+        return res.status(400).json({ error: 'Price must be a valid number' });
+      }
+      updateData.price = parsedPrice;
+    }
+    if (lowStockAlert !== undefined && lowStockAlert !== null && lowStockAlert !== '') {
+      const parsedAlert = parseInt(lowStockAlert);
+      if (isNaN(parsedAlert)) {
+        return res.status(400).json({ error: 'Low stock alert must be a valid number' });
+      }
+      updateData.lowStockAlert = parsedAlert;
+    }
+    if (arrivalDate !== undefined && arrivalDate !== null && arrivalDate !== '') {
+      updateData.arrivalDate = new Date(arrivalDate);
+    }
+    if (expirationDate !== undefined && expirationDate !== null && expirationDate !== '') {
+      updateData.expirationDate = new Date(expirationDate);
+    }
+
+    // Ensure at least quantity is being updated
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+
+    const item_updated = await Inventory.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    if (!item_updated) return res.status(404).json({ error: 'Inventory item not found' });
+    res.json(item_updated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

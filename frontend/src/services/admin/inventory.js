@@ -35,6 +35,16 @@ export const updateInventoryQuantity = async (id, quantity) => {
   }
 };
 
+export const updateInventoryItem = async (id, itemData) => {
+  try {
+    const res = await apiClient.put(`/inventory/${id}`, itemData);
+    return res.data;
+  } catch (error) {
+    console.error('Error updating inventory item:', error);
+    throw error;
+  }
+};
+
 export const recordInventoryUsage = async (id, usageData) => {
   try {
     const res = await apiClient.put(`/inventory/${id}/usage`, usageData);

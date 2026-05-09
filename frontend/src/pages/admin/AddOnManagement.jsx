@@ -5,6 +5,7 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
+import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as addonApi from '../../services/admin/addons';
 import './AddOnManagement.css';
 
@@ -13,6 +14,14 @@ const AddOnManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingAddon, setEditingAddon] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    confirmText: 'Confirm',
+    cancelText: 'Cancel'
+  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -38,9 +47,23 @@ const AddOnManagement = () => {
     }
   };
 
+  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+      confirmText,
+      cancelText
+    });
+  };
+
   const handleSubmit = async () => {
     if (!formData.name || formData.price <= 0) {
-      alert('Name and price are required');
+      showConfirmationModal('Validation Error', 'Name and price are required', null, 'OK');
       return;
     }
     
@@ -53,10 +76,10 @@ const AddOnManagement = () => {
       setShowModal(false);
       fetchAddons();
       resetForm();
-      alert(`Add-on ${editingAddon ? 'updated' : 'created'} successfully!`);
+      showConfirmationModal('Success', `Add-on ${editingAddon ? 'updated' : 'created'} successfully!`, null, 'OK');
     } catch (error) {
       console.error('Error saving add-on:', error);
-      alert('Error saving add-on: ' + error.message);
+      showConfirmationModal('Error', 'Error saving add-on: ' + error.message, null, 'OK');
     }
   };
 
@@ -74,16 +97,22 @@ const AddOnManagement = () => {
   };
 
   const handleDelete = async (addon) => {
-    if (window.confirm(`Are you sure you want to delete "${addon.name}"?`)) {
-      try {
-        await addonApi.deleteAddon(addon._id);
-        fetchAddons();
-        alert('Add-on deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting add-on:', error);
-        alert('Error deleting add-on');
-      }
-    }
+    showConfirmationModal(
+      'Delete Add-on',
+      `Are you sure you want to delete "${addon.name}"?`,
+      async () => {
+        try {
+          await addonApi.deleteAddon(addon._id);
+          fetchAddons();
+          showConfirmationModal('Success', 'Add-on deleted successfully!', null, 'OK');
+        } catch (error) {
+          console.error('Error deleting add-on:', error);
+          showConfirmationModal('Error', 'Error deleting add-on', null, 'OK');
+        }
+      },
+      'Yes, Delete',
+      'Cancel'
+    );
   };
 
   const resetForm = () => {
@@ -244,6 +273,17 @@ const AddOnManagement = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {confirmationModal.isOpen && (
+        <ConfirmationModal
+          title={confirmationModal.title}
+          message={confirmationModal.message}
+          onConfirm={confirmationModal.onConfirm}
+          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          confirmText={confirmationModal.confirmText}
+          cancelText={confirmationModal.cancelText}
+        />
       )}
     </div>
   );

@@ -3,7 +3,7 @@
 // ============================================
 // Pool cleaning supplies and equipment tracking
 // READ operations for authenticated users
-// Admin can CREATE/UPDATE/DELETE items
+// Admin and Staff/Receptionist can CREATE/UPDATE items
 // Staff can RECORD USAGE
 
 const express = require('express');
@@ -22,14 +22,14 @@ router.get('/', authenticate, inventoryController.getAllInventory);
 router.get('/:id', authenticate, inventoryController.getInventoryById);
 
 // ============================================
-// CREATE INVENTORY ITEM - add new supply/equipment (Admin only)
+// CREATE INVENTORY ITEM - add new supply/equipment (Admin or Staff/Receptionist)
 // ============================================
-router.post('/', authenticate, authorize('admin'), inventoryController.createInventoryItem);
+router.post('/', authenticate, authorize('admin', 'staff'), inventoryController.createInventoryItem);
 
 // ============================================
-// UPDATE INVENTORY QUANTITY - adjust stock levels (Admin only)
+// UPDATE INVENTORY QUANTITY - adjust stock levels (Admin or Staff/Receptionist)
 // ============================================
-router.put('/:id', authenticate, authorize('admin'), inventoryController.updateInventoryQuantity);
+router.put('/:id', authenticate, authorize('admin', 'staff'), inventoryController.updateInventoryQuantity);
 
 // ============================================
 // RECORD USAGE - log item usage with staff attribution (Authenticated)

@@ -72,18 +72,18 @@ router.post('/', authenticate, authorize('admin'), roomController.createRoom);
 router.put('/:id', authenticate, authorize('admin'), roomController.updateRoom);
 
 // ============================================
-// STAFF ASSIGNMENT ROUTES (Admin only)
+// STAFF ASSIGNMENT ROUTES (Admin and Receptionist)
 // ============================================
 
 // ============================================
 // ASSIGN STAFF TO ROOM - add staff member to check room
 // ============================================
-router.put('/:id/assign-staff', authenticate, authorize('admin'), roomController.assignStaffToRoom);
+router.put('/:id/assign-staff', authenticate, authorize('admin', 'staff'), roomController.assignStaffToRoom);
 
 // ============================================
 // REMOVE STAFF FROM ROOM - unassign staff from room
 // ============================================
-router.delete('/:id/remove-staff/:staffId', authenticate, authorize('admin'), roomController.removeStaffFromRoom);
+router.delete('/:id/remove-staff/:staffId', authenticate, authorize('admin', 'staff'), roomController.removeStaffFromRoom);
 
 // ============================================
 // GET ROOM STAFF - retrieve all assigned staff for a room

@@ -24,6 +24,7 @@ const Dashboard = () => {
     netMonthlyRevenue: 0,
     lowStockItems: 0
   });
+  const [inspectionMaintenance, setInspectionMaintenance] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
@@ -62,6 +63,16 @@ const Dashboard = () => {
         activeStaff = staff.length;
       } catch (err) {
         console.error('Error fetching staff:', err);
+      }
+
+      // Fetch inspection-generated maintenance records
+      let inspectionMaintenanceCount = 0;
+      try {
+        const maintenance = await adminApi.getAllMaintenance();
+        inspectionMaintenanceCount = maintenance.filter(m => m.inspectionId).length;
+        setInspectionMaintenance(inspectionMaintenanceCount);
+      } catch (err) {
+        console.error('Error fetching inspection maintenance:', err);
       }
       
       setStats({
@@ -163,6 +174,7 @@ const Dashboard = () => {
           <StatCard title="Available Rooms" value={stats.availableRooms} icon="🏠" color="#10b981" />
           <StatCard title="Maintenance" value={stats.maintainanceRooms} icon="🔧" color="#f59e0b" />
           <StatCard title="Low Stock Items" value={stats.lowStockItems} icon="📦" color="#ef4444" />
+          <StatCard title="Inspection Maintenance" value={inspectionMaintenance} icon="📋" color="#3b82f6" />
         </div>
       </div>
 
