@@ -39,16 +39,36 @@ const BookingManagement = () => {
     status: "Pending",
   });
 
+  // Helper function to get display status based on date
+  const getDisplayStatus = useCallback((booking) => {
+    const bookingDate = new Date(booking.bookingDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // If booking date is in the past and status is Confirmed or Pending, show as Completed
+    if (bookingDate < today && (booking.status === 'Confirmed' || booking.status === 'Pending')) {
+      return 'Completed';
+    }
+    return booking.status;
+  }, []);
+
   const fetchBookings = useCallback(async () => {
     try {
       const data = await adminApi.getAllBookings();
       console.log("Bookings data:", data);
-      setBookings(data);
+      
+      // Add displayStatus to each booking
+      const bookingsWithDisplayStatus = data.map(booking => ({
+        ...booking,
+        displayStatus: getDisplayStatus(booking)
+      }));
+      
+      setBookings(bookingsWithDisplayStatus);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       showConfirmationModal("Error", "Failed to fetch bookings", null, "OK");
     }
-  }, []);
+  }, [getDisplayStatus]);
 
   useEffect(() => {
     fetchBookings();
@@ -58,7 +78,7 @@ const BookingManagement = () => {
     let filtered = [...bookings];
     
     if (statusFilter !== "all") {
-      filtered = filtered.filter((b) => b.status === statusFilter);
+      filtered = filtered.filter((b) => b.displayStatus === statusFilter || b.status === statusFilter);
     }
     
     if (searchTerm.trim() !== "") {
@@ -263,9 +283,10 @@ const BookingManagement = () => {
 
   const getActions = (booking) => {
     const actions = [];
+    const displayStatus = booking.displayStatus || booking.status;
 
     // No actions available for cancelled or completed bookings
-    if (booking.status === "Cancelled" || booking.status === "Completed") {
+    if (booking.status === "Cancelled" || displayStatus === "Completed") {
       return actions;
     }
 
@@ -362,7 +383,7 @@ const BookingManagement = () => {
         </div>
         <div className="stat-card">
           <h3>Completed</h3>
-          <p className="stat-number">{bookings.filter((b) => b.status === "Completed").length}</p>
+          <p className="stat-number">{bookings.filter((b) => b.status === "Completed" || (b.displayStatus === "Completed" && b.status !== "Completed")).length}</p>
         </div>
         <div className="stat-card">
           <h3>Cancelled</h3>
@@ -390,6 +411,8 @@ const BookingManagement = () => {
             {filteredBookings.map((booking, index) => {
               const actions = getActions(booking);
               const balance = getBalance(booking);
+              const displayStatus = booking.displayStatus || booking.status;
+              
               return (
                 <tr key={booking._id}>
                   <td>{index + 1}</td>
@@ -409,8 +432,8 @@ const BookingManagement = () => {
                     )}
                   </td>
                   <td>
-                    <span className={`status-badge status-${booking.status?.toLowerCase()}`}>
-                      {booking.status}
+                    <span className={`status-badge status-${displayStatus?.toLowerCase()}`}>
+                      {displayStatus}
                     </span>
                   </td>
                   <td className="actions-cell">

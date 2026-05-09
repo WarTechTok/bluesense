@@ -56,9 +56,23 @@ const MyBookings = () => {
       }
 
       const data = await response.json();
-      setBookings(data);
+      
+      // Process bookings to auto-complete past dates
+      const processedBookings = data.map(booking => {
+        const bookingDate = new Date(booking.bookingDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // If booking date is in the past and status is Confirmed or Pending, show as Completed
+        if (bookingDate < today && (booking.status === 'Confirmed' || booking.status === 'Pending')) {
+          return { ...booking, displayStatus: 'Completed' };
+        }
+        return { ...booking, displayStatus: booking.status };
+      });
+      
+      setBookings(processedBookings);
 
-      if (data.length === 0) {
+      if (processedBookings.length === 0) {
         setError("No bookings found for your account");
       }
     } catch (err) {
@@ -116,9 +130,6 @@ const MyBookings = () => {
     }
   };
 
-  // 🔴 CANCEL BUTTON REMOVED - Customers cannot cancel bookings
-  // They must contact the resort directly for any cancellation requests
-
   return (
     <>
       <Navbar />
@@ -153,10 +164,10 @@ const MyBookings = () => {
                       <span
                         className="status-badge"
                         style={{
-                          backgroundColor: getStatusColor(booking.status),
+                          backgroundColor: getStatusColor(booking.displayStatus),
                         }}
                       >
-                        {booking.status}
+                        {booking.displayStatus}
                       </span>
                     </div>
 
@@ -209,7 +220,6 @@ const MyBookings = () => {
                       >
                         View Details
                       </button>
-                      {/* 🔴 CANCEL BUTTON REMOVED */}
                     </div>
                   </div>
                 ))}
@@ -348,9 +358,9 @@ const MyBookings = () => {
                     <span className="label">Booking Status</span>
                     <span
                       className="value"
-                      style={{ color: getStatusColor(selectedBooking.status) }}
+                      style={{ color: getStatusColor(selectedBooking.displayStatus || selectedBooking.status) }}
                     >
-                      {selectedBooking.status}
+                      {selectedBooking.displayStatus || selectedBooking.status}
                     </span>
                   </div>
                   {getBalance(selectedBooking) > 0 && (
