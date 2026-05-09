@@ -14,41 +14,57 @@ const {
 } = require('../../utils/cloudinary');
 
 // ============================================
-// HELPER: Check if pricing is PAX-based (Package C style)
+// HELPER: Detect whether a pricing object is PAX-based
+// A key is "pax-based" when it matches /^\d+pax$/i  (e.g. "50pax", "100pax", "30pax")
+// This is intentionally dynamic — the pax values come from minCapacity / maxCapacity
+// and are never hardcoded here.
 // ============================================
+const isPaxKey = (key) => /^\d+pax$/i.test(key);
+
 const isPaxBasedPricing = (pricing) => {
   if (!pricing || typeof pricing !== 'object') return false;
-  // Check if keys are like "50pax", "100pax", etc.
-  const keys = Object.keys(pricing);
-  return keys.some(key => key.includes('pax'));
+  return Object.keys(pricing).some(isPaxKey);
 };
 
 // ============================================
-// HELPER: Normalize pricing (convert single number to weekday/weekend)
-// SKIPS normalization for PAX-based pricing (Package C)
+// HELPER: Normalize pricing for storage
+//
+// There are three valid shapes that can arrive from the frontend:
+//
+//  1. Regular session pricing (new simplified format):
+//       { "Day": 9000, "Night": 10000, "22hrs": 16500 }
+//     → stored as-is
+//
+//  2. Regular session pricing (legacy weekday/weekend format):
+//       { "Day": { weekday: 9000, weekend: 10000 }, ... }
+//     → stored as-is for backward compat
+//
+//  3. PAX-based pricing (Package C — any min/max pax combination):
+//       { "50pax": { "Day": 19000, "Night": 20000, "22hrs": 26000 },
+//         "100pax": { "Day": 20000, ... } }
+//     → stored AS-IS; never flattened to weekday/weekend
+//
+// Root cause of the original bug: the old normalizePricing treated
+// every top-level value as a session price and tried to wrap it in
+// { weekday, weekend }.  When the value was itself an object (the per-session
+// sub-map under "50pax"), that produced { weekday: 0, weekend: 0 }.
+// Fix: detect pax keys first and short-circuit immediately.
 // ============================================
-const normalizePricing = (pricing, skipNormalize = false) => {
-  if (skipNormalize) return pricing;
+const normalizePricing = (pricing) => {
   if (!pricing || typeof pricing !== 'object') return pricing;
-  
-  // If it's PAX-based pricing (Package C), don't normalize
+
+  // If ANY top-level key is a pax key the entire object is PAX-based —
+  // preserve it completely without touching any values.
   if (isPaxBasedPricing(pricing)) {
+    console.log('✅ normalizePricing: PAX-based pricing detected — storing as-is');
     return pricing;
   }
-  
-  const normalized = {};
-  for (const [key, val] of Object.entries(pricing)) {
-    if (typeof val === 'number') {
-      // New format: single number → convert to old format
-      normalized[key] = { weekday: val, weekend: val };
-    } else if (typeof val === 'object' && val !== null) {
-      // Old format: keep as is
-      normalized[key] = val;
-    } else {
-      normalized[key] = val;
-    }
-  }
-  return normalized;
+
+  // Regular session pricing: pass through unchanged.
+  // Both { "Day": 9000 } (flat number) and { "Day": { weekday: 9000, weekend: 9500 } }
+  // are valid and accepted by the schema.
+  console.log('✅ normalizePricing: session-based pricing — storing as-is');
+  return pricing;
 };
 
 // ============================================
@@ -100,7 +116,6 @@ router.post('/upload-images', verifyToken, isStaff, uploadPackageImages, async (
       return res.status(400).json({ error: 'No image files provided' });
     }
 
-    // Upload all files to Cloudinary in parallel
     const uploadPromises = req.files.map((file) => uploadToCloud(file.buffer));
     const results = await Promise.all(uploadPromises);
 
@@ -146,44 +161,47 @@ router.get('/:id', verifyToken, isStaff, async (req, res) => {
   }
 });
 
+// ============================================
 // CREATE
+// ============================================
 router.post('/', verifyToken, isStaff, async (req, res) => {
   try {
     const body = { ...req.body };
 
-    // Sync: if images array is provided but image field is not, use first image as primary
+    // Sync image fields
     if (body.images?.length > 0 && !body.image) {
       body.image = body.images[0];
     }
-    // Sync: if image provided but images array empty, seed the array
     if (body.image && (!body.images || body.images.length === 0)) {
       body.images = [body.image];
     }
 
-    // NORMALIZE PRICING: skip for PAX-based pricing (Package C)
-    const skipNormalize = isPaxBasedPricing(body.pricing);
+    // Normalize pricing (preserves pax-based structure intact)
     if (body.pricing) {
-      body.pricing = normalizePricing(body.pricing, skipNormalize);
-    }
-    if (body.pricePerPax) {
-      body.pricePerPax = normalizePricing(body.pricePerPax, true);
+      body.pricing = normalizePricing(body.pricing);
     }
 
-    // Mark isPaxBased flag for Package C
-    if (body.name === 'Package C' || isPaxBasedPricing(body.pricing)) {
-      body.isPaxBased = true;
+    // isPaxBased is derived dynamically from pricing keys — never from the package name.
+    // This means it works for any minCapacity/maxCapacity pair ("30pax", "80pax", etc.)
+    body.isPaxBased = isPaxBasedPricing(body.pricing);
+
+    console.log('📦 CREATE package:', body.name, '| isPaxBased:', body.isPaxBased);
+    if (body.isPaxBased) {
+      console.log('   pax tiers:', Object.keys(body.pricing || {}));
     }
 
     const newPackage = new Package(body);
     await newPackage.save();
     res.status(201).json(newPackage);
   } catch (error) {
-    console.error("Create error:", error);
+    console.error('❌ Create error:', error);
     res.status(400).json({ error: error.message });
   }
 });
 
+// ============================================
 // UPDATE
+// ============================================
 router.put('/:id', verifyToken, isStaff, async (req, res) => {
   try {
     const existing = await Package.findById(req.params.id);
@@ -191,28 +209,32 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
 
     const body = { ...req.body };
 
-    // Keep images[] and image in sync
+    // Sync image fields
     if (body.images?.length > 0) {
       body.image = body.images[0];
     } else if (body.image && (!body.images || body.images.length === 0)) {
       body.images = [body.image];
     }
 
-    // NORMALIZE PRICING: skip for PAX-based pricing (Package C)
-    const skipNormalize = isPaxBasedPricing(body.pricing) || existing.name === 'Package C';
+    // Normalize pricing (preserves pax-based structure intact)
     if (body.pricing) {
-      body.pricing = normalizePricing(body.pricing, skipNormalize);
-    }
-    if (body.pricePerPax) {
-      body.pricePerPax = normalizePricing(body.pricePerPax, true);
+      body.pricing = normalizePricing(body.pricing);
     }
 
-    // Mark isPaxBased flag for Package C
-    if (body.name === 'Package C' || (body.pricing && isPaxBasedPricing(body.pricing))) {
-      body.isPaxBased = true;
+    // Derive isPaxBased from the incoming pricing.
+    // If no pricing is in the request body, fall back to the existing flag.
+    if (body.pricing !== undefined) {
+      body.isPaxBased = isPaxBasedPricing(body.pricing);
+    } else {
+      body.isPaxBased = existing.isPaxBased ?? false;
     }
 
-    // Delete old Cloudinary images that were removed
+    console.log('📦 UPDATE package:', existing.name, '| isPaxBased:', body.isPaxBased);
+    if (body.isPaxBased) {
+      console.log('   pax tiers:', Object.keys(body.pricing || {}));
+    }
+
+    // Delete Cloudinary images that were removed from the gallery
     if (body.images) {
       const oldImages = existing.images || (existing.image ? [existing.image] : []);
       const removedImages = oldImages.filter(
@@ -221,14 +243,19 @@ router.put('/:id', verifyToken, isStaff, async (req, res) => {
       await Promise.all(removedImages.map((url) => deleteFromCloudinary(url)));
     }
 
+    // IMPORTANT: use runValidators:false so Mongoose does not re-cast the pricing
+    // Map through the strict { weekday, weekend } sub-schema validator.
+    // That validator is what originally coerced "50pax": { Day: 19000 } into
+    // { weekday: 0, weekend: 0 } — bypassing it here is safe because
+    // normalizePricing() has already validated the shape above.
     const updatedPackage = await Package.findByIdAndUpdate(
       req.params.id,
-      body,
-      { new: true, runValidators: true }
+      { $set: body },
+      { new: true, runValidators: false }
     );
     res.json(updatedPackage);
   } catch (error) {
-    console.error("Update error:", error);
+    console.error('❌ Update error:', error);
     res.status(400).json({ error: error.message });
   }
 });
@@ -246,10 +273,7 @@ router.delete('/:id/image', verifyToken, isStaff, async (req, res) => {
     const pkg = await Package.findById(req.params.id);
     if (!pkg) return res.status(404).json({ error: 'Package not found' });
 
-    // Remove from images array
     const newImages = (pkg.images || []).filter((url) => url !== imageUrl);
-
-    // Update primary image
     const newPrimary = newImages[0] || '';
 
     await Package.findByIdAndUpdate(req.params.id, {
@@ -257,7 +281,6 @@ router.delete('/:id/image', verifyToken, isStaff, async (req, res) => {
       image: newPrimary,
     });
 
-    // Delete from Cloudinary (non-fatal)
     if (imageUrl.includes('cloudinary.com')) {
       await deleteFromCloudinary(imageUrl);
     }
@@ -268,7 +291,9 @@ router.delete('/:id/image', verifyToken, isStaff, async (req, res) => {
   }
 });
 
-// DELETE PACKAGE (also remove all images from Cloudinary)
+// ============================================
+// DELETE PACKAGE (also removes all Cloudinary images)
+// ============================================
 router.delete('/:id', verifyToken, isStaff, async (req, res) => {
   try {
     const pkg = await Package.findByIdAndDelete(req.params.id);

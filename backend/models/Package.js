@@ -52,12 +52,37 @@ const packageSchema = new mongoose.Schema(
 
     inclusions: [{ type: String }],
 
+    // ── PRICING ──────────────────────────────────────────────────────────────
+    // This field stores TWO different shapes depending on the package type:
+    //
+    // Regular packages (Oasis 1 and Oasis 2 Package A/B):
+    //   { "Day": { weekday: 9000, weekend: 9500 },
+    //     "Night": { weekday: 10000, weekend: 10500 },
+    //     "22hrs": { weekday: 15000, weekend: 16000 } }
+    //
+    // PAX-based packages (Package C — or any future package with isPaxBased:true):
+    //   { "50pax": { "Day": 19000, "Night": 20000, "22hrs": 26000 },
+    //     "100pax": { "Day": 20000, "Night": 21000, "22hrs": 30000 } }
+    //   The pax numbers come from minCapacity / maxCapacity — they are DYNAMIC.
+    //
+    // WHY Mixed (not Map<string, {weekday,weekend}>):
+    //   Mongoose's Map sub-schema validator would coerce any value that doesn't
+    //   match { weekday: Number, weekend: Number } to { weekday: 0, weekend: 0 }.
+    //   PAX-based values like { "Day": 19000 } don't match that shape, so they
+    //   were silently zeroed out on every save.  Using Mixed + Schema.Types.Mixed
+    //   disables that coercion while keeping full flexibility.
+    // ─────────────────────────────────────────────────────────────────────────
     pricing: {
-      type: Map,
-      of: {
-        weekday: { type: Number, default: 0 },
-        weekend: { type: Number, default: 0 },
-      },
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    // Flag set automatically by the route based on pricing key shape.
+    // true  → pricing keys are pax tiers ("50pax", "100pax", …)
+    // false → pricing keys are session names ("Day", "Night", "22hrs")
+    isPaxBased: {
+      type: Boolean,
+      default: false,
     },
 
     availableSessions: [
