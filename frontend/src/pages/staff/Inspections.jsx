@@ -789,10 +789,11 @@ const Inspections = () => {
       {/* Confirmation Modal */}
       {confirmationModal.isOpen && (
         <ConfirmationModal
+          isOpen={confirmationModal.isOpen}
           title={confirmationModal.title}
           message={confirmationModal.message}
           onConfirm={confirmationModal.onConfirm}
-          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
+          onClose={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
           confirmText={confirmationModal.confirmText}
           cancelText={confirmationModal.cancelText}
         />

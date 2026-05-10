@@ -12,6 +12,16 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
     return () => document.body.classList.remove('modal-open');
   }, [isOpen]);
 
+  const handleConfirm = async () => {
+    if (onConfirm) {
+      try {
+        await onConfirm();
+      } catch (error) {
+        console.error('Error in confirmation callback:', error);
+      }
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -30,7 +40,7 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
           <button className="modal-action-btn cancel" onClick={onClose}>
             {cancelText}
           </button>
-          <button className="modal-action-btn confirm" onClick={onConfirm}>
+          <button className="modal-action-btn confirm" onClick={handleConfirm}>
             {confirmText}
           </button>
         </div>
