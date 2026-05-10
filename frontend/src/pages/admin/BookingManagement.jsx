@@ -234,7 +234,15 @@ const BookingManagement = () => {
       return actions;
     }
 
-    if (booking.paymentStatus !== "Paid") {
+    // Show "Verify Downpayment" for bookings with pending downpayment
+    if (booking.paymentType === "downpayment" && booking.paymentStatus === "Pending") {
+      actions.push({
+        label: "Verify Downpayment",
+        icon: "✓",
+        onClick: () => handleOpenPaymentVerification(booking),
+        className: "btn-outline-success",
+      });
+    } else if (booking.paymentStatus !== "Paid") {
       actions.push({
         label: "View Payment",
         icon: "📋",
