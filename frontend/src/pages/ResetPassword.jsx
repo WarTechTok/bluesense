@@ -18,10 +18,26 @@ function ResetPassword() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validatePassword = (pwd) => {
+    const errors = [];
+    if (pwd.length < 8)                    errors.push("at least 8 characters");
+    if (!/[A-Z]/.test(pwd))               errors.push("at least 1 uppercase letter");
+    if (!/[a-z]/.test(pwd))               errors.push("at least 1 lowercase letter");
+    if (!/[0-9]/.test(pwd))               errors.push("at least 1 number");
+    if (!/[!@#$%^&*]/.test(pwd))          errors.push("at least 1 special character (!@#$%^&*)");
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
+
+    const pwdErrors = validatePassword(password);
+    if (pwdErrors.length > 0) {
+      setError("Password must have: " + pwdErrors.join(", ") + ".");
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError("Passwords don't match");
       return;
@@ -129,7 +145,7 @@ function ResetPassword() {
 
             {/* Password Requirements Note */}
             <p className="reset-note">
-              Password must be 8-16 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+              Password must be at least 8 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character (!@#$%^&*).
             </p>
 
             <button 

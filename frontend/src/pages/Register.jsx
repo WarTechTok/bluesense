@@ -85,8 +85,8 @@ function Register() {
       errors.push("Valid email is required");
     }
     
-    if (form.password.length < 8 || form.password.length > 16) {
-      errors.push("Password must be 8-16 characters");
+    if (form.password.length < 8) {
+      errors.push("Password must be at least 8 characters");
     }
     if (!/[A-Z]/.test(form.password)) {
       errors.push("Password needs an uppercase letter");
@@ -277,7 +277,7 @@ function Register() {
           </div>
 
           <p className="password-note">
-            Password must be 8-16 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.
+            Password must be at least 8 characters with at least 1 uppercase, 1 lowercase, 1 number, and 1 special character (!@#$%^&*).
           </p>
 
           <div className="form-group">
