@@ -157,11 +157,11 @@ const RoomManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (userRole !== 'admin') {
-      showConfirmationModal('Access Denied', 'Only administrators can delete rooms.', null, 'OK');
-      return;
-    }
-    
+    showConfirmationModal(
+      'Delete Room',
+      'Are you sure you want to delete this room?',
+      async () => {
+        try {
           await adminApi.deleteRoom(id);
           fetchRooms();
           showConfirmationModal('Success', 'Room deleted successfully!', null, 'OK');
