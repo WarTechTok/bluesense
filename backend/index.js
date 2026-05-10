@@ -307,5 +307,65 @@ mongoose.connect(process.env.MONGO_URI)
   })
   .catch(err => console.log("❌ MongoDB Connection Error:", err));
 
+// ============================================
+// AUTO-COMPLETE BOOKINGS SCHEDULED JOB
+// ============================================
+// Auto-completes bookings when their date passes, which triggers sale record creation
+const initializeAutoCompleteJob = () => {
+  const Booking = require('./models/Booking');
+  const Sale = require('./models/Sale');
+
+  setInterval(async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Find confirmed bookings whose booking date has passed
+      const bookingsToComplete = await Booking.find({
+        status: 'Confirmed',
+        bookingDate: { $lt: today }
+      });
+
+      if (bookingsToComplete.length > 0) {
+        console.log(`\n⏰ AUTO-COMPLETE JOB: Found ${bookingsToComplete.length} bookings to auto-complete`);
+
+        for (const booking of bookingsToComplete) {
+          try {
+            // Update booking to Completed
+            booking.status = 'Completed';
+            await booking.save();
+
+            // Create sale record if it doesn't exist
+            const existingSale = await Sale.findOne({ booking: booking._id });
+            if (!existingSale && booking.totalAmount) {
+              const sale = new Sale({
+                booking: booking._id,
+                amount: booking.totalAmount,
+                bookingNumber: booking.bookingNumber || 0,
+                bookingReference: booking.bookingReference,
+                location: booking.oasis,
+                date: new Date()
+              });
+              await sale.save();
+              console.log(`✅ Auto-completed booking ${booking.bookingNumber} and created sale record`);
+            } else if (existingSale) {
+              console.log(`✅ Auto-completed booking ${booking.bookingNumber} (sale record already exists)`);
+            }
+          } catch (error) {
+            console.error(`❌ Error auto-completing booking ${booking.bookingNumber}:`, error.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Auto-complete job error:', error);
+    }
+  }, 60000); // Run every 60 seconds (1 minute)
+};
+
 const port = process.env.PORT || 8080;
-app.listen(port, () => console.log(`🚀 Server running at http://localhost:${port}`));
+app.listen(port, () => {
+  console.log(`🚀 Server running at http://localhost:${port}`);
+  // Initialize auto-complete job
+  initializeAutoCompleteJob();
+  console.log('⏰ Auto-complete booking job initialized (runs every 60 seconds)');
+});

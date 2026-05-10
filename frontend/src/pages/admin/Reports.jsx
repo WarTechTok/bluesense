@@ -169,10 +169,8 @@ const Reports = () => {
         if (!data || !Array.isArray(data)) {
           data = [];
         } else {
-          // Filter to show only completed bookings
-          data = data.filter((booking) => booking.status === "Completed");
-          
-          // Filter by date range
+          // Show all available bookings (all statuses)
+          // Filter by date range if provided
           if (queryStartDate && queryEndDate) {
             const start = new Date(queryStartDate);
             const end = new Date(queryEndDate);
