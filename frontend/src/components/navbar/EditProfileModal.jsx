@@ -48,20 +48,33 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
   };
 
-  // Validate phone number - returns error message or null
+  // Validate Philippine mobile number — returns error string or null
+  // Valid inputs:
+  //   09XXXXXXXXX  (11 digits, starts with 09)
+  //   639XXXXXXXXX (12 digits, starts with 639)
+  //   9XXXXXXXXX   (10 digits, starts with 9)
+  // Phone is optional — blank is always valid
   const validatePhoneNumber = (phone) => {
-    if (!phone) return null; // Phone is optional
-    
-    const phoneDigits = phone.replace(/\D/g, '');
-    // Must have at least 10 digits
-    if (phoneDigits.length < 10) {
-      return 'Phone number must be at least 10 digits';
+    if (!phone || phone.trim() === '') return null;
+
+    const digits = phone.replace(/\D/g, '');
+
+    // Normalise to a 10-digit local number (9XXXXXXXXX)
+    let local = digits;
+    if (digits.startsWith('63'))  local = digits.slice(2);  // 63 prefix
+    else if (digits.startsWith('0')) local = digits.slice(1); // 0 prefix
+
+    // Must be exactly 10 digits after stripping prefix
+    if (local.length !== 10) {
+      return 'Phone number must be 10 digits after the country/area code (e.g., 09123456789)';
     }
-    // Must be 10-13 digits (Philippine format)
-    if (phoneDigits.length > 13) {
-      return 'Phone number is too long';
+
+    // Must start with 9 (all PH mobile networks: Globe 09XX, Smart 09XX, etc.)
+    if (!local.startsWith('9')) {
+      return 'Philippine mobile numbers must start with 9 (e.g., 09123456789)';
     }
-    return null;
+
+    return null; // ✅ valid
   };
 
   // Reset form when modal opens and load latest userData
@@ -191,7 +204,7 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
             placeholder="Add phone number"
             className={phoneError ? 'error-input' : ''}
           />
-          <small className="field-hint">Format: +63 (XXX) XXX-XXXX (e.g., +63 (909) 123-4567)</small>
+          <small className="field-hint">Valid formats: 09123456789 · 639123456789 · 9123456789 (optional)</small>
           {phoneError && <div className="field-error">{phoneError}</div>}
         </div>
 

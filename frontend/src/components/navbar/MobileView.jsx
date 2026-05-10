@@ -19,11 +19,9 @@ function MobileView({
   onLogout,
 }) {
   const [showViewSection, setShowViewSection] = useState(false);
-  const [showEditSection, setShowEditSection] = useState(false);
   const [avatarError, setAvatarError] = useState({
     main: false,
     view: false,
-    edit: false,
   });
 
   // ============================================
@@ -31,7 +29,7 @@ function MobileView({
   // FIX 3: Reset state when everything is closed
   // ============================================
   useEffect(() => {
-    const anyOpen = isOpen || showViewSection || showEditSection;
+    const anyOpen = isOpen || showViewSection;
     if (anyOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -42,9 +40,9 @@ function MobileView({
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isOpen, showViewSection, showEditSection]);
+  }, [isOpen, showViewSection]);
 
-  if (!isOpen && !showViewSection && !showEditSection) return null;
+  if (!isOpen && !showViewSection) return null;
 
   const handleAvatarError = (type) => {
     setAvatarError((prev) => ({ ...prev, [type]: true }));
@@ -56,8 +54,7 @@ function MobileView({
   const closeAll = () => {
     setIsOpen(false);
     setShowViewSection(false);
-    setShowEditSection(false);
-    setAvatarError({ main: false, view: false, edit: false });
+    setAvatarError({ main: false, view: false });
   };
 
   const handleViewProfile = () => {
@@ -125,8 +122,8 @@ function MobileView({
               className="mobile-view-edit-btn"
               onClick={() => {
                 setShowViewSection(false);
-                setShowEditSection(true);
-                setAvatarError((prev) => ({ ...prev, edit: false }));
+                // Opens the shared EditProfileModal in Navbar (same one desktop uses)
+                if (onEditProfile) onEditProfile();
               }}
             >
               Edit Profile
@@ -134,126 +131,6 @@ function MobileView({
           </div>
         </div>
       </>
-    );
-  };
-
-  // ============================================
-  // MOBILE EDIT PROFILE MODAL
-  // ============================================
-  const MobileEditProfile = () => {
-    const [editForm, setEditForm] = useState({
-      name: userData?.name || "",
-      phone: userData?.phone || "",
-      address: userData?.address || "",
-    });
-
-    const avatarSrc = getAvatarSrc();
-    const hasAvatar = avatarSrc && !avatarError.edit;
-
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (onEditProfile) {
-        onEditProfile(editForm);
-      }
-      setShowEditSection(false);
-    };
-
-    if (!showEditSection) return null;
-
-    return (
-      // FIX 2: Click overlay outside modal to close
-      <div
-        className="mobile-edit-overlay"
-        onClick={() => setShowEditSection(false)}
-      >
-        <div
-          className="mobile-edit-modal"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            className="mobile-edit-modal-close"
-            onClick={() => setShowEditSection(false)}
-          >
-            ×
-          </button>
-          <h3 className="mobile-edit-modal-title">Edit Profile</h3>
-
-          <div className="mobile-edit-modal-avatar">
-            <div className="mobile-edit-modal-avatar-img">
-              {hasAvatar ? (
-                <img
-                  src={avatarSrc}
-                  alt={userData?.name}
-                  onError={() => handleAvatarError("edit")}
-                />
-              ) : (
-                <span>{userData?.name?.charAt(0).toUpperCase()}</span>
-              )}
-            </div>
-            <button type="button" className="mobile-edit-modal-avatar-btn">
-              Change Photo
-            </button>
-          </div>
-
-          <div className="mobile-edit-modal-field">
-            <label>Full Name</label>
-            <input
-              type="text"
-              value={editForm.name}
-              onChange={(e) =>
-                setEditForm({ ...editForm, name: e.target.value })
-              }
-              required
-            />
-          </div>
-
-          <div className="mobile-edit-modal-field">
-            <label>Email</label>
-            <input type="email" value={userData?.email} disabled />
-          </div>
-
-          <div className="mobile-edit-modal-field">
-            <label>Phone</label>
-            <input
-              type="tel"
-              value={editForm.phone}
-              onChange={(e) =>
-                setEditForm({ ...editForm, phone: e.target.value })
-              }
-              placeholder="Add phone number"
-            />
-          </div>
-
-          <div className="mobile-edit-modal-field">
-            <label>Address</label>
-            <textarea
-              value={editForm.address}
-              onChange={(e) =>
-                setEditForm({ ...editForm, address: e.target.value })
-              }
-              placeholder="Add address"
-              rows="2"
-            />
-          </div>
-
-          <div className="mobile-edit-modal-actions">
-            <button
-              type="button"
-              className="mobile-edit-modal-cancel"
-              onClick={() => setShowEditSection(false)}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="mobile-edit-modal-save"
-              onClick={handleSubmit}
-            >
-              Save Changes
-            </button>
-          </div>
-        </div>
-      </div>
     );
   };
 
@@ -376,7 +253,6 @@ function MobileView({
     <>
       {isOpen && <MainMenu />}
       {showViewSection && <MobileViewProfile />}
-      {showEditSection && <MobileEditProfile />}
     </>
   );
 }
