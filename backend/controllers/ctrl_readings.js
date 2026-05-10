@@ -125,8 +125,8 @@ const setCurrentOasis = async (req, res) => {
     try {
         const { oasis } = req.body;
         
-        if (oasis !== 'oasis1' && oasis !== 'oasis2') {
-            return res.status(400).json({ error: "Invalid oasis. Must be 'oasis1' or 'oasis2'" });
+        if (oasis !== 'oasis1' && oasis !== 'oasis2' && oasis !== 'none') {
+            return res.status(400).json({ error: "Invalid oasis. Must be 'oasis1', 'oasis2', or 'none'" });
         }
         
         // Save to database (persists across server restarts)
@@ -136,12 +136,15 @@ const setCurrentOasis = async (req, res) => {
             { upsert: true, new: true }
         );
         
-        console.log(`📡 ESP32 should now monitor: ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`);
+        const label = oasis === 'oasis1' ? 'Oasis 1' : oasis === 'oasis2' ? 'Oasis 2' : 'IDLE (none)';
+        console.log(`📡 ESP32 should now monitor: ${label}`);
         
         res.json({ 
             success: true, 
             oasis: oasis,
-            message: `ESP32 will now monitor ${oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2'}`
+            message: oasis === 'none'
+                ? "ESP32 monitoring stopped — waiting for admin selection"
+                : `ESP32 will now monitor ${label}`
         });
     } catch (error) {
         console.error("Error setting current oasis:", error);
@@ -182,8 +185,10 @@ const getCurrentOasis = async (req, res) => {
         let setting = await Settings.findOne({ key: 'currentOasis' });
         
         if (!setting) {
-            // Create default setting if not exists
-            setting = await Settings.create({ key: 'currentOasis', value: 'oasis1' });
+            // No setting in DB yet — create with 'none' so ESP32 waits for
+            // an explicit admin selection rather than auto-starting on oasis1
+            setting = await Settings.create({ key: 'currentOasis', value: 'none' });
+            console.log("📋 Initialized currentOasis setting to 'none' (waiting for admin selection)");
         }
         
         res.json({ oasis: setting.value });
