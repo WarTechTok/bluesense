@@ -149,6 +149,22 @@ const PackageManagement = () => {
         if (!pricingData["50pax"][session]) pricingData["50pax"][session] = { weekday: 0 };
         if (!pricingData["100pax"][session]) pricingData["100pax"][session] = { weekday: 0 };
       });
+    } else {
+      // Normalise to { weekday, weekend } so the price inputs always have values.
+      // DB may store flat numbers { "Day": 9000 } — expand them on load.
+      const normalised = {};
+      ["Day", "Night", "22hrs"].forEach((session) => {
+        const val = pricingData[session];
+        if (val === undefined || val === null) {
+          normalised[session] = { weekday: 0, weekend: 0 };
+        } else if (typeof val === "number") {
+          // Flat number — use same value for both day types as starting point
+          normalised[session] = { weekday: val, weekend: val };
+        } else {
+          normalised[session] = { weekday: val.weekday || 0, weekend: val.weekend || 0 };
+        }
+      });
+      pricingData = normalised;
     }
 
     let existingImages = [];
@@ -243,10 +259,14 @@ const PackageManagement = () => {
 
   const getPricingPreview = (pkg) => {
     if (pkg.name === "Package C") {
-      const fiftyPaxPrice = pkg.pricing?.["50pax"]?.Day?.weekday || 0;
-      return `₱${fiftyPaxPrice.toLocaleString()}`;
+      // PAX-based: values may be flat numbers or {weekday} objects
+      const dayVal = pkg.pricing?.["50pax"]?.Day;
+      const price = typeof dayVal === "number" ? dayVal : (dayVal?.weekday || 0);
+      return `₱${price.toLocaleString()}`;
     }
-    const firstPrice = Object.values(pkg.pricing || {})[0]?.weekday || 0;
+    // Regular: pricing may be flat { Day: 9000 } OR nested { Day: { weekday: 9000 } }
+    const firstVal = Object.values(pkg.pricing || {})[0];
+    const firstPrice = typeof firstVal === "number" ? firstVal : (firstVal?.weekday || 0);
     return `₱${firstPrice.toLocaleString()}`;
   };
 
