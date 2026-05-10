@@ -41,6 +41,7 @@ const sessionRoutes = require("./routes/admin/sessions.js");
 // ============================================
 const tasksRoutes = require("./routes/tasks.js");
 const notificationsRoutes = require("./routes/notifications.js");
+const contactRoutes = require("./routes/contact.js");
 
 const app = express();
 
@@ -195,6 +196,7 @@ app.use("/api/admin/sessions", sessionRoutes);
 // ============================================
 app.use("/api/admin/tasks", tasksRoutes);
 app.use("/api/admin/notifications", notificationsRoutes);
+app.use("/api/contact", contactRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access
