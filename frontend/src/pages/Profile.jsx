@@ -101,10 +101,8 @@ function Profile() {
       newErrors.email = 'Please enter a valid email';
     }
 
-    // Phone validation
-    if (!formData.phone || formData.phone.trim() === '') {
-      newErrors.phone = 'Phone number is required';
-    } else {
+    // Phone is optional — only validate format if the user has entered something
+    if (formData.phone && formData.phone.trim() !== '') {
       const phoneDigits = formData.phone.replace(/\D/g, '');
       if (phoneDigits.length !== 12) {
         newErrors.phone = 'Please enter a valid Philippine phone number (e.g., +639123456789)';
@@ -118,7 +116,7 @@ function Profile() {
       }
     }
 
-    // Password validation
+    // Password validation (only if any password field is filled)
     if (formData.newPassword || formData.confirmPassword || formData.currentPassword) {
       if (!formData.currentPassword) {
         newErrors.currentPassword = 'Current password is required to change password';
@@ -135,6 +133,17 @@ function Profile() {
     }
 
     setErrors(newErrors);
+
+    // Scroll to the first error so it's visible on all screen sizes
+    if (Object.keys(newErrors).length > 0) {
+      const firstErrorField = Object.keys(newErrors)[0];
+      const el = document.querySelector(`[name="${firstErrorField}"]`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus({ preventScroll: true });
+      }
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -293,7 +302,7 @@ function Profile() {
               </div>
 
               <div className="form-group">
-                <label>Phone Number <span className="required">*</span></label>
+                <label>Phone Number <span className="optional-label">(Optional)</span></label>
                 <div className="input-wrapper">
                   <i className="fas fa-phone"></i>
                   <input
@@ -301,7 +310,7 @@ function Profile() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Enter your phone number (e.g., 09123456789 or +639123456789)"
+                    placeholder="e.g., 09123456789 or +639123456789"
                     className={errors.phone ? 'error' : ''}
                   />
                 </div>
