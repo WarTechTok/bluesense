@@ -30,44 +30,44 @@ import "./Booking.css";
 
 function Booking() {
   const location = useLocation();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
-  const [step, setStep]                           = useState(1);
-  const [isSubmitting, setIsSubmitting]           = useState(false);
-  const [showSuccessModal, setShowSuccessModal]   = useState(false);
-  const [showPendingModal, setShowPendingModal]   = useState(false);
-  const [showLimitModal, setShowLimitModal]       = useState(false);
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const [showDoubleBookingModal, setShowDoubleBookingModal] = useState(false);
-  const [bookingDetails, setBookingDetails]       = useState(null);
-  const [selectedAddons, setSelectedAddons]       = useState({});
-  const [infoConfirmed, setInfoConfirmed]         = useState(false);
+  const [bookingDetails, setBookingDetails] = useState(null);
+  const [selectedAddons, setSelectedAddons] = useState({});
+  const [infoConfirmed, setInfoConfirmed] = useState(false);
   const [extraGuestWarning, setExtraGuestWarning] = useState("");
   // Sessions fetched from DB — includes downpaymentAmount set by admin
-  const [sessionData, setSessionData]             = useState([]);
+  const [sessionData, setSessionData] = useState([]);
 
   // Pre-selected data from navigation state (set by PackageCard → handleBook)
-  const preselectedOasis   = location.state?.oasis   || null;
+  const preselectedOasis = location.state?.oasis || null;
   const preselectedPackage = location.state?.package || null; // full API-transformed object
 
-  const [selectedOasis]   = useState(preselectedOasis || "");
+  const [selectedOasis] = useState(preselectedOasis || "");
   const [selectedPackage] = useState(preselectedPackage?.name || null);
   const [selectedSession, setSelectedSession] = useState(null);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [formData, setFormData] = useState({
-    fullName:        loggedInUser.name  || "",
-    email:           loggedInUser.email || "",
-    phone:           loggedInUser.phone || "",
-    guestCount:      1,
+    fullName: loggedInUser.name || "",
+    email: loggedInUser.email || "",
+    phone: loggedInUser.phone || "",
+    guestCount: 1,
     reservationDate: "",
-    checkoutDate:    "",
+    checkoutDate: "",
     specialRequests: "",
-    paymentMethod:   "",
-    paymentType:     "downpayment",
-    agreeTerms:      false,
-    session:         "",
-    paymentProof:    null,
+    paymentMethod: "",
+    paymentType: "downpayment",
+    agreeTerms: false,
+    session: "",
+    paymentProof: null,
   });
 
   const [errors, setErrors] = useState({});
@@ -83,17 +83,20 @@ function Booking() {
     return {
       ...preselectedPackage,
       // Ensure sessions field is populated (transformPackageData sets this)
-      sessions: preselectedPackage.sessions?.length > 0
-        ? preselectedPackage.sessions
-        : preselectedPackage.availableSessions || [],
+      sessions:
+        preselectedPackage.sessions?.length > 0
+          ? preselectedPackage.sessions
+          : preselectedPackage.availableSessions || [],
     };
   })();
 
   // ============================================
   // CAPACITY (from API)
   // ============================================
-  const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
-  const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
+  const getMaxCapacityForPackage = () =>
+    getMaxCapacityFromPackage(currentPackage);
+  const getMinCapacityForPackage = () =>
+    getMinCapacityFromPackage(currentPackage);
 
   // ============================================
   // PRICING (from API via currentPackage)
@@ -106,7 +109,7 @@ function Booking() {
       currentPackage,
       selectedSession,
       formData.reservationDate,
-      formData.guestCount
+      formData.guestCount,
     );
   };
 
@@ -118,18 +121,21 @@ function Booking() {
     getExtraGuestCharge(currentPackage, formData.guestCount);
 
   const getTotalPrice = () => {
-    const base       = calculatePrice();
+    const base = calculatePrice();
     const extraGuest = calculateExtraGuestCharges();
-    const addons     = calculateAddonsTotal();
-    const total      = base + extraGuest + addons;
+    const addons = calculateAddonsTotal();
+    const total = base + extraGuest + addons;
 
     console.log("💰 Price breakdown:", {
-      base, extraGuest, addons, total,
-      guestCount:  formData.guestCount,
+      base,
+      extraGuest,
+      addons,
+      total,
+      guestCount: formData.guestCount,
       maxCapacity: getMaxCapacityForPackage(),
-      package:     selectedPackage,
-      session:     selectedSession,
-      date:        formData.reservationDate,
+      package: selectedPackage,
+      session: selectedSession,
+      date: formData.reservationDate,
     });
 
     return total;
@@ -151,7 +157,9 @@ function Booking() {
   // ============================================
   useEffect(() => {
     if (!preselectedOasis || !preselectedPackage) {
-      const confirm = window.confirm("Please select a package first. Go to homepage?");
+      const confirm = window.confirm(
+        "Please select a package first. Go to homepage?",
+      );
       if (confirm) navigate("/");
     }
   }, [preselectedOasis, preselectedPackage, navigate]);
@@ -165,8 +173,9 @@ function Booking() {
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
-        const res  = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+        const API_BASE_URL =
+          process.env.REACT_APP_API_URL || "http://localhost:8080";
+        const res = await fetch(`${API_BASE_URL}/api/admin/sessions`);
         const data = await res.json();
         if (Array.isArray(data)) setSessionData(data);
       } catch (err) {
@@ -193,13 +202,13 @@ function Booking() {
 
     // Update extra-guest warning using API capacity
     if (name === "guestCount") {
-      const maxCap   = getMaxCapacityForPackage();
-      const guests   = parseInt(value) || 0;
+      const maxCap = getMaxCapacityForPackage();
+      const guests = parseInt(value) || 0;
       if (guests > maxCap && maxCap > 0) {
-        const extra    = guests - maxCap;
+        const extra = guests - maxCap;
         const extraCost = extra * 150;
         setExtraGuestWarning(
-          `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱150/guest = ₱${extraCost.toLocaleString()} will be added to your total.`
+          `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱150/guest = ₱${extraCost.toLocaleString()} will be added to your total.`,
         );
       } else {
         setExtraGuestWarning("");
@@ -211,8 +220,9 @@ function Booking() {
     const newErrors = {};
 
     if (step === 1) {
-      if (!formData.fullName?.trim()) newErrors.fullName = "Full name is required";
-      if (!formData.email?.trim())    newErrors.email    = "Email is required";
+      if (!formData.fullName?.trim())
+        newErrors.fullName = "Full name is required";
+      if (!formData.email?.trim()) newErrors.email = "Email is required";
       if (!formData.guestCount || formData.guestCount < 1)
         newErrors.guestCount = "Number of guests is required";
 
@@ -226,14 +236,21 @@ function Booking() {
     }
 
     if (step === 2) {
-      if (!formData.reservationDate) newErrors.reservationDate = "Reservation date is required";
-      if (!selectedSession)          newErrors.session = "Please select a session";
+      if (!formData.reservationDate)
+        newErrors.reservationDate = "Reservation date is required";
+      if (!selectedSession) newErrors.session = "Please select a session";
     }
 
     if (step === 3) {
-      if (!formData.paymentMethod) newErrors.paymentMethod = "Please select a payment method";
-      if (!formData.paymentType)   newErrors.paymentType   = "Please select a payment type";
-      if (formData.paymentMethod && formData.paymentMethod !== "cash" && !formData.paymentProof)
+      if (!formData.paymentMethod)
+        newErrors.paymentMethod = "Please select a payment method";
+      if (!formData.paymentType)
+        newErrors.paymentType = "Please select a payment type";
+      if (
+        formData.paymentMethod &&
+        formData.paymentMethod !== "cash" &&
+        !formData.paymentProof
+      )
         newErrors.paymentProof = "Please upload payment proof";
     }
 
@@ -246,7 +263,10 @@ function Booking() {
 
   const handleNext = () => {
     if (step === 1 && !infoConfirmed) {
-      setErrors({ ...errors, confirmInfo: "Please confirm your information first" });
+      setErrors({
+        ...errors,
+        confirmInfo: "Please confirm your information first",
+      });
       return;
     }
     if (validateStep()) {
@@ -260,8 +280,16 @@ function Booking() {
     window.scrollTo(0, 0);
   };
 
-  const handleViewBookings    = () => { setShowPendingModal(false); setShowLimitModal(false); navigate("/my-bookings"); };
-  const handleDoubleBookingClose = () => { setShowDoubleBookingModal(false); setStep(2); window.scrollTo(0, 0); };
+  const handleViewBookings = () => {
+    setShowPendingModal(false);
+    setShowLimitModal(false);
+    navigate("/my-bookings");
+  };
+  const handleDoubleBookingClose = () => {
+    setShowDoubleBookingModal(false);
+    setStep(2);
+    window.scrollTo(0, 0);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -269,39 +297,52 @@ function Booking() {
     setIsSubmitting(true);
 
     try {
-      const mapPaymentMethod = (m) => ({
-        cash: "Cash", gcash: "GCash", maya: "Maya", seabank: "SeaBank", gotyme: "GoTyme",
-      }[m] || m);
+      const mapPaymentMethod = (m) =>
+        ({
+          cash: "Cash",
+          gcash: "GCash",
+          maya: "Maya",
+          seabank: "SeaBank",
+          gotyme: "GoTyme",
+        })[m] || m;
 
       const fd = new FormData();
-      fd.append("customerName",    formData.fullName);
+      fd.append("customerName", formData.fullName);
       fd.append("customerContact", formData.phone);
-      fd.append("customerEmail",   formData.email);
-      fd.append("oasis",           selectedOasis);
-      fd.append("package",         selectedPackage);
-      fd.append("session",         selectedSession);
-      fd.append("bookingDate",     formData.reservationDate);
-      fd.append("pax",             Number(formData.guestCount));
-      fd.append("totalPrice",      getTotalPrice());
-      fd.append("downpayment",     getDownpayment());
-      fd.append("paymentType",     formData.paymentType);
-      fd.append("paymentMethod",   mapPaymentMethod(formData.paymentMethod));
+      fd.append("customerEmail", formData.email);
+      fd.append("oasis", selectedOasis);
+      fd.append("package", selectedPackage);
+      fd.append("session", selectedSession);
+      fd.append("bookingDate", formData.reservationDate);
+      fd.append("pax", Number(formData.guestCount));
+      fd.append("totalPrice", getTotalPrice());
+      fd.append("downpayment", getDownpayment());
+      fd.append("paymentType", formData.paymentType);
+      fd.append("paymentMethod", mapPaymentMethod(formData.paymentMethod));
       fd.append("specialRequests", formData.specialRequests || "");
-      fd.append("addons",          JSON.stringify(selectedAddons || {}));
-      if (formData.paymentProof) fd.append("paymentProof", formData.paymentProof);
+      fd.append("addons", JSON.stringify(selectedAddons || {}));
+      if (formData.paymentProof)
+        fd.append("paymentProof", formData.paymentProof);
 
-      console.log("📤 Submitting booking — total:", getTotalPrice(), "down:", getDownpayment());
+      console.log(
+        "📤 Submitting booking — total:",
+        getTotalPrice(),
+        "down:",
+        getDownpayment(),
+      );
 
       const result = await createBooking(fd);
 
       if (result.booking) {
         setBookingDetails({
-          bookingId:   result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase(),
-          oasis:       selectedOasis,
-          package:     selectedPackage,
-          session:     selectedSession,
-          checkIn:     new Date(formData.reservationDate).toLocaleDateString(),
-          guests:      formData.guestCount,
+          bookingId:
+            result.booking.bookingReference ||
+            result.booking._id?.slice(-6).toUpperCase(),
+          oasis: selectedOasis,
+          package: selectedPackage,
+          session: selectedSession,
+          checkIn: new Date(formData.reservationDate).toLocaleDateString(),
+          guests: formData.guestCount,
           totalAmount: getTotalPrice(),
           downpayment: getDownpayment(),
           paymentType: formData.paymentType,
@@ -311,13 +352,20 @@ function Booking() {
         alert(result.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
-      const msg    = error?.data?.message || error?.message || "Failed to submit booking.";
+      const msg =
+        error?.data?.message || error?.message || "Failed to submit booking.";
       const status = error?.status;
       if (status === 409 || msg.includes("already booked")) {
         setShowDoubleBookingModal(true);
-      } else if (msg.includes("pending booking") || msg.includes("complete your payment first")) {
+      } else if (
+        msg.includes("pending booking") ||
+        msg.includes("complete your payment first")
+      ) {
         setShowPendingModal(true);
-      } else if (msg.includes("2 upcoming bookings") || msg.includes("booking limit")) {
+      } else if (
+        msg.includes("2 upcoming bookings") ||
+        msg.includes("booking limit")
+      ) {
         setShowLimitModal(true);
       } else if (!msg.includes("already have a booking on this date")) {
         alert(msg);
@@ -329,9 +377,9 @@ function Booking() {
 
   // Derived values passed to child components
   const pricePerNight = calculatePrice();
-  const totalPrice    = getTotalPrice();
-  const nights        = calculateNights();
-  const downpayment   = getDownpayment();
+  const totalPrice = getTotalPrice();
+  const nights = calculateNights();
+  const downpayment = getDownpayment();
 
   // ============================================
   // GUARD: no package selected
@@ -344,7 +392,9 @@ function Booking() {
           <div className="booking-hero-content">
             <h1>No Package Selected</h1>
             <p>Please select a package from our Oasis pages first.</p>
-            <a href="/" className="hero-btn">Go to Homepage</a>
+            <a href="/" className="hero-btn">
+              Go to Homepage
+            </a>
           </div>
         </div>
         <Footer />
@@ -360,7 +410,9 @@ function Booking() {
         <div className="booking-hero-content">
           <span className="hero-badge">Secure Your Stay</span>
           <h1>Complete Your Reservation</h1>
-          <p>{selectedOasis} - {selectedPackage}</p>
+          <p>
+            {selectedOasis} - {selectedPackage}
+          </p>
         </div>
       </div>
 
@@ -384,7 +436,6 @@ function Booking() {
           <div className="booking-form-wrapper">
             <StepIndicator currentStep={step} />
             <form className="booking-form" onSubmit={handleSubmit}>
-
               {step === 1 && (
                 <>
                   <div className="selected-info">
@@ -408,7 +459,9 @@ function Booking() {
                     selectedPackage={selectedPackage}
                   />
                   {errors.confirmInfo && (
-                    <span className="error-message confirm-error">{errors.confirmInfo}</span>
+                    <span className="error-message confirm-error">
+                      {errors.confirmInfo}
+                    </span>
                   )}
                 </>
               )}
@@ -431,6 +484,7 @@ function Booking() {
                 <>
                   <AddonsSelector
                     packageData={currentPackage}
+                    selectedSession={selectedSession} // ← ADD THIS LINE
                     onAddonsChange={setSelectedAddons}
                   />
                   <PaymentStep
@@ -464,7 +518,11 @@ function Booking() {
 
               <div className="form-navigation">
                 {step > 1 && (
-                  <button type="button" className="btn-prev" onClick={handlePrev}>
+                  <button
+                    type="button"
+                    className="btn-prev"
+                    onClick={handlePrev}
+                  >
                     <i className="fas fa-arrow-left"></i> Back
                   </button>
                 )}
@@ -478,11 +536,20 @@ function Booking() {
                     Continue <i className="fas fa-arrow-right"></i>
                   </button>
                 ) : (
-                  <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                    {isSubmitting
-                      ? <><i className="fas fa-spinner fa-spin"></i> Processing...</>
-                      : <><i className="fas fa-check-circle"></i> Confirm Booking</>
-                    }
+                  <button
+                    type="submit"
+                    className="btn-submit"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i> Processing...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-check-circle"></i> Confirm Booking
+                      </>
+                    )}
                   </button>
                 )}
               </div>
