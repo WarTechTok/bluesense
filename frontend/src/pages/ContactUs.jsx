@@ -159,7 +159,7 @@ function ContactUs() {
                   <i className="fas fa-clock"></i>
                   <div>
                     <h3>Operating Hours</h3>
-                    <p>Monday - Sunday: 8:00 AM - 10:00 PM</p>
+                    <p>Monday - Sunday: 6:00 AM - 8:00 PM</p>
                     <p>24/7 Customer Support</p>
                   </div>
                 </div>
