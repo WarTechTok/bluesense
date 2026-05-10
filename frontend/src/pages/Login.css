@@ -23,6 +23,35 @@
 
 
 
+/* Back to Home link */
+.back-to-home {
+  position: absolute;
+  top: 148px; /* logo top(32) + logo height(100) + gap(16) */
+  left: 40px;
+  z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.back-to-home i {
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.back-to-home:hover {
+  color: #3b82f6;
+}
+
+.back-to-home:hover i {
+  transform: translateX(-3px);
+}
+
 /* Main Content */
 .login-content {
   display: flex;
@@ -383,6 +412,14 @@
     top: 20px;
     left: 20px;
     margin-bottom: 10px;
+  }
+
+  .back-to-home {
+    position: relative;
+    top: auto;
+    left: 20px;
+    margin-bottom: 8px;
+    display: inline-flex;
   }
   
   .login-logo {

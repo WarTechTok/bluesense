@@ -109,6 +109,10 @@ function Login() {
           className="login-logo"
         />
       </Link>
+      <Link to="/" className="back-to-home">
+        <i className="fa-solid fa-arrow-left" />
+        Back to Home
+      </Link>
 
       <div className="login-content">
         {/* Left side - Promotional */}
