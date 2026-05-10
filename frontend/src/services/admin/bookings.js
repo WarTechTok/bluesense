@@ -40,8 +40,12 @@ export const createBooking = async (bookingData) => {
     const res = await bookingsApiClient.post('/bookings', bookingData);
     return res.data;
   } catch (error) {
-    console.error('Error creating booking:', error);
-    throw error;
+    const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+    const fullError = new Error(errorMessage);
+    fullError.status = error.response?.status;
+    fullError.responseData = error.response?.data;
+    console.error('Error creating booking:', fullError);
+    throw fullError;
   }
 };
 

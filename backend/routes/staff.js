@@ -74,14 +74,15 @@ router.get('/debug/verify-token', authenticate, (req, res) => {
 });
 
 // ============================================
-// GET ALL STAFF - retrieve all staff accounts (Admin only)
+// GET ALL STAFF - retrieve all staff accounts (Admin and Staff/Receptionist)
+// Used by: Admin dashboard, Receptionist for recording inventory usage
 // ============================================
-router.get('/', authenticate, authorize('admin'), staffController.getAllStaff);
+router.get('/', authenticate, authorize('admin', 'staff'), staffController.getAllStaff);
 
 // ============================================
-// GET STAFF BY ID - retrieve staff member details (Admin only)
+// GET STAFF BY ID - retrieve staff member details (Admin and Staff/Receptionist)
 // ============================================
-router.get('/:id', authenticate, authorize('admin'), staffController.getStaffById);
+router.get('/:id', authenticate, authorize('admin', 'staff'), staffController.getStaffById);
 
 // ============================================
 // CREATE STAFF ACCOUNT - add new staff member (Admin only)
