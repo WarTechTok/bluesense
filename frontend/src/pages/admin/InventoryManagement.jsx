@@ -86,11 +86,19 @@ const InventoryManagement = () => {
   };
 
   const handleOpenModal = (item = null) => {
-    if (userRole !== 'admin') {
-      showConfirmationModal('Access Denied', 'Only administrators can create or edit inventory items.', null, 'OK');
-      return;
-    }
-    tEditingItem(null);
+    if (item) {
+      setEditingItem(item);
+      setFormData({
+        item: item.item,
+        quantity: item.quantity,
+        unit: item.unit,
+        lowStockAlert: item.lowStockAlert,
+        price: item.price,
+        arrivalDate: item.arrivalDate,
+        expirationDate: item.expirationDate
+      });
+    } else {
+      setEditingItem(null);
       setFormData({
         item: '',
         quantity: '',
@@ -166,11 +174,11 @@ const InventoryManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    if (userRole !== 'admin') {
-      showConfirmationModal('Access Denied', 'Only administrators can delete inventory items.', null, 'OK');
-      return;
-    }
-    
+    showConfirmationModal(
+      'Delete Item',
+      'Are you sure you want to delete this inventory item?',
+      async () => {
+        try {
           await adminApi.deleteInventoryItem(id);
           fetchInventory();
           showConfirmationModal('Success', 'Item deleted successfully!', null, 'OK');
