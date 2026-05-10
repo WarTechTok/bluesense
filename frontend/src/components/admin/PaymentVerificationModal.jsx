@@ -258,7 +258,7 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
             onClick={handleVerifyClick}
             disabled={isVerifying || booking.paymentStatus === 'Paid'}
           >
-            {isVerifying ? 'Verifying...' : booking.paymentStatus === 'Partial' ? 'Verify Final Payment' : 'Verify & Confirm'}
+            {isVerifying ? 'Verifying...' : booking.paymentType === 'downpayment' && booking.paymentStatus === 'Partial' ? 'Verify Final Payment' : booking.paymentType === 'downpayment' ? 'Verify Downpayment' : 'Verify & Confirm'}
           </button>
         </div>
       </div>
