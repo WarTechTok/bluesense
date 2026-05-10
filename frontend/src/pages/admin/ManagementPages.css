@@ -285,6 +285,10 @@
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
+  justify-items: center;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .stat-card {
@@ -295,6 +299,8 @@
   display: flex;
   gap: 12px;
   transition: all 0.2s ease;
+  width: 100%;
+  max-width: 260px;
 }
 
 .stat-card:hover {
