@@ -65,11 +65,14 @@ const PoolMonitoring = () => {
     }
   }, [selectedOasis]);
 
-  // Fetch staff list
+  // Fetch staff list — only Housekeepers can be assigned to pool monitoring
   const fetchStaff = useCallback(async () => {
     try {
       const staffData = await adminApi.getAllStaff();
-      setStaff(staffData);
+      const housekeepers = staffData.filter(
+        (s) => s.position === "Housekeeper" || s.role === "housekeeper"
+      );
+      setStaff(housekeepers);
     } catch (error) {
       console.error("Failed to fetch staff:", error);
     }
