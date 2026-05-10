@@ -121,27 +121,24 @@ const whyChooseUs = [
 const testimonials = [
   {
     id: 1,
-    name: "Maria Reyes",
-    location: "Manila",
+    name: "Ms. Pia",
     rating: 5,
-    text: "Amazing experience at Oasis 1! The pool with jacuzzi was a hit with the kids. Very accommodating staff. Will definitely come back!",
-    date: "March 2024",
+    text: "Experience was great, They were accomodating and helpful lalo na kapag may questions and requests kami. The pool was clean, also the rooms. Hoping makabalik kami!",
+    date: "March 2026",
   },
   {
     id: 2,
-    name: "John Santos",
-    location: "Laguna",
+    name: "Ma'am Joyce",
     rating: 5,
-    text: "Perfect venue for our company outing. Oasis 2 had plenty of space for 50+ people. The karaoke was a blast! Highly recommended.",
-    date: "February 2024",
+    text: "Thank you po ulit sa super affordable and nice place po. Very recommended po ang place since it's super accessible po.",
+    date: "September 2025",
   },
   {
     id: 3,
-    name: "Catherine Lee",
-    location: "Quezon City",
-    rating: 4,
-    text: "Beautiful place! The family room was clean and comfortable. Staff was very responsive to our requests. Great value for money.",
-    date: "January 2024",
+    name: "Ma'am Lhei",
+    rating: 5,
+    text: "Thank you so much po sobrang nag enioy po kaming Lahat sa Year End Party namin. sulit po ang bait pa ni Mam.",
+    date: "December 2025",
   },
 ];
 

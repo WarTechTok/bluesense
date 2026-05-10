@@ -14,7 +14,12 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_PER_WINDOW = 3;
 
 function rateLimit(req, res, next) {
-  const ip = req.ip || req.connection.remoteAddress;
+  // x-forwarded-for can be a comma-separated list of proxies —
+  // the first entry is always the original client IP.
+  const forwarded = req.headers['x-forwarded-for'];
+  const ip = (forwarded ? forwarded.split(',')[0] : null)
+    || req.ip
+    || req.connection.remoteAddress;
   const now = Date.now();
 
   if (!submissionLog.has(ip)) {
