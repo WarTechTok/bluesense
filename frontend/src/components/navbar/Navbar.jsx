@@ -125,7 +125,19 @@ function Navbar() {
     setIsOpen(false);
   };
 
-  const confirmLogout = () => {
+  const stopESP32 = async () => {
+    try {
+      await fetch("https://bluesense.onrender.com/api/readings/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.warn("stopESP32 failed (non-blocking):", err);
+    }
+  };
+
+  const confirmLogout = async () => {
+    await stopESP32();
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUserRole(null);

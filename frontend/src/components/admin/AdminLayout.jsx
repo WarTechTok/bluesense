@@ -86,7 +86,19 @@ const AdminLayout = ({ children }) => {
     { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/admin/reports' },
   ];
 
-  const handleLogout = () => {
+  const stopESP32 = async () => {
+    try {
+      await fetch("https://bluesense.onrender.com/api/readings/stop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      console.warn("stopESP32 failed (non-blocking):", err);
+    }
+  };
+
+  const handleLogout = async () => {
+    await stopESP32();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
