@@ -128,7 +128,9 @@ const MaintenanceManagement = () => {
         });
         return;
       }
-      if (!formData.amount || formData.amount <= 0) {
+      
+      const amount = parseFloat(formData.amount);
+      if (!amount || amount <= 0) {
         setMessageModal({
           isOpen: true,
           type: 'error',
@@ -138,8 +140,15 @@ const MaintenanceManagement = () => {
         return;
       }
 
+      // Prepare data with proper number parsing
+      const dataToSend = {
+        ...formData,
+        amount: amount,
+        laborHours: parseFloat(formData.laborHours) || 0
+      };
+
       if (editingRecord) {
-        await adminApi.updateMaintenance(editingRecord._id, formData);
+        await adminApi.updateMaintenance(editingRecord._id, dataToSend);
         setMessageModal({
           isOpen: true,
           type: 'success',
@@ -147,7 +156,7 @@ const MaintenanceManagement = () => {
           message: 'Maintenance record updated successfully!'
         });
       } else {
-        await adminApi.createMaintenance(formData);
+        await adminApi.createMaintenance(dataToSend);
         setMessageModal({
           isOpen: true,
           type: 'success',
