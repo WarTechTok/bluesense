@@ -22,7 +22,7 @@ exports.getAllSales = async (req, res) => {
     // Filter to only include confirmed or completed bookings (both represent received revenue)
     const completedSales = sales.filter(sale => {
       if (sale.booking) {
-        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+        return sale.booking.status === 'Completed';
       }
       return true; // Keep reservation sales (no booking status to check)
     });
@@ -70,7 +70,7 @@ exports.getDailySales = async (req, res) => {
     // Filter to only include confirmed or completed bookings (both represent received revenue)
     const completedSales = dailySales.filter(sale => {
       if (sale.booking) {
-        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+        return sale.booking.status === 'Completed';
       }
       return true; // Keep reservation sales
     });
@@ -116,7 +116,7 @@ exports.getWeeklySales = async (req, res) => {
     // Filter to only include confirmed or completed bookings (both represent received revenue)
     const completedSales = weeklySales.filter(sale => {
       if (sale.booking) {
-        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+        return sale.booking.status === 'Completed';
       }
       return true; // Keep reservation sales
     });
@@ -163,7 +163,7 @@ exports.getMonthlySales = async (req, res) => {
     // Filter to only include confirmed or completed bookings (both represent received revenue)
     const completedSales = monthlySales.filter(sale => {
       if (sale.booking) {
-        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+        return sale.booking.status === 'Completed';
       }
       return true; // Keep reservation sales
     });
@@ -222,7 +222,7 @@ exports.getSalesByDateRange = async (req, res) => {
     // Filter to only include confirmed or completed bookings
     const completedSales = salesInRange.filter(sale => {
       if (sale.booking) {
-        return sale.booking.status === 'Confirmed' || sale.booking.status === 'Completed';
+        return sale.booking.status === 'Completed';
       }
       return true;
     });

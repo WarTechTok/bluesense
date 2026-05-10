@@ -578,7 +578,7 @@ const updateBookingStatus = async (req, res) => {
     });
 
     // Create sale record when booking is confirmed or completed (when payment is received)
-    if ((status === "Completed" || status === "Confirmed") && booking.totalAmount) {
+    if (status === "Completed" && booking.totalAmount) {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale) {
         const sale = new Sale({

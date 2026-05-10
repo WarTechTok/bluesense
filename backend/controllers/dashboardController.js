@@ -32,10 +32,10 @@ exports.getDashboardStats = async (req, res) => {
 
     // Calculate total revenue (from bookings - confirmed and completed)
     const allBookings = await Booking.find({
-      status: { $in: ['Confirmed', 'Completed'] }
+      status: 'Completed'
     });
 
-    console.log('📊 All Bookings (Confirmed/Completed):', allBookings.length);
+    console.log('📊 All Bookings (Completed only):', allBookings.length);
     console.log('Bookings:', allBookings.map(b => ({
       id: b._id,
       status: b.status,
@@ -55,7 +55,7 @@ exports.getDashboardStats = async (req, res) => {
 
     const monthlyBookings = await Booking.find({
       bookingDate: { $gte: currentMonth },
-      status: { $in: ['Confirmed', 'Completed'] }
+      status: 'Completed'
     });
 
     console.log('📊 Monthly Bookings:', monthlyBookings.length);
