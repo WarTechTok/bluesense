@@ -74,11 +74,11 @@ const RoomManagement = () => {
   };
 
   const handleOpenModal = (room = null) => {
-    if (userRole !== 'admin') {
-      showConfirmationModal('Access Denied', 'Only administrators can create or edit rooms.', null, 'OK');
-      return;
-    }
-    capacity: room.capacity,
+    if (room) {
+      setEditingRoom(room);
+      setFormData({
+        name: room.name,
+        capacity: room.capacity,
         description: room.description,
         status: room.status,
         oasis: room.oasis || 'Oasis 1',
