@@ -5,25 +5,14 @@
 // ============================================
 
 import React, { useState, useEffect } from 'react';
-import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as addonApi from '../../services/admin/addons';
 import './AddOnManagement.css';
 
 const AddOnManagement = () => {
   const [addons, setAddons] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState(null); // Track which addon is being deleted
   const [editingAddon, setEditingAddon] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [confirmationModal, setConfirmationModal] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: null,
-    confirmText: 'Confirm',
-    cancelText: 'Cancel'
-  });
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -44,46 +33,32 @@ const AddOnManagement = () => {
       setAddons(data);
     } catch (error) {
       console.error('Error fetching add-ons:', error);
-      setErrorMessage(error.message || 'Failed to load add-ons');
-      setTimeout(() => setErrorMessage(''), 3000);
+      alert('Failed to load add-ons');
     } finally {
       setLoading(false);
     }
   };
 
-  const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
-    setConfirmationModal({
-      isOpen: true,
-      title,
-      message,
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        if (onConfirm) onConfirm();
-      },
-      confirmText,
-      cancelText
-    });
-  };
-
   const handleSubmit = async () => {
     if (!formData.name || formData.price <= 0) {
-      showConfirmationModal('Validation Error', 'Name and price are required', null, 'OK');
+      alert('Name and price are required');
       return;
     }
     
     try {
       if (editingAddon) {
         await addonApi.updateAddon(editingAddon._id, formData);
+        alert('Add-on updated successfully!');
       } else {
         await addonApi.createAddon(formData);
+        alert('Add-on created successfully!');
       }
       setShowModal(false);
       fetchAddons();
       resetForm();
-      showConfirmationModal('Success', `Add-on ${editingAddon ? 'updated' : 'created'} successfully!`, null, 'OK');
     } catch (error) {
       console.error('Error saving add-on:', error);
-      showConfirmationModal('Error', 'Error saving add-on: ' + (error.message || 'Unknown error'), null, 'OK');
+      alert(error.response?.data?.message || 'Error saving add-on');
     }
   };
 
@@ -100,37 +75,20 @@ const AddOnManagement = () => {
     setShowModal(true);
   };
 
+  // ✅ SIMPLE WORKING DELETE - SAME AS PACKAGEMANAGEMENT
   const handleDelete = async (addon) => {
-    showConfirmationModal(
-      'Delete Add-on',
-      `Are you sure you want to delete "${addon.name}"? This action cannot be undone.`,
-      async () => {
-        setDeletingId(addon._id);
-        setErrorMessage('');
-        
-        // Optimistic update - remove from UI immediately
-        const previousAddons = [...addons];
-        setAddons(addons.filter(a => a._id !== addon._id));
-        
-        try {
-          await addonApi.deleteAddon(addon._id);
-          // Re-fetch to ensure consistency with server
-          await fetchAddons();
-          showConfirmationModal('Success', `"${addon.name}" deleted successfully!`, null, 'OK');
-        } catch (error) {
-          // Restore on error
-          setAddons(previousAddons);
-          const errorMsg = error.response?.data?.message || error.message || 'Failed to delete add-on';
-          setErrorMessage(errorMsg);
-          showConfirmationModal('Error', `Failed to delete "${addon.name}": ${errorMsg}`, null, 'OK');
-          console.error('Error deleting add-on:', error);
-        } finally {
-          setDeletingId(null);
-        }
-      },
-      'Yes, Delete',
-      'Cancel'
-    );
+    if (!window.confirm(`Are you sure you want to delete "${addon.name}"?`)) {
+      return;
+    }
+    
+    try {
+      await addonApi.deleteAddon(addon._id);
+      fetchAddons(); // Refresh the list
+      alert('Add-on deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting add-on:', error);
+      alert(error.response?.data?.message || 'Error deleting add-on');
+    }
   };
 
   const resetForm = () => {
@@ -156,7 +114,6 @@ const AddOnManagement = () => {
 
   return (
     <div className="addon-management">
-      {/* Hero Section */}
       <div className="addon-hero">
         <div className="addon-hero-content">
           <span className="hero-badge">Admin Panel</span>
@@ -166,22 +123,12 @@ const AddOnManagement = () => {
       </div>
 
       <div className="addon-container">
-        {/* Error Banner */}
-        {errorMessage && (
-          <div className="error-banner">
-            <i className="fas fa-exclamation-circle"></i>
-            {errorMessage}
-          </div>
-        )}
-
-        {/* Add Button */}
         <div className="addon-actions-bar">
           <button className="btn-add-addon" onClick={() => { resetForm(); setShowModal(true); }}>
             <i className="fas fa-plus"></i> Add New Add-on
           </button>
         </div>
 
-        {/* Add-ons Grid */}
         {loading ? (
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -190,7 +137,7 @@ const AddOnManagement = () => {
         ) : (
           <div className="addons-grid">
             {addons.map((addon) => (
-              <div key={addon._id} className={`addon-card ${!addon.isActive ? 'inactive' : ''} ${deletingId === addon._id ? 'deleting' : ''}`}>
+              <div key={addon._id} className={`addon-card ${!addon.isActive ? 'inactive' : ''}`}>
                 <div className="addon-header">
                   <div className="addon-icon">
                     <i className="fas fa-cube"></i>
@@ -200,23 +147,11 @@ const AddOnManagement = () => {
                     <p className="addon-description">{addon.description || 'No description'}</p>
                   </div>
                   <div className="addon-actions">
-                    <button 
-                      className="btn-icon edit" 
-                      onClick={() => handleEdit(addon)}
-                      disabled={deletingId === addon._id}
-                    >
+                    <button className="btn-icon edit" onClick={() => handleEdit(addon)}>
                       <i className="fas fa-edit"></i>
                     </button>
-                    <button 
-                      className={`btn-icon delete ${deletingId === addon._id ? 'loading' : ''}`} 
-                      onClick={() => handleDelete(addon)}
-                      disabled={deletingId === addon._id}
-                    >
-                      {deletingId === addon._id ? (
-                        <i className="fas fa-spinner fa-spin"></i>
-                      ) : (
-                        <i className="fas fa-trash"></i>
-                      )}
+                    <button className="btn-icon delete" onClick={() => handleDelete(addon)}>
+                      <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
@@ -256,33 +191,17 @@ const AddOnManagement = () => {
               <form className="addon-form">
                 <div className="form-group">
                   <label>Add-on Name *</label>
-                  <input 
-                    type="text" 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                    placeholder="e.g., Karaoke, Stove" 
-                  />
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Karaoke, Stove" />
                 </div>
 
                 <div className="form-group">
                   <label>Description</label>
-                  <textarea 
-                    value={formData.description} 
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })} 
-                    rows="2" 
-                    placeholder="Brief description" 
-                  />
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} rows="2" placeholder="Brief description" />
                 </div>
 
                 <div className="form-group">
                   <label>Price (₱) *</label>
-                  <input 
-                    type="number" 
-                    value={formData.price} 
-                    onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })} 
-                    min="0" 
-                    step="100" 
-                  />
+                  <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })} min="0" step="100" />
                 </div>
 
                 <div className="form-group">
@@ -309,12 +228,7 @@ const AddOnManagement = () => {
 
                 <div className="form-group">
                   <label>Display Order</label>
-                  <input 
-                    type="number" 
-                    value={formData.displayOrder} 
-                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 1 })} 
-                    min="1" 
-                  />
+                  <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 1 })} min="1" />
                 </div>
 
                 <div className="form-group">
@@ -332,17 +246,6 @@ const AddOnManagement = () => {
             </div>
           </div>
         </div>
-      )}
-
-      {confirmationModal.isOpen && (
-        <ConfirmationModal
-          title={confirmationModal.title}
-          message={confirmationModal.message}
-          onConfirm={confirmationModal.onConfirm}
-          onCancel={() => setConfirmationModal(prev => ({ ...prev, isOpen: false }))}
-          confirmText={confirmationModal.confirmText}
-          cancelText={confirmationModal.cancelText}
-        />
       )}
     </div>
   );
