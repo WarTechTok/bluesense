@@ -234,18 +234,10 @@ const BookingManagement = () => {
       return actions;
     }
 
-    // Show "Verify Downpayment" for bookings with pending downpayment
-    if (booking.paymentType === "downpayment" && booking.paymentStatus === "Pending") {
+    // Show "Verify Downpayment" for bookings with downpayment and pending/partial payment
+    if (booking.paymentType === "downpayment" && (booking.paymentStatus === "Pending" || booking.paymentStatus === "Partial")) {
       actions.push({
         label: "Verify Downpayment",
-        icon: "✓",
-        onClick: () => handleOpenPaymentVerification(booking),
-        className: "btn-outline-success",
-      });
-    } else if (booking.paymentType === "downpayment" && booking.paymentStatus === "Partial") {
-      // Show "Verify Final Payment" when downpayment was received but final payment pending
-      actions.push({
-        label: "Verify Final Payment",
         icon: "✓",
         onClick: () => handleOpenPaymentVerification(booking),
         className: "btn-outline-success",
