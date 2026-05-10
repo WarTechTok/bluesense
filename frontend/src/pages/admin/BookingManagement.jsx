@@ -242,6 +242,14 @@ const BookingManagement = () => {
         onClick: () => handleOpenPaymentVerification(booking),
         className: "btn-outline-success",
       });
+    } else if (booking.paymentType === "downpayment" && booking.paymentStatus === "Partial") {
+      // Show "Verify Final Payment" when downpayment was received but final payment pending
+      actions.push({
+        label: "Verify Final Payment",
+        icon: "✓",
+        onClick: () => handleOpenPaymentVerification(booking),
+        className: "btn-outline-success",
+      });
     } else if (booking.paymentStatus !== "Paid") {
       actions.push({
         label: "View Payment",
