@@ -48,9 +48,16 @@ export const getPriceFromPackage = (packageObj, session, date, pax = 1) => {
     return 0;
   }
 
-  // Regular packages: pricing[session].weekday / pricing[session].weekend
+  // Regular packages: pricing[session] is normally { weekday, weekend }
+  // but packages stored before the schema change may be a flat number.
+  // Handle both so ALL packages — Oasis 1 and Oasis 2 — display correctly.
   const sessionPricing = pricing[session];
-  if (!sessionPricing) return 0;
+  if (sessionPricing === null || sessionPricing === undefined) return 0;
+
+  // Flat number (e.g. { "Day": 7500 }) — same rate regardless of day type
+  if (typeof sessionPricing === 'number') return sessionPricing;
+
+  // Nested object (e.g. { weekday: 7500, weekend: 8500 })
   return sessionPricing[dayType] || sessionPricing.weekday || 0;
 };
 
