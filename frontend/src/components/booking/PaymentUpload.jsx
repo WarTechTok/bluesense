@@ -4,23 +4,32 @@ import React, { useState } from 'react';
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpayment }) {
+function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpayment, onAlert }) {
   const [proofFile, setProofFile] = useState(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [uploading, setUploading] = useState(false);
+
+  // Helper to show alerts as modals if parent provides handler, otherwise use alert
+  const showAlert = (title, message) => {
+    if (onAlert) {
+      onAlert(title, message);
+    } else {
+      alert(message);
+    }
+  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type.startsWith('image/')) {
       setProofFile(file);
     } else {
-      alert('Please upload an image file (PNG, JPG, JPEG)');
+      showAlert('Invalid File', 'Please upload an image file (PNG, JPG, JPEG)');
     }
   };
 
   const handleUpload = async () => {
     if (!proofFile && !referenceNumber) {
-      alert('Please provide either payment proof image or reference number');
+      showAlert('Incomplete', 'Please provide either payment proof image or reference number');
       return;
     }
 
@@ -41,13 +50,13 @@ function PaymentUpload({ paymentMethod, onPaymentProofUpload, totalPrice, downpa
       const data = await response.json();
       if (response.ok) {
         onPaymentProofUpload(data.payment);
-        alert('Payment proof uploaded successfully!');
+        showAlert('Success', 'Payment proof uploaded successfully!');
       } else {
-        alert(data.message || 'Upload failed');
+        showAlert('Upload Failed', data.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload payment proof');
+      showAlert('Error', 'Failed to upload payment proof');
     } finally {
       setUploading(false);
     }

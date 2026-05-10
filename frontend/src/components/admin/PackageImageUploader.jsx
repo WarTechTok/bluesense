@@ -8,7 +8,7 @@ import "./PackageImageUploader.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
-const PackageImageUploader = ({ images = [], onChange, packageId }) => {
+const PackageImageUploader = ({ images = [], onChange, packageId, onAlert }) => {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -17,13 +17,22 @@ const PackageImageUploader = ({ images = [], onChange, packageId }) => {
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Helper to show alerts as modals if parent provides handler, otherwise use alert
+  const showAlert = (title, message) => {
+    if (onAlert) {
+      onAlert(title, message);
+    } else {
+      alert(message);
+    }
+  };
+
   // ── Upload files to backend ──────────────────────────────
   const uploadFiles = useCallback(async (files) => {
     if (!files || files.length === 0) return;
 
     const remaining = 10 - images.length;
     if (remaining <= 0) {
-      alert("Maximum 10 images per package.");
+      showAlert("Upload Limit", "Maximum 10 images per package.");
       return;
     }
 
@@ -60,7 +69,7 @@ const PackageImageUploader = ({ images = [], onChange, packageId }) => {
       onChange(newImages);
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Image upload failed. Please try again.");
+      showAlert("Upload Error", "Image upload failed. Please try again.");
     } finally {
       setTimeout(() => {
         setUploading(false);

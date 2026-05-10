@@ -17,6 +17,12 @@ const { authenticate, authorize } = require('../middleware/role');
 router.get('/', authenticate, inventoryController.getAllInventory);
 
 // ============================================
+// GET LOW STOCK ALERTS - filter items below minimum threshold
+// MUST come BEFORE /:id route to avoid routing conflicts
+// ============================================
+router.get('/alerts/low-stock', authenticate, inventoryController.getLowStockItems);
+
+// ============================================
 // GET INVENTORY BY ID - retrieve item details
 // ============================================
 router.get('/:id', authenticate, inventoryController.getInventoryById);
@@ -37,13 +43,8 @@ router.put('/:id', authenticate, authorize('admin', 'staff'), inventoryControlle
 router.put('/:id/usage', authenticate, inventoryController.recordUsage);
 
 // ============================================
-// GET LOW STOCK ALERTS - filter items below minimum threshold
+// DELETE INVENTORY ITEM - remove supply/equipment (Admin or Staff/Receptionist)
 // ============================================
-router.get('/alerts/low-stock', authenticate, inventoryController.getLowStockItems);
-
-// ============================================
-// DELETE INVENTORY ITEM - remove supply/equipment (Admin only)
-// ============================================
-router.delete('/:id', authenticate, authorize('admin'), inventoryController.deleteInventoryItem);
+router.delete('/:id', authenticate, authorize('admin', 'staff'), inventoryController.deleteInventoryItem);
 
 module.exports = router;

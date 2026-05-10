@@ -3,7 +3,7 @@
 // ============================================
 // All room/pool management endpoints
 // READ operations for authenticated users
-// CREATE/UPDATE/DELETE operations for Admin only
+// CREATE/UPDATE/DELETE operations for Admin and Staff (Receptionist)
 
 const express = require('express');
 const router = express.Router();
@@ -17,7 +17,7 @@ const { uploadSingle } = require('../middleware/upload'); // memoryStorage — C
 // so Express doesn't treat "upload-image" as a room ID
 // POST /api/admin/rooms/upload-image
 // ============================================
-router.post('/upload-image', authenticate, authorize('admin'), uploadSingle('image'), roomController.uploadRoomImage);
+router.post('/upload-image', authenticate, authorize('admin', 'staff'), uploadSingle('image'), roomController.uploadRoomImage);
 
 // ============================================
 // GET ALL ROOMS - retrieve all available rooms/pools
@@ -30,14 +30,14 @@ router.get('/', authenticate, roomController.getAllRooms);
 router.get('/:id', authenticate, roomController.getRoomById);
 
 // ============================================
-// CREATE ROOM - add new room/pool (Admin only)
+// CREATE ROOM - add new room/pool (Admin or Staff/Receptionist)
 // ============================================
-router.post('/', authenticate, authorize('admin'), roomController.createRoom);
+router.post('/', authenticate, authorize('admin', 'staff'), roomController.createRoom);
 
 // ============================================
-// UPDATE ROOM - modify room/pool details (Admin only)
+// UPDATE ROOM - modify room/pool details (Admin or Staff/Receptionist)
 // ============================================
-router.put('/:id', authenticate, authorize('admin'), roomController.updateRoom);
+router.put('/:id', authenticate, authorize('admin', 'staff'), roomController.updateRoom);
 
 // ============================================
 // STAFF ASSIGNMENT ROUTES (Admin and Receptionist)
@@ -59,8 +59,8 @@ router.delete('/:id/remove-staff/:staffId', authenticate, authorize('admin', 'st
 router.get('/:id/staff', authenticate, roomController.getRoomStaff);
 
 // ============================================
-// DELETE ROOM - remove room/pool from system (Admin only)
+// DELETE ROOM - remove room/pool from system (Admin or Staff/Receptionist)
 // ============================================
-router.delete('/:id', authenticate, authorize('admin'), roomController.deleteRoom);
+router.delete('/:id', authenticate, authorize('admin', 'staff'), roomController.deleteRoom);
 
 module.exports = router;

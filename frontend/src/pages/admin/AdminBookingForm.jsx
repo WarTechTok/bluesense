@@ -29,6 +29,16 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const [selectedSession, setSelectedSession] = useState("");
   const [sessionData, setSessionData] = useState([]);
   const [selectedAddOns, setSelectedAddOns] = useState({});
+  const [alertModal, setAlertModal] = useState({
+    isOpen: false,
+    title: '',
+    message: ''
+  });
+
+  // Helper to show modal alerts
+  const showAlert = (title, message) => {
+    setAlertModal({ isOpen: true, title, message });
+  };
 
   const [formData, setFormData] = useState({
     customerName: "",
@@ -323,12 +333,12 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
     // Additional safety checks before submission
     if (!selectedPackage) {
-      alert("Package is required");
+      showAlert("Validation Error", "Package is required");
       return;
     }
     
     if (!selectedSession) {
-      alert("Session is required");
+      showAlert("Validation Error", "Session is required");
       return;
     }
 
@@ -357,13 +367,13 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
       // Validation
       if (!totalPrice || totalPrice === 0) {
-        alert("Unable to calculate total price. Please ensure all fields are filled correctly.");
+        showAlert("Calculation Error", "Unable to calculate total price. Please ensure all fields are filled correctly.");
         setIsSubmitting(false);
         return;
       }
 
       if (downpayment === undefined || downpayment === null) {
-        alert("Unable to calculate downpayment. Please check session data.");
+        showAlert("Calculation Error", "Unable to calculate downpayment. Please check session data.");
         setIsSubmitting(false);
         return;
       }
@@ -410,7 +420,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     } catch (error) {
       console.error("Error saving booking:", error);
       const errorMsg = error.message || error.toString();
-      alert(`Error saving booking:\n\n${errorMsg}`);
+      showAlert("Booking Error", `Error saving booking:\n\n${errorMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -848,6 +858,48 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
           </button>
         )}
       </div>
+
+      {/* Alert Modal */}
+      {alertModal.isOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '400px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)'
+          }}>
+            <h2 style={{ margin: '0 0 12px', color: '#1e293b' }}>{alertModal.title}</h2>
+            <p style={{ margin: '0 0 24px', color: '#64748b', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>{alertModal.message}</p>
+            <button
+              onClick={() => setAlertModal({ ...alertModal, isOpen: false })}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: '#0284c7',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
