@@ -5,9 +5,11 @@
 
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const { authenticate, authorize } = require('../middleware/role');
 const TaskAssignment = require('../models/TaskAssignment');
 const Staff = require('../models/Staff');
+const Room = require('../models/Room');
 const { sendEmail } = require('../services/emailService');
 
 // ============================================
@@ -88,6 +90,32 @@ router.put('/:taskId', authenticate, async (req, res) => {
 
     if (!updatedTask) {
       return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // ============================================
+    // AUTO-REMOVE STAFF FROM ROOM WHEN TASK ACCEPTED
+    // ============================================
+    // When staff accepts task (status changes to 'In Progress'), 
+    // automatically remove them from room's assignedStaff list
+    if (status === 'In Progress' && updatedTask.roomId) {
+      try {
+        const staffObjectId = new mongoose.Types.ObjectId(updatedTask.staffId);
+        
+        await Room.findByIdAndUpdate(
+          updatedTask.roomId,
+          {
+            $pull: {
+              assignedStaff: { staffId: staffObjectId }
+            }
+          },
+          { new: true }
+        );
+
+        console.log(`✅ Staff automatically removed from room assignment after accepting task`);
+      } catch (error) {
+        console.error('⚠️ Error removing staff from room after task acceptance:', error);
+        // Don't fail the entire operation if this fails
+      }
     }
 
     return res.status(200).json({

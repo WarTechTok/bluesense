@@ -74,11 +74,11 @@ const RoomManagement = () => {
   };
 
   const handleOpenModal = (room = null) => {
-    if (room) {
-      setEditingRoom(room);
-      setFormData({
-        name: room.name,
-        capacity: room.capacity,
+    if (userRole !== 'admin') {
+      showConfirmationModal('Access Denied', 'Only administrators can create or edit rooms.', null, 'OK');
+      return;
+    }
+    capacity: room.capacity,
         description: room.description,
         status: room.status,
         oasis: room.oasis || 'Oasis 1',
@@ -157,11 +157,11 @@ const RoomManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    showConfirmationModal(
-      'Delete Room',
-      'Are you sure you want to delete this room? This action cannot be undone.',
-      async () => {
-        try {
+    if (userRole !== 'admin') {
+      showConfirmationModal('Access Denied', 'Only administrators can delete rooms.', null, 'OK');
+      return;
+    }
+    
           await adminApi.deleteRoom(id);
           fetchRooms();
           showConfirmationModal('Success', 'Room deleted successfully!', null, 'OK');

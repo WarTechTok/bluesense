@@ -345,6 +345,32 @@ exports.updateTaskStatus = async (req, res) => {
     task.updatedAt = new Date();
     await task.save();
 
+    // ============================================
+    // AUTO-REMOVE STAFF FROM ROOM WHEN TASK ACCEPTED
+    // ============================================
+    // When staff accepts task (status changes to 'In Progress'), 
+    // automatically remove them from room's assignedStaff list
+    if (status === 'In Progress' && task.roomId) {
+      try {
+        const staffObjectId = new mongoose.Types.ObjectId(staffMongoId);
+        
+        const updatedRoom = await Room.findByIdAndUpdate(
+          task.roomId,
+          {
+            $pull: {
+              assignedStaff: { staffId: staffObjectId }
+            }
+          },
+          { new: true }
+        ).populate('assignedStaff.staffId', 'name email');
+
+        console.log(`✅ Staff ${staff.name} automatically removed from room assignment after accepting task`);
+      } catch (error) {
+        console.error('⚠️ Error removing staff from room after task acceptance:', error);
+        // Don't fail the entire operation if this fails
+      }
+    }
+
     // Create notification for admin when task is completed
     if (status === 'Completed') {
       // Get admin user

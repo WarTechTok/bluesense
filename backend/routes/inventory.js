@@ -3,8 +3,8 @@
 // ============================================
 // Pool cleaning supplies and equipment tracking
 // READ operations for authenticated users
-// Admin and Staff/Receptionist can CREATE/UPDATE items
-// Staff can RECORD USAGE
+// Admin and Staff/Receptionist can CREATE/UPDATE/DELETE items
+// Authenticated users can RECORD USAGE
 
 const express = require('express');
 const router = express.Router();
