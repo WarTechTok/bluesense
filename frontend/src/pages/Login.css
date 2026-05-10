@@ -401,6 +401,24 @@
   text-decoration: underline;
 }
 
+.back-to-home-bottom {
+  display: inline-block;
+  margin-top: 16px;
+  color: #6b7280;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.back-to-home-bottom i {
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+.back-to-home-bottom:hover {
+  color: #3b82f6;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .login-content {
