@@ -64,9 +64,12 @@ const RoomManagement = () => {
       isOpen: true,
       title,
       message,
-      onConfirm: () => {
-        setConfirmationModal(prev => ({ ...prev, isOpen: false }));
-        if (onConfirm) onConfirm();
+      onConfirm: async () => {
+        try {
+          if (onConfirm) await onConfirm();
+        } finally {
+          setConfirmationModal(prev => ({ ...prev, isOpen: false }));
+        }
       },
       confirmText,
       cancelText
