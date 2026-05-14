@@ -466,8 +466,8 @@ const BookingManagement = () => {
     }
 
     // ── Cancel ───────────────────────────────────────────────────────────
-    // Available for Pending, Confirmed. NOT for Checked-in (they're on-site).
-    if (status === "Pending" || status === "Confirmed") {
+    // Available for Pending only. Once Confirmed, the booking is committed.
+    if (status === "Pending") {
       actions.push({
         label: "Cancel",
         icon: "✕",
