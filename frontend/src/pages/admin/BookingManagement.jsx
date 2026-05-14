@@ -228,12 +228,12 @@ const BookingManagement = () => {
   const handleCheckIn = async (id) => {
     showConfirmationModal(
       "Check-in Customer",
-      "Confirm that the customer has arrived. Any remaining balance will be collected on-site. This will complete the booking.",
+      "Confirm that the customer has arrived at the resort. This will mark the booking as Checked-in.",
       async () => {
         try {
           await adminApi.checkIn(id);
           fetchBookings();
-          showConfirmationModal("Success", "Check-in successful! Booking marked as completed.", null, "OK");
+          showConfirmationModal("Success", "Customer checked in successfully!", null, "OK");
         } catch (error) {
           console.error("Error during check-in:", error);
           showConfirmationModal("Error", "Check-in failed: " + error.message, null, "OK");
@@ -244,10 +244,29 @@ const BookingManagement = () => {
     );
   };
 
+  const handleCheckOut = async (id) => {
+    showConfirmationModal(
+      "Check-out Customer",
+      "Confirm that the customer has left the resort. Any remaining balance will be collected on-site. This will complete the booking and record the sale.",
+      async () => {
+        try {
+          await adminApi.checkOut(id);
+          fetchBookings();
+          showConfirmationModal("Success", "Customer checked out. Booking completed!", null, "OK");
+        } catch (error) {
+          console.error("Error during check-out:", error);
+          showConfirmationModal("Error", "Check-out failed: " + error.message, null, "OK");
+        }
+      },
+      "Yes, Check-out",
+      "Cancel",
+    );
+  };
+
   const handleConfirmFullyPaid = async (id) => {
     showConfirmationModal(
       "Confirm Fully Paid",
-      "Confirm that the customer has paid the remaining balance online. The booking will be marked as Fully Paid and ready for check-in on the event date.",
+      "Confirm that the customer has paid the remaining balance online. The booking will be marked as Fully Paid.",
       async () => {
         try {
           await adminApi.verifyPayment(id);
@@ -263,20 +282,29 @@ const BookingManagement = () => {
     );
   };
 
+  // ── Action button logic ──────────────────────────────────────────────────
+  //
+  //  Status       │ Payment  │ Buttons
+  //  ─────────────┼──────────┼──────────────────────────────────────────────
+  //  Pending      │ Partial  │ Verify Downpayment · Cancel
+  //  Confirmed    │ Partial  │ Confirm Fully Paid · Check-in · Cancel
+  //  Confirmed    │ Paid     │ Check-in · Cancel
+  //  Checked-in   │ Partial  │ Check-out (pays remaining on-site)
+  //  Checked-in   │ Paid     │ Check-out
+  //  Completed    │ –        │ (none)
+  //  Cancelled    │ –        │ (none)
+  //
   const getActions = (booking) => {
     const actions = [];
-    const displayStatus = booking.displayStatus || booking.status;
+    const { status, paymentStatus } = booking;
 
-    // No actions for terminal states
-    if (booking.status === "Cancelled" || booking.status === "Completed" || displayStatus === "Completed") {
-      return actions;
-    }
+    // Terminal states — no actions
+    if (status === "Cancelled" || status === "Completed") return actions;
 
-    // ── STEP 1: Verify Downpayment ───────────────────────────────────────────
-    // Booking is still Pending — customer submitted a downpayment proof.
-    // Admin opens the payment proof modal, reviews it, and clicks Verify.
-    // Result: status → Confirmed, paymentStatus → Partial
-    if (booking.status === "Pending") {
+    // ── STEP 1: Verify Downpayment ───────────────────────────────────────
+    // Booking is Pending — customer submitted payment proof. Admin reviews
+    // it in the modal and clicks Verify → status becomes Confirmed, paymentStatus Partial.
+    if (status === "Pending") {
       actions.push({
         label: "Verify Downpayment",
         icon: "✓",
@@ -285,12 +313,12 @@ const BookingManagement = () => {
       });
     }
 
-    // ── STEP 2 (optional): Confirm Fully Paid — online advance payment ───────
+    // ── STEP 2 (optional): Confirm Fully Paid ───────────────────────────
     // Booking is Confirmed but customer pays remaining balance ONLINE before
-    // the event date (e.g. books May 20, pays remaining on May 19 via GCash).
-    // Admin clicks this to acknowledge it; check-in happens on event day.
-    // Result: paymentStatus → Paid  (verifyPayment handles Partial→Paid)
-    if (booking.status === "Confirmed" && booking.paymentStatus === "Partial") {
+    // the event date (e.g. books May 20, pays remaining May 19 via GCash).
+    // Admin clicks this to acknowledge; check-in still happens on event day.
+    // → paymentStatus becomes Paid via verifyPayment (handles Partial→Paid).
+    if (status === "Confirmed" && paymentStatus === "Partial") {
       actions.push({
         label: "Confirm Fully Paid",
         icon: "💳",
@@ -299,33 +327,46 @@ const BookingManagement = () => {
       });
     }
 
-    // ── STEP 3: Check-in ─────────────────────────────────────────────────────
-    // Only available once booking is Confirmed.
-    // • If paymentStatus is Paid  → customer already paid in full online → just complete.
-    // • If paymentStatus is Partial → customer pays remaining on-site → checkIn
-    //   controller promotes paymentStatus to Paid server-side before completing.
-    if (booking.status === "Confirmed") {
-      const label = booking.paymentStatus === "Paid"
-        ? "Check-in"
-        : "Check-in (Pay on-site)";
+    // ── STEP 3: Check-in ─────────────────────────────────────────────────
+    // Customer arrives at the resort. Moves to Checked-in.
+    // Available for all Confirmed bookings regardless of payment status.
+    if (status === "Confirmed") {
       actions.push({
-        label,
+        label: "Check-in",
         icon: "🏨",
         onClick: () => handleCheckIn(booking._id),
         className: "btn-outline-success",
       });
     }
 
-    // ── Cancel ───────────────────────────────────────────────────────────────
-    actions.push({
-      label: "Cancel",
-      icon: "✕",
-      onClick: () => handleCancel(booking._id),
-      className: "btn-outline-danger",
-    });
+    // ── STEP 4: Check-out ────────────────────────────────────────────────
+    // Customer leaves. Moves to Completed, creates Sale record.
+    // If payment is still Partial, the controller marks it Paid (on-site collection).
+    if (status === "Checked-in") {
+      const label = paymentStatus === "Partial"
+        ? "Check-out (collect ₱" + ((booking.totalAmount || 0) - (booking.downpayment || 0)).toLocaleString() + ")"
+        : "Check-out";
+      actions.push({
+        label,
+        icon: "🚪",
+        onClick: () => handleCheckOut(booking._id),
+        className: "btn-outline-success",
+      });
+    }
+
+    // ── Cancel ───────────────────────────────────────────────────────────
+    // Available for Pending, Confirmed. NOT for Checked-in (they're on-site).
+    if (status === "Pending" || status === "Confirmed") {
+      actions.push({
+        label: "Cancel",
+        icon: "✕",
+        onClick: () => handleCancel(booking._id),
+        className: "btn-outline-danger",
+      });
+    }
 
     return actions;
-  };;
+  };;;
 
   return (
     <div className="management-page">
@@ -344,6 +385,7 @@ const BookingManagement = () => {
               <option value="all">All Bookings</option>
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
+              <option value="Checked-in">Checked-in</option>
               <option value="Cancelled">Cancelled</option>
               <option value="Completed">Completed</option>
             </select>
@@ -378,6 +420,10 @@ const BookingManagement = () => {
         <div className="stat-card">
           <h3>Confirmed</h3>
           <p className="stat-number">{bookings.filter((b) => b.status === "Confirmed").length}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Checked-in</h3>
+          <p className="stat-number">{bookings.filter((b) => b.status === "Checked-in").length}</p>
         </div>
         <div className="stat-card">
           <h3>Completed</h3>

@@ -567,6 +567,13 @@ const updateBookingStatus = async (req, res) => {
         .status(400)
         .json({ message: "Cannot modify a completed booking" });
     }
+    // Allow cancellation of Checked-in bookings (customer left before checkout, etc.)
+    // but block any other status change
+    if (currentBooking.status === "Checked-in" && status !== "Cancelled") {
+      return res
+        .status(400)
+        .json({ message: "Checked-in bookings can only be cancelled or checked out" });
+    }
 
     const updateData = { status };
     if (confirmedBy) {
@@ -1153,9 +1160,11 @@ const cancelBooking = async (req, res) => {
 };
 
 // ============================================
-// CHECK-IN - Admin completes a booking on the event date.
-// Marks status → Completed, records payment as Paid if still Partial
-// (customer paid remaining on-site), and creates the Sale record.
+// CHECK-IN - Customer arrives at the resort.
+// Transitions: Confirmed → Checked-in
+// Does NOT complete the booking or create a Sale.
+// Payment collection (if Partial) is noted here — actual
+// money received on-site; paymentStatus stays Partial until check-out.
 // ============================================
 
 const checkIn = async (req, res) => {
@@ -1164,53 +1173,29 @@ const checkIn = async (req, res) => {
     const userId = req.user?.id;
 
     const booking = await Booking.findById(id);
-    if (!booking) {
+    if (!booking)
       return res.status(404).json({ success: false, message: "Booking not found" });
-    }
-    if (booking.status === "Completed") {
+    if (booking.status === "Checked-in")
+      return res.status(400).json({ success: false, message: "Booking is already checked in" });
+    if (booking.status === "Completed")
       return res.status(400).json({ success: false, message: "Booking is already completed" });
-    }
-    if (booking.status === "Cancelled") {
+    if (booking.status === "Cancelled")
       return res.status(400).json({ success: false, message: "Cannot check in a cancelled booking" });
-    }
-    if (booking.status !== "Confirmed") {
+    if (booking.status !== "Confirmed")
       return res.status(400).json({
         success: false,
         message: "Booking must be Confirmed before check-in. Verify the downpayment first.",
       });
-    }
 
-    // If customer pays remaining on-site (still Partial), mark fully paid now.
-    // If already Paid (paid online in advance), keep as-is.
-    if (booking.paymentStatus === "Partial") {
-      booking.downpayment = booking.totalAmount; // align so balance shows \u20b10
-    }
-    booking.status = "Completed";
-    booking.paymentStatus = "Paid";
+    booking.status     = "Checked-in";
     booking.checkedInBy = userId;
     booking.checkedInAt = new Date();
     await booking.save();
 
-    // Create Sale record — only created at Completed stage
-    const existingSale = await Sale.findOne({ booking: id });
-    if (!existingSale && booking.totalAmount) {
-      const sale = new Sale({
-        booking: id,
-        amount: booking.totalAmount,
-        bookingNumber: booking.bookingNumber || 0,
-        bookingReference: booking.bookingReference,
-        location: booking.oasis,
-        date: new Date(),
-      });
-      await sale.save();
-      console.log(`\u2705 Sale record created on check-in for booking ${id} (#${booking.bookingNumber})`);
-    }
-
-    console.log(`\u2705 Check-in: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
-
+    console.log(`✅ Check-in: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
     res.json({
       success: true,
-      message: `Check-in successful! ${booking.customerName}'s booking is now completed.`,
+      message: `${booking.customerName} has been checked in successfully.`,
       booking,
     });
   } catch (error) {
@@ -1218,6 +1203,68 @@ const checkIn = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// ============================================
+// CHECK-OUT - Customer leaves the resort.
+// Transitions: Checked-in → Completed
+// If payment was still Partial (paid remaining on-site), marks as Paid.
+// Creates the Sale record — revenue is only recorded at check-out.
+// ============================================
+
+const checkOut = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const booking = await Booking.findById(id);
+    if (!booking)
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    if (booking.status === "Completed")
+      return res.status(400).json({ success: false, message: "Booking is already completed" });
+    if (booking.status !== "Checked-in")
+      return res.status(400).json({
+        success: false,
+        message: "Booking must be in Checked-in status before check-out.",
+      });
+
+    // If customer paid remaining on-site (still Partial), mark fully paid now
+    if (booking.paymentStatus === "Partial") {
+      booking.downpayment = booking.totalAmount; // align so balance reads ₱0
+      booking.paymentStatus = "Paid";
+    }
+
+    booking.status       = "Completed";
+    booking.checkedOutBy  = userId;
+    booking.checkedOutAt  = new Date();
+    await booking.save();
+
+    // Create Sale record — only at Completed (check-out) stage
+    const existingSale = await Sale.findOne({ booking: id });
+    if (!existingSale && booking.totalAmount) {
+      const sale = new Sale({
+        booking:          id,
+        amount:           booking.totalAmount,
+        bookingNumber:    booking.bookingNumber || 0,
+        bookingReference: booking.bookingReference,
+        location:         booking.oasis,
+        date:             new Date(),
+      });
+      await sale.save();
+      console.log(`✅ Sale record created on check-out for booking ${id} (#${booking.bookingNumber})`);
+    }
+
+    console.log(`✅ Check-out: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
+    res.json({
+      success: true,
+      message: `${booking.customerName} has been checked out. Booking completed.`,
+      booking,
+    });
+  } catch (error) {
+    console.error("Error during check-out:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 // ============================================
 // CLEANUP ORPHANED SALES - Remove sales with no matching booking
@@ -1453,6 +1500,7 @@ module.exports = {
   getBookedDatesWithSessions,
   verifyPayment,
   checkIn,
+  checkOut,
   deletePaymentProof,
   cancelBooking,
   cleanupOrphanedSales,

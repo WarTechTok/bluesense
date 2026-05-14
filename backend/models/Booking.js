@@ -89,7 +89,7 @@ const bookingSchema = new mongoose.Schema({
   // Status
   status: {
     type: String,
-    enum: ["Pending", "Confirmed", "Cancelled", "Completed"],
+    enum: ["Pending", "Confirmed", "Checked-in", "Cancelled", "Completed"],
     default: "Pending"
   },
   
@@ -103,6 +103,24 @@ const bookingSchema = new mongoose.Schema({
     ref: "User"
   },
   paymentVerifiedAt: {
+    type: Date,
+    default: null
+  },
+  checkedInBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
+  checkedInAt: {
+    type: Date,
+    default: null
+  },
+  checkedOutBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
+  checkedOutAt: {
     type: Date,
     default: null
   },
@@ -170,7 +188,7 @@ bookingSchema.index(
   { bookingDate: 1, session: 1, oasis: 1, package: 1 },
   { 
     unique: true,
-    partialFilterExpression: { status: { $nin: ['Cancelled', 'Completed'] } }
+    partialFilterExpression: { status: { $nin: ['Cancelled', 'Completed', 'Checked-in'] } }
   }
 );
 

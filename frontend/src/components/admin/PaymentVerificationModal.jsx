@@ -76,7 +76,7 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
     <div className="modal-overlay" onClick={onClose}>
       <div className="payment-verification-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Payment Verification</h2>
+          <h2>{booking.paymentStatus === "Partial" && booking.status === "Confirmed" ? "Verify Remaining Payment" : "Verify Downpayment"}</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
@@ -258,7 +258,11 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
             onClick={handleVerifyClick}
             disabled={isVerifying || booking.paymentStatus === 'Paid'}
           >
-            {isVerifying ? 'Verifying...' : booking.paymentType === 'downpayment' && booking.paymentStatus === 'Partial' ? 'Verify Final Payment' : booking.paymentType === 'downpayment' ? 'Verify Downpayment' : 'Verify & Confirm'}
+            {isVerifying
+                ? 'Verifying...'
+                : booking.paymentStatus === 'Partial' && booking.status === 'Confirmed'
+                  ? 'Verify Remaining Payment'
+                  : 'Verify Downpayment'}
           </button>
         </div>
       </div>
