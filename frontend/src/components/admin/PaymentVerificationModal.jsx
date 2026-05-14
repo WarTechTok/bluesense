@@ -8,7 +8,6 @@ const BACKEND_URL = process.env.REACT_APP_API_URL || 'https://bluesense.onrender
 
 const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject }) => {
   const [isVerifying, setIsVerifying] = useState(false);
-  const [isRejecting, setIsRejecting] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -61,28 +60,11 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
     }
   };
 
-  const handleRejectClick = async () => {
-    setIsRejecting(true);
-    try {
-      await onReject(booking._id);
-      setIsRejecting(false);
-      onClose();
-    } catch (error) {
-      setIsRejecting(false);
-    }
-  };
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="payment-verification-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>
-            {booking.paymentType === 'fullpayment'
-              ? 'Verify Full Payment'
-              : booking.paymentStatus === 'Partial' && booking.status === 'Confirmed'
-                ? 'Verify Remaining Payment'
-                : 'Verify Downpayment'}
-          </h2>
+          <h2>Payment Verification</h2>
           <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
@@ -206,6 +188,9 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
                     <span>Click to enlarge</span>
                   </div>
                 </div>
+                {imageLoaded && (
+                  <p className="proof-hint">🖼️ Click the image to view full size</p>
+                )}
               </div>
             </div>
           ) : (
@@ -247,13 +232,6 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
 
         <div className="modal-footer">
           <button 
-            className="btn-reject"
-            onClick={handleRejectClick}
-            disabled={isRejecting || booking.paymentStatus === 'Paid'}
-          >
-            {isRejecting ? 'Rejecting...' : 'Reject Payment'}
-          </button>
-          <button 
             className="btn-close"
             onClick={onClose}
           >
@@ -262,15 +240,9 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
           <button 
             className="btn-verify"
             onClick={handleVerifyClick}
-            disabled={isVerifying || booking.paymentStatus === 'Paid'}
+            disabled={isVerifying}
           >
-            {isVerifying
-              ? 'Verifying...'
-              : booking.paymentType === 'fullpayment'
-                ? 'Verify Full Payment'
-                : booking.paymentStatus === 'Partial' && booking.status === 'Confirmed'
-                  ? 'Verify Remaining Payment'
-                  : 'Verify Downpayment'}
+            {isVerifying ? 'Verifying...' : booking.paymentStatus === 'Partial' ? 'Verify Final Payment' : 'Verify & Confirm'}
           </button>
         </div>
       </div>
