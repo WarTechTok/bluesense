@@ -390,7 +390,12 @@ const createBooking = async (req, res) => {
       paymentType: paymentType || "downpayment",
       paymentProof: paymentProof || null,
       status: status || "Pending",
-      paymentStatus: paymentStatus || "Partial",
+      // Derive paymentStatus and stored downpayment from paymentType.
+      // Never trust the client-supplied paymentStatus — it could be stale or spoofed.
+      // fullpayment → Paid + downpayment = totalPrice (balance = 0)
+      // downpayment → Partial + downpayment = whatever the customer paid
+      paymentStatus: (paymentType === "fullpayment") ? "Paid" : "Partial",
+      downpayment:   (paymentType === "fullpayment") ? parseFloat(totalPrice) : parseFloat(downpayment),
       bookingReference: bookingReference,
       bookingNumber: nextBookingNumber
     });
@@ -899,16 +904,23 @@ const verifyPayment = async (req, res) => {
       paymentStatus = booking.paymentType === 'fullpayment' ? 'Paid' : 'Partial';
     }
 
-    // Update booking - mark payment as verified and booking as confirmed
+    // Update booking — mark payment as verified and booking as confirmed.
+    // For fullpayment OR when verifying the remaining balance (isRemainingPayment),
+    // also set downpayment = totalAmount so the balance always reads ₱0.
+    const updateFields = {
+      paymentStatus: paymentStatus,
+      status: "Confirmed",
+      paymentVerifiedBy: userId,
+      paymentVerifiedAt: new Date(),
+      confirmedBy: userId,
+    };
+    if (paymentStatus === 'Paid') {
+      // Align downpayment to totalAmount so (totalAmount - downpayment) = 0
+      updateFields.downpayment = booking.totalAmount;
+    }
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
-      {
-        paymentStatus: paymentStatus,
-        status: "Confirmed",
-        paymentVerifiedBy: userId,
-        paymentVerifiedAt: new Date(),
-        confirmedBy: userId,
-      },
+      updateFields,
       { new: true },
     ).populate("paymentVerifiedBy", "name email");
 
