@@ -1153,6 +1153,73 @@ const cancelBooking = async (req, res) => {
 };
 
 // ============================================
+// CHECK-IN - Admin completes a booking on the event date.
+// Marks status → Completed, records payment as Paid if still Partial
+// (customer paid remaining on-site), and creates the Sale record.
+// ============================================
+
+const checkIn = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found" });
+    }
+    if (booking.status === "Completed") {
+      return res.status(400).json({ success: false, message: "Booking is already completed" });
+    }
+    if (booking.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "Cannot check in a cancelled booking" });
+    }
+    if (booking.status !== "Confirmed") {
+      return res.status(400).json({
+        success: false,
+        message: "Booking must be Confirmed before check-in. Verify the downpayment first.",
+      });
+    }
+
+    // If customer pays remaining on-site (still Partial), mark fully paid now.
+    // If already Paid (paid online in advance), keep as-is.
+    if (booking.paymentStatus === "Partial") {
+      booking.downpayment = booking.totalAmount; // align so balance shows \u20b10
+    }
+    booking.status = "Completed";
+    booking.paymentStatus = "Paid";
+    booking.checkedInBy = userId;
+    booking.checkedInAt = new Date();
+    await booking.save();
+
+    // Create Sale record — only created at Completed stage
+    const existingSale = await Sale.findOne({ booking: id });
+    if (!existingSale && booking.totalAmount) {
+      const sale = new Sale({
+        booking: id,
+        amount: booking.totalAmount,
+        bookingNumber: booking.bookingNumber || 0,
+        bookingReference: booking.bookingReference,
+        location: booking.oasis,
+        date: new Date(),
+      });
+      await sale.save();
+      console.log(`\u2705 Sale record created on check-in for booking ${id} (#${booking.bookingNumber})`);
+    }
+
+    console.log(`\u2705 Check-in: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
+
+    res.json({
+      success: true,
+      message: `Check-in successful! ${booking.customerName}'s booking is now completed.`,
+      booking,
+    });
+  } catch (error) {
+    console.error("Error during check-in:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
 // CLEANUP ORPHANED SALES - Remove sales with no matching booking
 // ============================================
 
@@ -1385,6 +1452,7 @@ module.exports = {
   deleteBooking,
   getBookedDatesWithSessions,
   verifyPayment,
+  checkIn,
   deletePaymentProof,
   cancelBooking,
   cleanupOrphanedSales,

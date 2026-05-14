@@ -18,6 +18,7 @@ const {
   deleteBooking,
   getBookedDatesWithSessions,
   verifyPayment,
+  checkIn,
   deletePaymentProof,
   cancelBooking,
   cleanupOrphanedSales,
@@ -67,6 +68,7 @@ router.put('/:id', verifyToken, isStaff, updateBooking);
 router.patch('/:id/status',  verifyToken, isStaff, updateBookingStatus);
 router.patch('/:id/payment', verifyToken, isStaff, updatePaymentStatus);
 router.patch('/:id/verify',  verifyToken, isStaff, verifyPayment);
+router.patch('/:id/checkin', verifyToken, isStaff, checkIn);
 router.patch('/:id/delete-proof', verifyToken, isStaff, deletePaymentProof);
 
 router.delete('/:id', verifyToken, isStaff, deleteBooking);

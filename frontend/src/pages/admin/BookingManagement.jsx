@@ -225,61 +225,107 @@ const BookingManagement = () => {
     return sessionMap[session] || session;
   };
 
+  const handleCheckIn = async (id) => {
+    showConfirmationModal(
+      "Check-in Customer",
+      "Confirm that the customer has arrived. Any remaining balance will be collected on-site. This will complete the booking.",
+      async () => {
+        try {
+          await adminApi.checkIn(id);
+          fetchBookings();
+          showConfirmationModal("Success", "Check-in successful! Booking marked as completed.", null, "OK");
+        } catch (error) {
+          console.error("Error during check-in:", error);
+          showConfirmationModal("Error", "Check-in failed: " + error.message, null, "OK");
+        }
+      },
+      "Yes, Check-in",
+      "Cancel",
+    );
+  };
+
+  const handleConfirmFullyPaid = async (id) => {
+    showConfirmationModal(
+      "Confirm Fully Paid",
+      "Confirm that the customer has paid the remaining balance online. The booking will be marked as Fully Paid and ready for check-in on the event date.",
+      async () => {
+        try {
+          await adminApi.verifyPayment(id);
+          fetchBookings();
+          showConfirmationModal("Success", "Booking marked as Fully Paid!", null, "OK");
+        } catch (error) {
+          console.error("Error confirming full payment:", error);
+          showConfirmationModal("Error", "Error confirming payment: " + error.message, null, "OK");
+        }
+      },
+      "Yes, Confirm Paid",
+      "Cancel",
+    );
+  };
+
   const getActions = (booking) => {
     const actions = [];
     const displayStatus = booking.displayStatus || booking.status;
 
-    // No actions available for cancelled or completed bookings
-    if (booking.status === "Cancelled" || displayStatus === "Completed") {
+    // No actions for terminal states
+    if (booking.status === "Cancelled" || booking.status === "Completed" || displayStatus === "Completed") {
       return actions;
     }
 
-    // Show "Verify Downpayment" for bookings with downpayment and pending/partial payment
-    if (booking.paymentType === "downpayment" && (booking.paymentStatus === "Pending" || booking.paymentStatus === "Partial")) {
+    // ── STEP 1: Verify Downpayment ───────────────────────────────────────────
+    // Booking is still Pending — customer submitted a downpayment proof.
+    // Admin opens the payment proof modal, reviews it, and clicks Verify.
+    // Result: status → Confirmed, paymentStatus → Partial
+    if (booking.status === "Pending") {
       actions.push({
         label: "Verify Downpayment",
         icon: "✓",
         onClick: () => handleOpenPaymentVerification(booking),
         className: "btn-outline-success",
       });
-    } else if (booking.paymentStatus !== "Paid") {
-      actions.push({
-        label: "View Payment",
-        icon: "📋",
-        onClick: () => handleOpenPaymentVerification(booking),
-        className: "btn-outline",
-      });
     }
 
+    // ── STEP 2 (optional): Confirm Fully Paid — online advance payment ───────
+    // Booking is Confirmed but customer pays remaining balance ONLINE before
+    // the event date (e.g. books May 20, pays remaining on May 19 via GCash).
+    // Admin clicks this to acknowledge it; check-in happens on event day.
+    // Result: paymentStatus → Paid  (verifyPayment handles Partial→Paid)
     if (booking.status === "Confirmed" && booking.paymentStatus === "Partial") {
       actions.push({
-        label: "Mark as Paid",
-        icon: "💰",
-        onClick: () => handleMarkAsFullyPaid(booking._id),
+        label: "Confirm Fully Paid",
+        icon: "💳",
+        onClick: () => handleConfirmFullyPaid(booking._id),
         className: "btn-outline-success",
       });
     }
 
-    if (booking.status === "Confirmed" && booking.paymentStatus === "Paid") {
+    // ── STEP 3: Check-in ─────────────────────────────────────────────────────
+    // Only available once booking is Confirmed.
+    // • If paymentStatus is Paid  → customer already paid in full online → just complete.
+    // • If paymentStatus is Partial → customer pays remaining on-site → checkIn
+    //   controller promotes paymentStatus to Paid server-side before completing.
+    if (booking.status === "Confirmed") {
+      const label = booking.paymentStatus === "Paid"
+        ? "Check-in"
+        : "Check-in (Pay on-site)";
       actions.push({
-        label: "Mark Completed",
-        icon: "✓",
-        onClick: () => handleComplete(booking._id),
+        label,
+        icon: "🏨",
+        onClick: () => handleCheckIn(booking._id),
         className: "btn-outline-success",
       });
     }
 
-    if (booking.status !== "Cancelled" && booking.status !== "Completed" && booking.paymentStatus !== "Paid") {
-      actions.push({
-        label: "Cancel",
-        icon: "✕",
-        onClick: () => handleCancel(booking._id),
-        className: "btn-outline-danger",
-      });
-    }
+    // ── Cancel ───────────────────────────────────────────────────────────────
+    actions.push({
+      label: "Cancel",
+      icon: "✕",
+      onClick: () => handleCancel(booking._id),
+      className: "btn-outline-danger",
+    });
 
     return actions;
-  };
+  };;
 
   return (
     <div className="management-page">

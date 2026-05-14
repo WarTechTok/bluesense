@@ -89,6 +89,16 @@ export const verifyPayment = async (id) => {
   }
 };
 
+export const checkIn = async (id) => {
+  try {
+    const res = await bookingsApiClient.patch(`/bookings/${id}/checkin`);
+    return res.data;
+  } catch (error) {
+    console.error('Error checking in booking:', error);
+    throw error;
+  }
+};
+
 export const deletePaymentProof = async (id) => {
   try {
     const res = await bookingsApiClient.patch(`/bookings/${id}/delete-proof`);
