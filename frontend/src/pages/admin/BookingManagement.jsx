@@ -1,21 +1,22 @@
 // src/pages/admin/BookingManagement.jsx
 
 import React, { useState, useEffect, useCallback } from "react";
-import Modal from "../../components/admin/Modal";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import PaymentVerificationModal from "../../components/admin/PaymentVerificationModal";
-import * as adminApi from '../../services/admin';
+import AdminBookingForm from "./AdminBookingForm";
+import * as adminApi from "../../services/admin";
 import "./BookingManagement.css";
 
 const BookingManagement = () => {
   const [bookings, setBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
-  const [selectedBookingForVerification, setSelectedBookingForVerification] = useState(null);
+  const [selectedBookingForVerification, setSelectedBookingForVerification] =
+    useState(null);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: "",
@@ -24,31 +25,40 @@ const BookingManagement = () => {
     confirmText: "Confirm",
     cancelText: "Cancel",
   });
-  const [formData, setFormData] = useState({
-    customerName: "",
-    customerContact: "",
-    customerEmail: "",
-    oasis: "",
-    package: "",
-    session: "",
-    bookingDate: "",
-    pax: "1",
-    downpayment: "",
-    paymentMethod: "GCash",
-    paymentStatus: "Pending",
-    status: "Pending",
-  });
+
+  // Helper function to get display status based on date
+  const getDisplayStatus = useCallback((booking) => {
+    const bookingDate = new Date(booking.bookingDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // If booking date is in the past and status is Confirmed or Pending, show as Completed
+    if (
+      bookingDate < today &&
+      (booking.status === "Confirmed" || booking.status === "Pending")
+    ) {
+      return "Completed";
+    }
+    return booking.status;
+  }, []);
 
   const fetchBookings = useCallback(async () => {
     try {
       const data = await adminApi.getAllBookings();
       console.log("Bookings data:", data);
-      setBookings(data);
+
+      // Add displayStatus to each booking
+      const bookingsWithDisplayStatus = data.map((booking) => ({
+        ...booking,
+        displayStatus: getDisplayStatus(booking),
+      }));
+
+      setBookings(bookingsWithDisplayStatus);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       showConfirmationModal("Error", "Failed to fetch bookings", null, "OK");
     }
-  }, []);
+  }, [getDisplayStatus]);
 
   useEffect(() => {
     fetchBookings();
@@ -56,31 +66,46 @@ const BookingManagement = () => {
 
   useEffect(() => {
     let filtered = [...bookings];
-    
+
     if (statusFilter !== "all") {
-      filtered = filtered.filter((b) => b.status === statusFilter);
+      filtered = filtered.filter(
+        (b) => b.displayStatus === statusFilter || b.status === statusFilter,
+      );
     }
-    
+
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter((b) => {
-        const bookingRef = (b.bookingReference || b._id?.slice(-6).toUpperCase() || "").toLowerCase();
+        const bookingRef = (
+          b.bookingReference ||
+          b._id?.slice(-6).toUpperCase() ||
+          ""
+        ).toLowerCase();
         const customerName = (b.customerName || "").toLowerCase();
         return bookingRef.includes(term) || customerName.includes(term);
       });
     }
-    
+
     setFilteredBookings(filtered);
   }, [bookings, statusFilter, searchTerm]);
 
-  const showConfirmationModal = (title, message, onConfirm, confirmText = "Confirm", cancelText = "Cancel") => {
+  const showConfirmationModal = (
+    title,
+    message,
+    onConfirm,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+  ) => {
     setConfirmationModal({
       isOpen: true,
       title,
       message,
-      onConfirm: () => {
-        setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
-        if (onConfirm) onConfirm();
+      onConfirm: async () => {
+        try {
+          if (onConfirm) await onConfirm();
+        } finally {
+          setConfirmationModal((prev) => ({ ...prev, isOpen: false }));
+        }
       },
       confirmText,
       cancelText,
@@ -90,25 +115,10 @@ const BookingManagement = () => {
   const handleOpenModal = (booking = null) => {
     if (booking) {
       setEditingBooking(booking);
-      setFormData(booking);
     } else {
       setEditingBooking(null);
-      setFormData({
-        customerName: "",
-        customerContact: "",
-        customerEmail: "",
-        oasis: "",
-        package: "",
-        session: "",
-        bookingDate: "",
-        pax: "1",
-        downpayment: "",
-        paymentMethod: "GCash",
-        paymentStatus: "Pending",
-        status: "Pending",
-      });
     }
-    setIsModalOpen(true);
+    setShowBookingForm(true);
   };
 
   const handleCancel = async (id) => {
@@ -119,10 +129,20 @@ const BookingManagement = () => {
         try {
           await adminApi.updateBookingStatus(id, "Cancelled");
           fetchBookings();
-          showConfirmationModal("Success", "Booking cancelled successfully!", null, "OK");
+          showConfirmationModal(
+            "Success",
+            "Booking cancelled successfully!",
+            null,
+            "OK",
+          );
         } catch (error) {
           console.error("Error cancelling booking:", error);
-          showConfirmationModal("Error", "Error cancelling booking", null, "OK");
+          showConfirmationModal(
+            "Error",
+            "Error cancelling booking",
+            null,
+            "OK",
+          );
         }
       },
       "Yes, Cancel",
@@ -138,10 +158,20 @@ const BookingManagement = () => {
         try {
           await adminApi.updateBookingStatus(id, "Completed");
           fetchBookings();
-          showConfirmationModal("Success", "Booking marked as completed!", null, "OK");
+          showConfirmationModal(
+            "Success",
+            "Booking marked as completed!",
+            null,
+            "OK",
+          );
         } catch (error) {
           console.error("Error completing booking:", error);
-          showConfirmationModal("Error", "Error marking booking as completed", null, "OK");
+          showConfirmationModal(
+            "Error",
+            "Error marking booking as completed",
+            null,
+            "OK",
+          );
         }
       },
       "Yes, Complete",
@@ -158,15 +188,21 @@ const BookingManagement = () => {
     try {
       const booking = bookings.find((b) => b._id === bookingId);
       await adminApi.verifyPayment(bookingId);
-      
+
       fetchBookings();
-      const message = booking.paymentStatus === "Partial"
-        ? "Final payment verified successfully!"
-        : "Payment verified successfully! Booking confirmed.";
+      const message =
+        booking.paymentStatus === "Partial"
+          ? "Final payment verified successfully!"
+          : "Payment verified successfully! Booking confirmed.";
       showConfirmationModal("Success", message, null, "OK");
     } catch (error) {
       console.error("Error verifying payment:", error);
-      showConfirmationModal("Error", "Error verifying payment: " + error.message, null, "OK");
+      showConfirmationModal(
+        "Error",
+        "Error verifying payment: " + error.message,
+        null,
+        "OK",
+      );
     }
   };
 
@@ -178,10 +214,20 @@ const BookingManagement = () => {
         try {
           await adminApi.updatePaymentStatus(id, "Paid");
           fetchBookings();
-          showConfirmationModal("Success", "Booking marked as fully paid!", null, "OK");
+          showConfirmationModal(
+            "Success",
+            "Booking marked as fully paid!",
+            null,
+            "OK",
+          );
         } catch (error) {
           console.error("Error marking as fully paid:", error);
-          showConfirmationModal("Error", "Error marking as fully paid", null, "OK");
+          showConfirmationModal(
+            "Error",
+            "Error marking as fully paid",
+            null,
+            "OK",
+          );
         }
       },
       "Yes, Mark as Paid",
@@ -197,10 +243,20 @@ const BookingManagement = () => {
         try {
           await adminApi.updatePaymentStatus(bookingId, "Rejected");
           fetchBookings();
-          showConfirmationModal("Payment Rejected", "Payment has been rejected.", null, "OK");
+          showConfirmationModal(
+            "Payment Rejected",
+            "Payment has been rejected.",
+            null,
+            "OK",
+          );
         } catch (error) {
           console.error("Error rejecting payment:", error);
-          showConfirmationModal("Error", "Error rejecting payment: " + error.message, null, "OK");
+          showConfirmationModal(
+            "Error",
+            "Error rejecting payment: " + error.message,
+            null,
+            "OK",
+          );
         }
       },
       "Yes, Reject",
@@ -208,41 +264,18 @@ const BookingManagement = () => {
     );
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (!formData.customerName || !formData.customerContact || !formData.oasis || !formData.package || !formData.session || !formData.bookingDate || !formData.pax || !formData.downpayment || !formData.paymentMethod) {
-        showConfirmationModal("Validation Error", "Please fill in all required fields", null, "OK");
-        return;
-      }
-
-      const bookingPayload = {
-        customerName: formData.customerName,
-        customerContact: formData.customerContact,
-        customerEmail: formData.customerEmail,
-        oasis: formData.oasis,
-        package: formData.package,
-        session: formData.session,
-        bookingDate: formData.bookingDate,
-        pax: parseInt(formData.pax),
-        downpayment: parseFloat(formData.downpayment),
-        paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentStatus || "Pending",
-        status: formData.status || "Pending",
-      };
-
-      if (editingBooking) {
-        bookingPayload._id = editingBooking._id;
-        await adminApi.createBooking(bookingPayload);
-      } else {
-        await adminApi.createBooking(bookingPayload);
-      }
-      setIsModalOpen(false);
-      fetchBookings();
-      showConfirmationModal("Success", "Booking saved successfully!", null, "OK");
-    } catch (error) {
-      console.error("Error saving booking:", error);
-      showConfirmationModal("Error", error.message || "Error saving booking", null, "OK");
-    }
+  const handleBookingCreated = () => {
+    setShowBookingForm(false);
+    setEditingBooking(null);
+    fetchBookings();
+    showConfirmationModal(
+      "Success",
+      editingBooking
+        ? "Booking updated successfully!"
+        : "Booking created successfully!",
+      null,
+      "OK",
+    );
   };
 
   const getBalance = (booking) => {
@@ -261,37 +294,180 @@ const BookingManagement = () => {
     return sessionMap[session] || session;
   };
 
+  const handleCheckIn = async (id) => {
+    showConfirmationModal(
+      "Check-in Customer",
+      "Confirm that the customer has arrived at the resort. This will mark the booking as Checked-in.",
+      async () => {
+        try {
+          await adminApi.checkIn(id);
+          fetchBookings();
+          showConfirmationModal(
+            "Success",
+            "Customer checked in successfully!",
+            null,
+            "OK",
+          );
+        } catch (error) {
+          console.error("Error during check-in:", error);
+          showConfirmationModal(
+            "Error",
+            "Check-in failed: " + error.message,
+            null,
+            "OK",
+          );
+        }
+      },
+      "Yes, Check-in",
+      "Cancel",
+    );
+  };
+
+  const handleCheckOut = async (id) => {
+    showConfirmationModal(
+      "Check-out Customer",
+      "Confirm that the customer has left the resort. Any remaining balance will be collected on-site. This will complete the booking and record the sale.",
+      async () => {
+        try {
+          await adminApi.checkOut(id);
+          fetchBookings();
+          showConfirmationModal(
+            "Success",
+            "Customer checked out. Booking completed!",
+            null,
+            "OK",
+          );
+        } catch (error) {
+          console.error("Error during check-out:", error);
+          showConfirmationModal(
+            "Error",
+            "Check-out failed: " + error.message,
+            null,
+            "OK",
+          );
+        }
+      },
+      "Yes, Check-out",
+      "Cancel",
+    );
+  };
+
+  const handleConfirmFullyPaid = async (id) => {
+    showConfirmationModal(
+      "Confirm Fully Paid",
+      "Confirm that the customer has paid the remaining balance online. The booking will be marked as Fully Paid.",
+      async () => {
+        try {
+          await adminApi.verifyPayment(id);
+          fetchBookings();
+          showConfirmationModal(
+            "Success",
+            "Booking marked as Fully Paid!",
+            null,
+            "OK",
+          );
+        } catch (error) {
+          console.error("Error confirming full payment:", error);
+          showConfirmationModal(
+            "Error",
+            "Error confirming payment: " + error.message,
+            null,
+            "OK",
+          );
+        }
+      },
+      "Yes, Confirm Paid",
+      "Cancel",
+    );
+  };
+
+  // ── Action button logic ──────────────────────────────────────────────────
+  //
+  //  Status       │ Payment  │ Buttons
+  //  ─────────────┼──────────┼──────────────────────────────────────────────
+  //  Pending      │ Partial  │ Verify Downpayment · Cancel
+  //  Confirmed    │ Partial  │ Confirm Fully Paid · Check-in · Cancel
+  //  Confirmed    │ Paid     │ Check-in · Cancel
+  //  Checked-in   │ Partial  │ Check-out (pays remaining on-site)
+  //  Checked-in   │ Paid     │ Check-out
+  //  Completed    │ –        │ (none)
+  //  Cancelled    │ –        │ (none)
+  //
   const getActions = (booking) => {
     const actions = [];
+    const { status, paymentStatus } = booking;
 
-    if (booking.paymentStatus !== "Paid") {
-      actions.push({
-        label: "View Payment",
-        icon: "📋",
-        onClick: () => handleOpenPaymentVerification(booking),
-        className: "btn-outline",
-      });
-    }
+    // Terminal states — no actions
+    if (status === "Cancelled" || status === "Completed") return actions;
 
-    if (booking.status === "Confirmed" && booking.paymentStatus === "Partial") {
-      actions.push({
-        label: "Mark as Paid",
-        icon: "💰",
-        onClick: () => handleMarkAsFullyPaid(booking._id),
-        className: "btn-outline-success",
-      });
-    }
+    // ── STEP 1: Verify Downpayment ───────────────────────────────────────
+    // Booking is Pending — customer submitted payment proof. Admin reviews
+    // it in the modal and clicks Verify → status becomes Confirmed, paymentStatus Partial.
+    // CHANGE TO:
+    if (status === "Pending") {
+      // Check if this is a full payment booking
+      const buttonLabel =
+        booking.paymentType === "fullpayment"
+          ? "Verify Full Payment"
+          : "Verify Downpayment";
 
-    if (booking.status === "Confirmed" && booking.paymentStatus === "Paid") {
       actions.push({
-        label: "Mark Completed",
+        label: buttonLabel,
         icon: "✓",
-        onClick: () => handleComplete(booking._id),
+        onClick: () => handleOpenPaymentVerification(booking),
         className: "btn-outline-success",
       });
     }
 
-    if (booking.status === "Pending") {
+    // ── STEP 2 (optional): Confirm Fully Paid ───────────────────────────
+    // Booking is Confirmed but customer pays remaining balance ONLINE before
+    // the event date (e.g. books May 20, pays remaining May 19 via GCash).
+    // Admin clicks this to acknowledge; check-in still happens on event day.
+    // → paymentStatus becomes Paid via verifyPayment (handles Partial→Paid).
+    if (status === "Confirmed" && paymentStatus === "Partial") {
+      actions.push({
+        label: "Confirm Fully Paid",
+        icon: "💳",
+        onClick: () => handleConfirmFullyPaid(booking._id),
+        className: "btn-outline-success",
+      });
+    }
+
+    // ── STEP 3: Check-in ─────────────────────────────────────────────────
+    // Customer arrives at the resort. Moves to Checked-in.
+    // Available for all Confirmed bookings regardless of payment status.
+    if (status === "Confirmed") {
+      actions.push({
+        label: "Check-in",
+        icon: "🏨",
+        onClick: () => handleCheckIn(booking._id),
+        className: "btn-outline-success",
+      });
+    }
+
+    // ── STEP 4: Check-out ────────────────────────────────────────────────
+    // Customer leaves. Moves to Completed, creates Sale record.
+    // If payment is still Partial, the controller marks it Paid (on-site collection).
+    if (status === "Checked-in") {
+      const label =
+        paymentStatus === "Partial"
+          ? "Check-out (collect ₱" +
+            (
+              (booking.totalAmount || 0) - (booking.downpayment || 0)
+            ).toLocaleString() +
+            ")"
+          : "Check-out";
+      actions.push({
+        label,
+        icon: "🚪",
+        onClick: () => handleCheckOut(booking._id),
+        className: "btn-outline-success",
+      });
+    }
+
+    // ── Cancel ───────────────────────────────────────────────────────────
+    // Available for Pending, Confirmed. NOT for Checked-in (they're on-site).
+    if (status === "Pending" || status === "Confirmed") {
       actions.push({
         label: "Cancel",
         icon: "✕",
@@ -316,15 +492,20 @@ const BookingManagement = () => {
         <div className="filter-row">
           <div className="filter-group">
             <label>Filter by Status:</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="filter-select">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="filter-select"
+            >
               <option value="all">All Bookings</option>
               <option value="Pending">Pending</option>
               <option value="Confirmed">Confirmed</option>
+              <option value="Checked-in">Checked-in</option>
               <option value="Cancelled">Cancelled</option>
               <option value="Completed">Completed</option>
             </select>
           </div>
-          
+
           <div className="filter-group search-group">
             <label>Search:</label>
             <div className="search-wrapper">
@@ -337,7 +518,10 @@ const BookingManagement = () => {
                 className="search-input"
               />
               {searchTerm && (
-                <button className="clear-search-btn" onClick={() => setSearchTerm("")}>
+                <button
+                  className="clear-search-btn"
+                  onClick={() => setSearchTerm("")}
+                >
                   <i className="fas fa-times"></i>
                 </button>
               )}
@@ -349,19 +533,39 @@ const BookingManagement = () => {
       <div className="stats-row">
         <div className="stat-card">
           <h3>Pending</h3>
-          <p className="stat-number">{bookings.filter((b) => b.status === "Pending").length}</p>
+          <p className="stat-number">
+            {bookings.filter((b) => b.status === "Pending").length}
+          </p>
         </div>
         <div className="stat-card">
           <h3>Confirmed</h3>
-          <p className="stat-number">{bookings.filter((b) => b.status === "Confirmed").length}</p>
+          <p className="stat-number">
+            {bookings.filter((b) => b.status === "Confirmed").length}
+          </p>
+        </div>
+        <div className="stat-card">
+          <h3>Checked-in</h3>
+          <p className="stat-number">
+            {bookings.filter((b) => b.status === "Checked-in").length}
+          </p>
         </div>
         <div className="stat-card">
           <h3>Completed</h3>
-          <p className="stat-number">{bookings.filter((b) => b.status === "Completed").length}</p>
+          <p className="stat-number">
+            {
+              bookings.filter(
+                (b) =>
+                  b.status === "Completed" ||
+                  (b.displayStatus === "Completed" && b.status !== "Completed"),
+              ).length
+            }
+          </p>
         </div>
         <div className="stat-card">
           <h3>Cancelled</h3>
-          <p className="stat-number">{bookings.filter((b) => b.status === "Cancelled").length}</p>
+          <p className="stat-number">
+            {bookings.filter((b) => b.status === "Cancelled").length}
+          </p>
         </div>
       </div>
 
@@ -385,10 +589,15 @@ const BookingManagement = () => {
             {filteredBookings.map((booking, index) => {
               const actions = getActions(booking);
               const balance = getBalance(booking);
+              const displayStatus = booking.displayStatus || booking.status;
+
               return (
                 <tr key={booking._id}>
                   <td>{index + 1}</td>
-                  <td>{booking.bookingReference || booking._id?.slice(-6).toUpperCase()}</td>
+                  <td>
+                    {booking.bookingReference ||
+                      booking._id?.slice(-6).toUpperCase()}
+                  </td>
                   <td>{booking.customerName}</td>
                   <td>{booking.oasis}</td>
                   <td>{booking.package}</td>
@@ -396,21 +605,31 @@ const BookingManagement = () => {
                   <td>{new Date(booking.bookingDate).toLocaleDateString()}</td>
                   <td>
                     {booking.paymentStatus === "Partial" && balance > 0 ? (
-                      <span className="status-badge status-partial">Partial (₱{balance.toLocaleString()} due)</span>
+                      <span className="status-badge status-partial">
+                        Partial (₱{balance.toLocaleString()} due)
+                      </span>
                     ) : (
-                      <span className={`status-badge status-${booking.paymentStatus?.toLowerCase() || "pending"}`}>
+                      <span
+                        className={`status-badge status-${booking.paymentStatus?.toLowerCase() || "pending"}`}
+                      >
                         {booking.paymentStatus || "Pending"}
                       </span>
                     )}
                   </td>
                   <td>
-                    <span className={`status-badge status-${booking.status?.toLowerCase()}`}>
-                      {booking.status}
+                    <span
+                      className={`status-badge status-${displayStatus?.toLowerCase()}`}
+                    >
+                      {displayStatus}
                     </span>
                   </td>
                   <td className="actions-cell">
                     {actions.map((action, idx) => (
-                      <button key={idx} className={action.className} onClick={action.onClick}>
+                      <button
+                        key={idx}
+                        className={action.className}
+                        onClick={action.onClick}
+                      >
                         <span className="btn-icon">{action.icon}</span>
                         {action.label}
                       </button>
@@ -423,86 +642,20 @@ const BookingManagement = () => {
         </table>
       </div>
 
-      {/* Add/Edit Modal */}
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)}>
-          <div className="modal-header">
-            <h3>{editingBooking ? "✎ Edit Booking" : "➕ Add New Booking"}</h3>
-            <button className="modal-close" onClick={() => setIsModalOpen(false)}>✕</button>
+      {/* Booking Form Modal */}
+      {showBookingForm && (
+        <div
+          className="modal-overlay"
+          onClick={() => setShowBookingForm(false)}
+        >
+          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+            <AdminBookingForm
+              editingBooking={editingBooking}
+              onClose={() => setShowBookingForm(false)}
+              onBookingCreated={handleBookingCreated}
+            />
           </div>
-          <div className="modal-body" style={{ maxHeight: "600px", overflowY: "auto" }}>
-            <form className="form landscape">
-              <div className="form-group">
-                <label>Customer Name *</label>
-                <input type="text" value={formData.customerName} onChange={(e) => setFormData({ ...formData, customerName: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Contact Number *</label>
-                <input type="tel" value={formData.customerContact} onChange={(e) => setFormData({ ...formData, customerContact: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={formData.customerEmail} onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label>Location *</label>
-                <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })} required>
-                  <option value="">Select Location</option>
-                  <option value="Oasis 1">Oasis 1</option>
-                  <option value="Oasis 2">Oasis 2</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Package *</label>
-                <input type="text" value={formData.package} onChange={(e) => setFormData({ ...formData, package: e.target.value })} placeholder="e.g., Package 1, Package A" required />
-              </div>
-              <div className="form-group">
-                <label>Time Slot (Session) *</label>
-                <select value={formData.session || ""} onChange={(e) => setFormData({ ...formData, session: e.target.value })} required>
-                  <option value="">Select Time Slot</option>
-                  <option value="Day">Day (6AM - 5PM)</option>
-                  <option value="Night">Night (5PM - 10PM)</option>
-                  <option value="22hrs">Whole Day (6AM - 4AM)</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Booking Date *</label>
-                <input type="date" value={formData.bookingDate} onChange={(e) => setFormData({ ...formData, bookingDate: e.target.value })} required />
-              </div>
-              <div className="form-group">
-                <label>Number of Pax *</label>
-                <input type="number" value={formData.pax} onChange={(e) => setFormData({ ...formData, pax: e.target.value })} min="1" required />
-              </div>
-              <div className="form-group">
-                <label>Down Payment *</label>
-                <input type="number" value={formData.downpayment} onChange={(e) => setFormData({ ...formData, downpayment: e.target.value })} min="0" step="0.01" required />
-              </div>
-              <div className="form-group">
-                <label>Payment Method *</label>
-                <select value={formData.paymentMethod} onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })} required>
-                  <option value="GCash">GCash</option>
-                  <option value="Maya">Maya</option>
-                  <option value="GoTyme">GoTyme</option>
-                  <option value="SeaBank">SeaBank</option>
-                  <option value="Cash">Cash</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Booking Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })}>
-                  <option value="Pending">Pending</option>
-                  <option value="Confirmed">Confirmed</option>
-                  <option value="Cancelled">Cancelled</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-            </form>
-          </div>
-          <div className="modal-footer">
-            <button className="btn-secondary" onClick={() => setIsModalOpen(false)}>Cancel</button>
-            <button className="btn-primary" onClick={handleSubmit}>{editingBooking ? "Update" : "Create"} Booking</button>
-          </div>
-        </Modal>
+        </div>
       )}
 
       {/* Confirmation Modal */}
@@ -511,7 +664,9 @@ const BookingManagement = () => {
         title={confirmationModal.title}
         message={confirmationModal.message}
         onConfirm={confirmationModal.onConfirm}
-        onClose={() => setConfirmationModal((prev) => ({ ...prev, isOpen: false }))}
+        onClose={() =>
+          setConfirmationModal((prev) => ({ ...prev, isOpen: false }))
+        }
         confirmText={confirmationModal.confirmText}
         cancelText={confirmationModal.cancelText}
       />
