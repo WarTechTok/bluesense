@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
+import Footer from "../../components/footer/Footer";
 import "./MyBookings.css";
 
 // Get API URL from environment variable
@@ -396,6 +397,7 @@ const MyBookings = () => {
           </div>
         </div>
       )}
+      <Footer />
     </>
   );
 };
