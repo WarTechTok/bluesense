@@ -29,12 +29,14 @@
   top: 0;
   right: -280px;
   width: 280px;
-  height: 100vh;
+  height: 100vh;    /* fallback for older browsers */
+  height: 100dvh;   /* excludes mobile browser chrome — sign-out always visible */
   background: white;
   z-index: 1001;
   transition: right 0.3s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* only the content area scrolls, not the whole sidebar */
 }
 
 .mobile-sidebar.active {
@@ -61,7 +63,8 @@
 .mobile-sidebar-content {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 20px;
+  padding-bottom: 0;           /* sign-out section provides its own spacing */
+  -webkit-overflow-scrolling: touch; /* smooth scroll on iOS */
 }
 
 /* ── Mobile Profile Section ── */
@@ -210,10 +213,12 @@
 
 /* ── Mobile Sign Out at Bottom ── */
 .mobile-signout-bottom {
-  padding: 20px;
+  padding: 16px 20px;
+  /* extra bottom space for notched phones (iPhone X+) */
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
   border-top: 1px solid #f0f0f0;
-  margin-top: auto;
   flex-shrink: 0;
+  background: white;
 }
 
 /* ── Mobile View Profile Sidebar ── */
@@ -223,10 +228,12 @@
   right: 0;
   width: 100%;
   max-width: 400px;
-  height: 100vh;
+  height: 100vh;   /* fallback */
+  height: 100dvh;  /* excludes browser chrome */
   background: white;
   z-index: 2000;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   animation: slideInMobile 0.3s ease;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
 }
