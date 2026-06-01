@@ -232,6 +232,7 @@ function ContactUs() {
                   Log In to Continue
                 </Link>
               </div>
+
             ) : status === 'success' ? (
               /* ── Success state ──────────────────────────────── */
               <div className="form-success">
@@ -247,6 +248,7 @@ function ContactUs() {
                   Send Another Message
                 </button>
               </div>
+
             ) : (
               /* ── Form ───────────────────────────────────────── */
               <form className="contact-form" onSubmit={handleSubmit} noValidate>
@@ -258,23 +260,6 @@ function ContactUs() {
                     {serverError}
                   </div>
                 )}
-
-                {/* Sender identity card (read-only) */}
-                <div className="sender-card">
-                  <div className="sender-avatar">
-                    {user.name ? user.name.charAt(0).toUpperCase() : '?'}
-                  </div>
-                  <div className="sender-details">
-                    <p className="sender-name">{user.name || '—'}</p>
-                    <p className="sender-email">{user.email || '—'}</p>
-                    {user.phone && (
-                      <p className="sender-phone">{user.phone}</p>
-                    )}
-                  </div>
-                  <span className="sender-badge">
-                    <i className="fas fa-check-circle"></i> Sending as you
-                  </span>
-                </div>
 
                 {/* Subject */}
                 <div className={`form-group ${errors.subject ? 'has-error' : ''}`}>
