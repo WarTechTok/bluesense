@@ -14,6 +14,7 @@ const RoomManagement = () => {
   const [editingRoom, setEditingRoom] = useState(null);
   const [selectedRoomForStaff, setSelectedRoomForStaff] = useState(null);
   const [selectedStaffId, setSelectedStaffId] = useState('');
+  const [selectedTaskType, setSelectedTaskType] = useState('Inspection');
   const [staffNotes, setStaffNotes] = useState('');
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -182,6 +183,7 @@ const RoomManagement = () => {
   const handleOpenStaffModal = (room) => {
     setSelectedRoomForStaff(room);
     setSelectedStaffId('');
+    setSelectedTaskType('Inspection');
     setStaffNotes('');
     setIsStaffModalOpen(true);
   };
@@ -195,6 +197,7 @@ const RoomManagement = () => {
     try {
       await adminApi.assignStaffToRoom(selectedRoomForStaff._id, {
         staffId: selectedStaffId,
+        taskType: selectedTaskType,
         notes: staffNotes
       });
       setIsStaffModalOpen(false);
@@ -506,6 +509,21 @@ const RoomManagement = () => {
                       {member.name} ({member.staffId})
                     </option>
                   ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Task Type *</label>
+                <select
+                  value={selectedTaskType}
+                  onChange={(e) => setSelectedTaskType(e.target.value)}
+                  required
+                >
+                  <option value="Cleaning">🧹 Cleaning</option>
+                  <option value="Maintenance">🔧 Maintenance</option>
+                  <option value="Inspection">🔍 Inspection</option>
+                  <option value="Setup">⚙️ Setup</option>
+                  <option value="Repair">🛠️ Repair</option>
+                  <option value="Other">📋 Other</option>
                 </select>
               </div>
               <div className="form-group">

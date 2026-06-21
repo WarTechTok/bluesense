@@ -36,6 +36,13 @@ const InventoryManagement = () => {
     quantityUsed: '',
     usedBy: ''
   });
+  const [createMaintenance, setCreateMaintenance] = useState(false);
+  const [maintenanceData, setMaintenanceData] = useState({
+    title: '',
+    category: 'Equipment',
+    priority: 'Medium',
+    description: ''
+  });
 
   useEffect(() => {
     fetchInventory();
@@ -154,6 +161,13 @@ const InventoryManagement = () => {
   const handleRecordUsage = async (item) => {
     setEditingItem(item);
     setUsageData({ quantityUsed: '', usedBy: '' });
+    setCreateMaintenance(false);
+    setMaintenanceData({
+      title: `${item.item} - Maintenance Usage`,
+      category: 'Equipment',
+      priority: 'Medium',
+      description: ''
+    });
     setIsUsageModalOpen(true);
   };
 
@@ -165,11 +179,45 @@ const InventoryManagement = () => {
         return;
       }
 
+      // Calculate expense
+      const quantityUsed = parseInt(usageData.quantityUsed);
+      const expense = quantityUsed * parseFloat(editingItem.price || 0);
+
+      // Record inventory usage
       await adminApi.recordInventoryUsage(editingItem._id, usageData);
+
+      // Create maintenance record if requested
+      if (createMaintenance && maintenanceData.title) {
+        const maintenancePayload = {
+          title: maintenanceData.title,
+          description: maintenanceData.description || `Inventory item used: ${editingItem.item} (Qty: ${quantityUsed})`,
+          category: maintenanceData.category,
+          priority: maintenanceData.priority,
+          amount: expense,
+          currency: 'PHP',
+          status: 'Completed',
+          inventoryUsed: [
+            {
+              inventoryId: editingItem._id,
+              itemName: editingItem.item,
+              quantityUsed: quantityUsed,
+              unitPrice: parseFloat(editingItem.price || 0),
+              totalCost: expense
+            }
+          ],
+          reportedBy: null
+        };
+
+        await adminApi.createMaintenance(maintenancePayload);
+      }
+
       setIsUsageModalOpen(false);
       fetchInventory();
       fetchLowStockItems();
-      showConfirmationModal('Success', '✅ Usage recorded successfully!', null, 'OK');
+      const successMsg = createMaintenance 
+        ? '✅ Usage recorded and maintenance record created!' 
+        : '✅ Usage recorded successfully!';
+      showConfirmationModal('Success', successMsg, null, 'OK');
     } catch (error) {
       console.error('Error recording usage:', error);
       showConfirmationModal('Error', '❌ Error recording usage', null, 'OK');
@@ -410,6 +458,103 @@ const InventoryManagement = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Divider */}
+              <div style={{
+                borderTop: '2px solid #e2e8f0',
+                margin: '16px 0',
+                paddingTop: '16px'
+              }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', fontWeight: '600', color: '#1e293b' }}>
+                  📋 Create Maintenance Record (Optional)
+                </h4>
+
+                <div className="form-group" style={{ marginBottom: '12px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                    <input
+                      type="checkbox"
+                      checked={createMaintenance}
+                      onChange={(e) => setCreateMaintenance(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Also record as maintenance expense</span>
+                  </label>
+                </div>
+
+                {createMaintenance && (
+                  <>
+                    <div className="form-group">
+                      <label>Maintenance Title *</label>
+                      <input
+                        type="text"
+                        value={maintenanceData.title}
+                        onChange={(e) => setMaintenanceData({ ...maintenanceData, title: e.target.value })}
+                        placeholder="e.g., Pool Filter Replacement"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Category</label>
+                      <select
+                        value={maintenanceData.category}
+                        onChange={(e) => setMaintenanceData({ ...maintenanceData, category: e.target.value })}
+                      >
+                        <option value="Plumbing">🚰 Plumbing</option>
+                        <option value="Electrical">⚡ Electrical</option>
+                        <option value="HVAC">❄️ HVAC</option>
+                        <option value="Cleaning">🧹 Cleaning</option>
+                        <option value="Equipment">⚙️ Equipment</option>
+                        <option value="Furniture">🪑 Furniture</option>
+                        <option value="General">📦 General</option>
+                        <option value="Other">📋 Other</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Priority</label>
+                      <select
+                        value={maintenanceData.priority}
+                        onChange={(e) => setMaintenanceData({ ...maintenanceData, priority: e.target.value })}
+                      >
+                        <option value="Low">🟢 Low</option>
+                        <option value="Medium">🟡 Medium</option>
+                        <option value="High">🔴 High</option>
+                        <option value="Urgent">🔥 Urgent</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Description</label>
+                      <textarea
+                        value={maintenanceData.description}
+                        onChange={(e) => setMaintenanceData({ ...maintenanceData, description: e.target.value })}
+                        placeholder="Additional notes about this maintenance..."
+                        rows="3"
+                      />
+                    </div>
+
+                    {/* Cost Summary */}
+                    <div style={{
+                      background: '#f0fdf4',
+                      border: '1px solid #dcfce7',
+                      borderRadius: '8px',
+                      padding: '12px',
+                      marginTop: '12px'
+                    }}>
+                      <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: '#64748b', fontWeight: '600' }}>
+                        💰 EXPENSE CALCULATION:
+                      </p>
+                      <p style={{ margin: '4px 0', fontSize: '0.85rem', color: '#22c55e' }}>
+                        Quantity: {usageData.quantityUsed || 0} × ₱{parseFloat(editingItem?.price || 0).toFixed(2)}
+                      </p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '1rem', fontWeight: '700', color: '#10b981' }}>
+                        Total: ₱{(parseInt(usageData.quantityUsed || 0) * parseFloat(editingItem?.price || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
             </form>
           </div>
