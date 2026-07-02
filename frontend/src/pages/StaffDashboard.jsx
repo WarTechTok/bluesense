@@ -478,7 +478,7 @@ const StaffDashboard = () => {
 
       {/* Tasks List */}
       <div className="stats-section">
-        <h2 className="section-title">My dih</h2>
+        <h2 className="section-title">My Tasks</h2>
         {tasks.length === 0 ? (
           <div className="empty-state">
             <i className="fas fa-inbox"></i>
