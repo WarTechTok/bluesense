@@ -393,19 +393,41 @@ const MaintenanceManagement = () => {
       }
     },
     {
-      key: 'partsNeeded',
+      key: 'items',
       label: 'Items',
-      render: (value, record) => {
-        const itemsCount = record.partsNeeded?.length || 0;
+      render: (_, record) => {
+        const inventoryItems = record.inventoryUsed || [];
+        const partsItems = record.partsNeeded || [];
+        const items = inventoryItems.length > 0 ? inventoryItems : partsItems;
+        const itemsCount = items.length;
+
         if (itemsCount === 0) return <span style={{ color: '#94a3b8' }}>—</span>;
-        
-        const itemsCost = record.partsNeeded.reduce((sum, item) => sum + (item.quantity * item.unitCost), 0);
+
+        const itemsCost = items.reduce((sum, item) => {
+          if (inventoryItems.length > 0) {
+            return sum + (item.totalCost || 0);
+          }
+          return sum + ((item.quantity || 0) * (item.unitCost || 0));
+        }, 0);
+
         return (
-          <div style={{ fontSize: '0.8rem' }}>
+          <div style={{ fontSize: '0.8rem', maxWidth: '220px' }}>
             <p style={{ margin: '0 0 4px', fontWeight: '600', color: '#0284c7' }}>
               📦 {itemsCount} item{itemsCount !== 1 ? 's' : ''}
             </p>
-            <p style={{ margin: '0', color: '#10b981', fontWeight: '600' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              {items.slice(0, 3).map((item, index) => {
+                const name = item.itemName || item.name || item.inventoryId?.item || 'Unnamed item';
+                const quantity = item.quantityUsed || item.quantity || 0;
+                return (
+                  <span key={`${name}-${index}`} style={{ color: '#334155', fontSize: '0.75rem' }}>
+                    • {name} {quantity ? `×${quantity}` : ''}
+                  </span>
+                );
+              })}
+              {items.length > 3 && <span style={{ color: '#64748b', fontSize: '0.75rem' }}>+{items.length - 3} more</span>}
+            </div>
+            <p style={{ margin: '6px 0 0', color: '#10b981', fontWeight: '600' }}>
               ₱{itemsCost.toLocaleString()}
             </p>
           </div>

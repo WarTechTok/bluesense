@@ -1,4 +1,5 @@
 const Inventory = require('../models/Inventory');
+const Maintenance = require('../models/Maintenance');
 
 /**
  * Inventory Controller
@@ -200,7 +201,7 @@ exports.updateInventoryQuantity = async (req, res) => {
  */
 exports.recordUsage = async (req, res) => {
   try {
-    const { quantityUsed, usedBy } = req.body;
+    const { quantityUsed, usedBy, createMaintenance, maintenanceData } = req.body;
     const item = await Inventory.findById(req.params.id);
     if (!item) return res.status(404).json({ error: 'Inventory item not found' });
 
@@ -236,7 +237,42 @@ exports.recordUsage = async (req, res) => {
     });
 
     await item.save();
-    res.json(item);
+
+    const shouldCreateMaintenance = createMaintenance === true || createMaintenance === 'true';
+    if (shouldCreateMaintenance) {
+      const lastMaintenance = await Maintenance.findOne().sort({ createdAt: -1 });
+      const lastSequence = lastMaintenance ? parseInt(lastMaintenance.maintenanceId.slice(4)) : 0;
+      const newSequence = lastSequence + 1;
+      const maintenanceId = `MNT-${String(newSequence).padStart(4, '0')}`;
+
+      const resolvedMaintenanceData = maintenanceData || {};
+      const amount = parseFloat(resolvedMaintenanceData.amount ?? (parsedQuantityUsed * (item.price || 0))) || 0;
+      const inventoryUsed = resolvedMaintenanceData.inventoryUsed || [{
+        inventoryId: item._id,
+        itemName: item.item,
+        quantityUsed: parsedQuantityUsed,
+        unitPrice: item.price || 0,
+        totalCost: amount
+      }];
+
+      const maintenance = new Maintenance({
+        maintenanceId,
+        title: resolvedMaintenanceData.title?.trim() || `${item.item} usage`,
+        description: resolvedMaintenanceData.description || `Inventory item used: ${item.item} (Qty: ${parsedQuantityUsed})`,
+        category: resolvedMaintenanceData.category || 'Equipment',
+        priority: resolvedMaintenanceData.priority || 'Medium',
+        amount,
+        currency: resolvedMaintenanceData.currency || 'PHP',
+        status: resolvedMaintenanceData.status || 'Completed',
+        reportedBy: resolvedMaintenanceData.reportedBy || null,
+        inventoryUsed,
+        notes: resolvedMaintenanceData.notes || `Used by staff ID: ${usedBy}`
+      });
+
+      await maintenance.save();
+    }
+
+    res.json({ item, maintenanceCreated: shouldCreateMaintenance });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -209,39 +209,39 @@ const InventoryManagement = () => {
       const quantityUsed = parseInt(usageData.quantityUsed);
       const expense = quantityUsed * parseFloat(editingItem.price || 0);
 
-      // Record inventory usage
-      await adminApi.recordInventoryUsage(editingItem._id, usageData);
+      const maintenancePayload = createMaintenance && maintenanceData.title
+        ? {
+            title: maintenanceData.title,
+            description: maintenanceData.description || `Inventory item used: ${editingItem.item} (Qty: ${quantityUsed})`,
+            category: maintenanceData.category,
+            priority: maintenanceData.priority,
+            amount: expense,
+            currency: 'PHP',
+            status: 'Completed',
+            inventoryUsed: [
+              {
+                inventoryId: editingItem._id,
+                itemName: editingItem.item,
+                quantityUsed: quantityUsed,
+                unitPrice: parseFloat(editingItem.price || 0),
+                totalCost: expense
+              }
+            ],
+            reportedBy: null
+          }
+        : null;
 
-      // Create maintenance record if requested
-      if (createMaintenance && maintenanceData.title) {
-        const maintenancePayload = {
-          title: maintenanceData.title,
-          description: maintenanceData.description || `Inventory item used: ${editingItem.item} (Qty: ${quantityUsed})`,
-          category: maintenanceData.category,
-          priority: maintenanceData.priority,
-          amount: expense,
-          currency: 'PHP',
-          status: 'Completed',
-          inventoryUsed: [
-            {
-              inventoryId: editingItem._id,
-              itemName: editingItem.item,
-              quantityUsed: quantityUsed,
-              unitPrice: parseFloat(editingItem.price || 0),
-              totalCost: expense
-            }
-          ],
-          reportedBy: null
-        };
-
-        await adminApi.createMaintenance(maintenancePayload);
-      }
+      await adminApi.recordInventoryUsage(editingItem._id, {
+        ...usageData,
+        createMaintenance,
+        maintenanceData: maintenancePayload
+      });
 
       setIsUsageModalOpen(false);
       fetchInventory();
       fetchLowStockItems();
-      const successMsg = createMaintenance 
-        ? '✅ Usage recorded and maintenance record created!' 
+      const successMsg = createMaintenance
+        ? '✅ Usage recorded and linked to maintenance!' 
         : '✅ Usage recorded successfully!';
       showConfirmationModal('Success', successMsg, null, 'OK');
     } catch (error) {
@@ -596,7 +596,7 @@ const InventoryManagement = () => {
                       onChange={(e) => setCreateMaintenance(e.target.checked)}
                       style={{ cursor: 'pointer' }}
                     />
-                    <span>Also record as maintenance expense</span>
+                    <span>Automatically create a linked maintenance record</span>
                   </label>
                 </div>
 
