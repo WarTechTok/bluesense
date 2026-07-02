@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import * as staffApi from '../services/staffDashboardApi';
@@ -36,6 +36,31 @@ const StaffDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Refs for tilt cards
+  const cardRefs = useRef({});
+
+  // Mouse tilt handler for cards
+  const handleTiltMove = (e, cardId) => {
+    const card = cardRefs.current[cardId];
+    if (!card) return;
+    
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    const rotateX = y * -15;
+    const rotateY = x * 15;
+    
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+    card.style.transition = 'transform 0.05s ease-out';
+  };
+
+  const handleTiltLeave = (cardId) => {
+    const card = cardRefs.current[cardId];
+    if (!card) return;
+    card.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    card.style.transition = 'transform 0.3s ease-out';
+  };
 
   // Load user data from localStorage
   useEffect(() => {
@@ -312,11 +337,16 @@ const StaffDashboard = () => {
         
         <div className="admin-content">
 
-      {/* Task Stats - Professional Grid */}
+      {/* Task Stats - Professional Grid with Tilt Effect */}
       <div className="stats-section">
         <h2 className="section-title">Task Overview</h2>
         <div className="stats-grid">
-          <div className="stat-card">
+          <div 
+            className="stat-card"
+            ref={(el) => cardRefs.current['stat-total'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-total')}
+            onMouseLeave={() => handleTiltLeave('stat-total')}
+          >
             <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
               <i className="fas fa-tasks"></i>
             </div>
@@ -326,7 +356,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card"
+            ref={(el) => cardRefs.current['stat-pending'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-pending')}
+            onMouseLeave={() => handleTiltLeave('stat-pending')}
+          >
             <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
               <i className="fas fa-clock"></i>
             </div>
@@ -336,7 +371,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card"
+            ref={(el) => cardRefs.current['stat-progress'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-progress')}
+            onMouseLeave={() => handleTiltLeave('stat-progress')}
+          >
             <div className="stat-icon" style={{ background: '#dbeafe', color: '#3b82f6' }}>
               <i className="fas fa-spinner"></i>
             </div>
@@ -346,7 +386,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card"
+            ref={(el) => cardRefs.current['stat-completed'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-completed')}
+            onMouseLeave={() => handleTiltLeave('stat-completed')}
+          >
             <div className="stat-icon" style={{ background: '#d1fae5', color: '#10b981' }}>
               <i className="fas fa-check-circle"></i>
             </div>
@@ -428,11 +473,16 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      {/* Room Assignments & Performance Info Cards */}
+      {/* Room Assignments & Performance Info Cards with Tilt Effect */}
       <div className="stats-section">
         <h2 className="section-title">Performance Metrics</h2>
         <div className="quick-stats">
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item"
+            ref={(el) => cardRefs.current['perf-rooms'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-rooms')}
+            onMouseLeave={() => handleTiltLeave('perf-rooms')}
+          >
             <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
             <ul>
               <li>
@@ -442,7 +492,12 @@ const StaffDashboard = () => {
             </ul>
           </div>
 
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item"
+            ref={(el) => cardRefs.current['perf-performance'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-performance')}
+            onMouseLeave={() => handleTiltLeave('perf-performance')}
+          >
             <h4><i className="fas fa-chart-line"></i> Performance</h4>
             <ul>
               <li>
@@ -464,7 +519,12 @@ const StaffDashboard = () => {
             </ul>
           </div>
 
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item"
+            ref={(el) => cardRefs.current['perf-notifications'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-notifications')}
+            onMouseLeave={() => handleTiltLeave('perf-notifications')}
+          >
             <h4><i className="fas fa-bell"></i> Notifications</h4>
             <ul>
               <li>
@@ -476,7 +536,7 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      {/* Tasks List */}
+      {/* Tasks List with Tilt Effect on Each Task */}
       <div className="stats-section">
         <h2 className="section-title">My Tasks</h2>
         {tasks.length === 0 ? (
@@ -486,8 +546,14 @@ const StaffDashboard = () => {
           </div>
         ) : (
           <div className="tasks-list">
-            {tasks.map((task) => (
-              <div key={task._id} className="task-item">
+            {tasks.map((task, index) => (
+              <div 
+                key={task._id} 
+                className="task-item"
+                ref={(el) => cardRefs.current[`task-${task._id}`] = el}
+                onMouseMove={(e) => handleTiltMove(e, `task-${task._id}`)}
+                onMouseLeave={() => handleTiltLeave(`task-${task._id}`)}
+              >
                 <div className="task-header">
                   <div className="task-title-section">
                     <h4>{task.title}</h4>
