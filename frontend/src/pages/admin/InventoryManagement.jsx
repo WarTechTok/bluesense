@@ -14,6 +14,7 @@ const InventoryManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [expandedCategory, setExpandedCategory] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -369,7 +370,12 @@ const InventoryManagement = () => {
           <select
             id="inventory-category-filter"
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
+            onChange={(e) => {
+              setSelectedCategory(e.target.value);
+              if (e.target.value !== 'All') {
+                setExpandedCategory(e.target.value);
+              }
+            }}
             className="filter-select"
             style={{ width: '100%' }}
           >
@@ -383,25 +389,39 @@ const InventoryManagement = () => {
 
       {categoryOrder.filter((category) => selectedCategory === 'All' || selectedCategory === category).map((category) => {
         const items = groupedInventory[category] || [];
+        const isExpanded = expandedCategory === category;
+        const title = category === 'Chemical' ? '🧪 Chemicals' : category === 'Appliance' ? '🔧 Appliances' : '📦 Other Items';
+        const emptyMessage = `No ${category === 'Chemical' ? 'chemical' : category === 'Appliance' ? 'appliance' : 'other'} items in this view.`;
+
         return (
-          <div key={category} style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>
-                {category === 'Chemical' ? '🧪 Chemicals' : category === 'Appliance' ? '🔧 Appliances' : '📦 Other Items'}
-              </h3>
-              <span style={{ fontSize: '0.9rem', color: '#64748b' }}>{items.length} item(s)</span>
-            </div>
-            {items.length > 0 ? (
-              <DataTable
-                columns={columns}
-                data={items}
-                onEdit={handleOpenModal}
-                onDelete={handleDelete}
-                actions={actions}
-              />
-            ) : (
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '16px', color: '#64748b' }}>
-                No {category === 'Chemical' ? 'chemical' : category === 'Appliance' ? 'appliance' : 'other'} items in this view.
+          <div key={category} className="inventory-category-card">
+            <button
+              type="button"
+              className="inventory-category-card-header"
+              onClick={() => setExpandedCategory(isExpanded ? null : category)}
+            >
+              <div>
+                <h3>{title}</h3>
+                <span>{items.length} item(s)</span>
+              </div>
+              <i className={`fas ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}`} />
+            </button>
+
+            {isExpanded && (
+              <div className="inventory-category-card-body">
+                {items.length > 0 ? (
+                  <DataTable
+                    columns={columns}
+                    data={items}
+                    onEdit={handleOpenModal}
+                    onDelete={handleDelete}
+                    actions={actions}
+                  />
+                ) : (
+                  <div className="inventory-category-empty">
+                    {emptyMessage}
+                  </div>
+                )}
               </div>
             )}
           </div>

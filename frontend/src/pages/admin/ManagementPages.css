@@ -228,6 +228,63 @@
 }
 
 /* ============================================ */
+/* INVENTORY CATEGORY CARDS */
+/* ============================================ */
+
+.inventory-category-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.inventory-category-card-header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 18px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.inventory-category-card-header:hover {
+  background: #f1f5f9;
+}
+
+.inventory-category-card-header h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.inventory-category-card-header span {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.inventory-category-card-header i {
+  color: #0284c7;
+  font-size: 0.95rem;
+}
+
+.inventory-category-card-body {
+  padding: 14px 16px 16px;
+}
+
+.inventory-category-empty {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 16px;
+  color: #64748b;
+}
+
+/* ============================================ */
 /* FILTER SECTION */
 /* ============================================ */
 
