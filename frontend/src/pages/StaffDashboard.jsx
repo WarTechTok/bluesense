@@ -147,6 +147,12 @@ const StaffDashboard = () => {
 
   useEffect(() => {
     loadDashboard();
+
+    const interval = window.setInterval(() => {
+      loadDashboard();
+    }, 10000);
+
+    return () => window.clearInterval(interval);
   }, [loadDashboard]);
 
   const getStatusColor = (status) => {

@@ -44,7 +44,13 @@ const Tasks = () => {
 
   useEffect(() => {
     fetchTasks();
-  }, []);
+
+    const interval = window.setInterval(() => {
+      fetchTasks(filter);
+    }, 10000);
+
+    return () => window.clearInterval(interval);
+  }, [filter]);
 
   // Load user data
   useEffect(() => {

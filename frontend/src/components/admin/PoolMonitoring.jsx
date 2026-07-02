@@ -39,6 +39,8 @@ const PoolMonitoring = () => {
   const [staff, setStaff] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
+  const [taskType, setTaskType] = useState('Cleaning');
+  const [taskDescription, setTaskDescription] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
@@ -213,6 +215,7 @@ const PoolMonitoring = () => {
     setIsAssigning(true);
     try {
       const staffMember = staff.find(s => s._id === selectedStaff);
+      const normalizedDescription = taskDescription.trim() || `Pool task for ${activeOasis?.label}`;
       
       // Create task assignment
       const dueDate = new Date();
@@ -220,11 +223,11 @@ const PoolMonitoring = () => {
       
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
-        title: `Pool Maintenance Required - ${activeOasis?.label}`,
-        description: `Pool water quality requires attention. pH: ${latestReading?.ph?.toFixed(2)}, Temperature: ${latestReading?.temperature?.toFixed(1)}°C, Turbidity: ${latestReading?.turbidity}`,
+        title: `${taskType} Required - ${activeOasis?.label}`,
+        description: `${normalizedDescription}\n\nPool readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, Turbidity ${latestReading?.turbidity}`,
         priority: 'High',
         status: 'Pending',
-        taskType: 'Maintenance',
+        taskType,
         dueDate: dueDate.toISOString()
       });
 
@@ -249,6 +252,8 @@ const PoolMonitoring = () => {
 
       setShowAssignModal(false);
       setSelectedStaff(null);
+      setTaskType('Cleaning');
+      setTaskDescription('');
     } catch (error) {
       console.error('Error assigning staff:', error);
       setMessageModal({
@@ -876,7 +881,7 @@ const PoolMonitoring = () => {
               </button>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
                 Select Staff Member
               </label>
@@ -900,6 +905,53 @@ const PoolMonitoring = () => {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+                Task Type
+              </label>
+              <select
+                value={taskType}
+                onChange={(e) => setTaskType(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontFamily: 'inherit',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="Cleaning">🧹 Cleaning</option>
+                <option value="Maintenance">🔧 Maintenance</option>
+                <option value="Inspection">🔍 Inspection</option>
+                <option value="Setup">⚙️ Setup</option>
+                <option value="Repair">🛠️ Repair</option>
+                <option value="Other">📋 Other</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+                What specific task should the housekeeper do?
+              </label>
+              <textarea
+                value={taskDescription}
+                onChange={(e) => setTaskDescription(e.target.value)}
+                rows="3"
+                placeholder="e.g., Clean the pool area, refill chemicals, and wipe down surfaces"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
             </div>
 
             {selectedStaff && (
