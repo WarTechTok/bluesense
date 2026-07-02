@@ -14,7 +14,7 @@ const RoomManagement = () => {
   const [editingRoom, setEditingRoom] = useState(null);
   const [selectedRoomForStaff, setSelectedRoomForStaff] = useState(null);
   const [selectedStaffId, setSelectedStaffId] = useState('');
-  const [selectedTaskType, setSelectedTaskType] = useState('Inspection');
+  const [selectedTaskType, setSelectedTaskType] = useState('Cleaning');
   const [staffNotes, setStaffNotes] = useState('');
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -183,7 +183,7 @@ const RoomManagement = () => {
   const handleOpenStaffModal = (room) => {
     setSelectedRoomForStaff(room);
     setSelectedStaffId('');
-    setSelectedTaskType('Inspection');
+    setSelectedTaskType('Cleaning');
     setStaffNotes('');
     setIsStaffModalOpen(true);
   };
@@ -195,10 +195,12 @@ const RoomManagement = () => {
     }
 
     try {
+      const taskDescription = staffNotes.trim() || `${selectedTaskType} task for the room`;
+
       await adminApi.assignStaffToRoom(selectedRoomForStaff._id, {
         staffId: selectedStaffId,
         taskType: selectedTaskType,
-        notes: staffNotes
+        notes: taskDescription
       });
       setIsStaffModalOpen(false);
       fetchRooms();
@@ -527,11 +529,12 @@ const RoomManagement = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Notes</label>
+                <label>What specific task should the housekeeper do? *</label>
                 <textarea
                   value={staffNotes}
                   onChange={(e) => setStaffNotes(e.target.value)}
-                  placeholder="e.g., Responsible for daily cleaning and inspection"
+                  placeholder="e.g., Deep clean the bathroom, replace towels, and restock toiletries"
+                  rows="3"
                 />
               </div>
             </form>
