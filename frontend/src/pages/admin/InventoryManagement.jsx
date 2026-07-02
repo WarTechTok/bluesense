@@ -175,7 +175,8 @@ const InventoryManagement = () => {
         await adminApi.createInventoryItem(formData);
       }
       setIsModalOpen(false);
-      fetchInventory();
+      await fetchInventory();
+      setExpandedCategory(formData.category || 'Other');
       showConfirmationModal('Success', '✅ Inventory item saved successfully!', null, 'OK');
     } catch (error) {
       console.error('Error saving inventory item:', error);
