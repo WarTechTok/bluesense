@@ -42,7 +42,7 @@ exports.getInventoryById = async (req, res) => {
  */
 exports.createInventoryItem = async (req, res) => {
   try {
-    const { item, quantity, unit, lowStockAlert, price, arrivalDate, expirationDate } = req.body;
+    const { item, quantity, unit, lowStockAlert, price, category, arrivalDate, expirationDate } = req.body;
 
     // ============================================
     // BACKEND VALIDATION
@@ -109,6 +109,7 @@ exports.createInventoryItem = async (req, res) => {
       unit: unit.trim(), 
       lowStockAlert: parsedLowStockAlert,
       price: parsedPrice,
+      category: category || 'Other',
       arrivalDate: arrivalDate ? new Date(arrivalDate) : null,
       expirationDate: expirationDate ? new Date(expirationDate) : null
     });
@@ -127,7 +128,7 @@ exports.createInventoryItem = async (req, res) => {
  */
 exports.updateInventoryQuantity = async (req, res) => {
   try {
-    const { quantity, item, unit, price, lowStockAlert, arrivalDate, expirationDate } = req.body;
+    const { quantity, item, unit, price, lowStockAlert, category, arrivalDate, expirationDate } = req.body;
 
     // ============================================
     // BUILD UPDATE OBJECT
@@ -166,6 +167,9 @@ exports.updateInventoryQuantity = async (req, res) => {
         return res.status(400).json({ error: 'Low stock alert must be a valid number' });
       }
       updateData.lowStockAlert = parsedAlert;
+    }
+    if (category !== undefined && category !== null && category !== '') {
+      updateData.category = category;
     }
     if (arrivalDate !== undefined && arrivalDate !== null && arrivalDate !== '') {
       updateData.arrivalDate = new Date(arrivalDate);

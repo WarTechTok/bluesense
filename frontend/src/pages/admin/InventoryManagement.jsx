@@ -12,6 +12,8 @@ const InventoryManagement = () => {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [staffList, setStaffList] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -29,6 +31,7 @@ const InventoryManagement = () => {
     unit: '',
     lowStockAlert: 5,
     price: '',
+    category: 'Other',
     arrivalDate: '',
     expirationDate: ''
   });
@@ -51,18 +54,37 @@ const InventoryManagement = () => {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === "") {
-      setFilteredInventory(inventory);
-    } else {
+    let filtered = [...inventory];
+
+    if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
-      const filtered = inventory.filter(item => 
+      filtered = filtered.filter(item => 
         item.item?.toLowerCase().includes(term) ||
         item.itemId?.toLowerCase().includes(term) ||
         item.unit?.toLowerCase().includes(term)
       );
-      setFilteredInventory(filtered);
     }
-  }, [searchTerm, inventory]);
+
+    if (selectedDate) {
+      filtered = filtered.filter(item => {
+        const addedDate = item.createdAt ? new Date(item.createdAt) : null;
+        if (!addedDate || Number.isNaN(addedDate.getTime())) return false;
+
+        const selected = new Date(selectedDate);
+        const selectedDayStart = new Date(selected.getFullYear(), selected.getMonth(), selected.getDate());
+        const selectedDayEnd = new Date(selectedDayStart);
+        selectedDayEnd.setDate(selectedDayEnd.getDate() + 1);
+
+        return addedDate >= selectedDayStart && addedDate < selectedDayEnd;
+      });
+    }
+
+    if (selectedCategory !== 'All') {
+      filtered = filtered.filter(item => (item.category || 'Other') === selectedCategory);
+    }
+
+    setFilteredInventory(filtered);
+  }, [searchTerm, selectedDate, selectedCategory, inventory]);
 
   const fetchStaff = async () => {
     try {
@@ -101,6 +123,7 @@ const InventoryManagement = () => {
         unit: item.unit,
         lowStockAlert: item.lowStockAlert,
         price: item.price,
+        category: item.category || 'Other',
         arrivalDate: item.arrivalDate,
         expirationDate: item.expirationDate
       });
@@ -112,6 +135,7 @@ const InventoryManagement = () => {
         unit: '',
         lowStockAlert: 5,
         price: '',
+        category: 'Other',
         arrivalDate: '',
         expirationDate: ''
       });
@@ -253,6 +277,11 @@ const InventoryManagement = () => {
       label: 'Price',
       render: (value) => `₱${parseFloat(value || 0).toFixed(2)}`
     },
+    {
+      key: 'category',
+      label: 'Category',
+      render: (value) => value || 'Other'
+    },
     { key: 'lowStockAlert', label: 'Low Stock Alert' },
     {
       key: 'arrivalDate',
@@ -282,6 +311,12 @@ const InventoryManagement = () => {
     { label: 'Record Usage', type: 'usage', handler: handleRecordUsage }
   ];
 
+  const categoryOrder = ['Chemical', 'Appliance', 'Other'];
+  const groupedInventory = categoryOrder.reduce((acc, category) => {
+    acc[category] = filteredInventory.filter((item) => (item.category || 'Other') === category);
+    return acc;
+  }, {});
+
   return (
     <div className="management-page">
       <div className="page-header">
@@ -295,7 +330,7 @@ const InventoryManagement = () => {
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search and Date Filter */}
       <div className="search-container">
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
@@ -312,15 +347,66 @@ const InventoryManagement = () => {
             </button>
           )}
         </div>
+
+        <div className="filter-group" style={{ minWidth: '220px' }}>
+          <label htmlFor="inventory-date-filter" style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>
+            Filter by Added Date
+          </label>
+          <input
+            id="inventory-date-filter"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="filter-input"
+            style={{ width: '100%' }}
+          />
+        </div>
+
+        <div className="filter-group" style={{ minWidth: '200px' }}>
+          <label htmlFor="inventory-category-filter" style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>
+            Category
+          </label>
+          <select
+            id="inventory-category-filter"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="filter-select"
+            style={{ width: '100%' }}
+          >
+            <option value="All">All Categories</option>
+            <option value="Chemical">Chemical</option>
+            <option value="Appliance">Appliance</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredInventory}
-        onEdit={handleOpenModal}
-        onDelete={handleDelete}
-        actions={actions}
-      />
+      {categoryOrder.filter((category) => selectedCategory === 'All' || selectedCategory === category).map((category) => {
+        const items = groupedInventory[category] || [];
+        return (
+          <div key={category} style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', color: '#1e293b' }}>
+                {category === 'Chemical' ? '🧪 Chemicals' : category === 'Appliance' ? '🔧 Appliances' : '📦 Other Items'}
+              </h3>
+              <span style={{ fontSize: '0.9rem', color: '#64748b' }}>{items.length} item(s)</span>
+            </div>
+            {items.length > 0 ? (
+              <DataTable
+                columns={columns}
+                data={items}
+                onEdit={handleOpenModal}
+                onDelete={handleDelete}
+                actions={actions}
+              />
+            ) : (
+              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', padding: '16px', color: '#64748b' }}>
+                No {category === 'Chemical' ? 'chemical' : category === 'Appliance' ? 'appliance' : 'other'} items in this view.
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
@@ -390,6 +476,17 @@ const InventoryManagement = () => {
                   required
                   placeholder="e.g., 150.00"
                 />
+              </div>
+              <div className="form-group">
+                <label>Category</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                >
+                  <option value="Chemical">Chemical</option>
+                  <option value="Appliance">Appliance</option>
+                  <option value="Other">Other</option>
+                </select>
               </div>
               <div className="form-group">
                 <label>Low Stock Alert</label>

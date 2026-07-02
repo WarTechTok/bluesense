@@ -18,6 +18,11 @@ const InventorySchema = new mongoose.Schema({
   unit: { type: String }, // Unit of measurement (e.g., "Liters", "Units", "Boxes")
   lowStockAlert: { type: Number, default: 5 }, // Threshold for low stock warnings
   price: { type: Number, default: 0 }, // Price per unit of the item
+  category: {
+    type: String,
+    enum: ['Chemical', 'Appliance', 'Other'],
+    default: 'Other'
+  }, // Category for grouping inventory items
   arrivalDate: { type: Date }, // Date when item arrived/was received
   expirationDate: { type: Date }, // Date when item expires (optional)
   usageRecords: [{ // Array of usage logs for tracking consumption
