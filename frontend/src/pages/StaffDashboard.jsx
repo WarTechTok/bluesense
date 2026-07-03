@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import * as staffApi from '../services/staffDashboardApi';
@@ -36,6 +36,40 @@ const StaffDashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Refs for tilt cards
+  const cardRefs = useRef({});
+
+  // Mouse tilt handler - only the card moves in 3D
+  const handleTiltMove = (e, cardId) => {
+    const card = cardRefs.current[cardId];
+    if (!card) return;
+    
+    const rect = card.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width - 0.5;
+    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    
+    // More dramatic 3D effect
+    const rotateX = y * -25;
+    const rotateY = x * 25;
+    const rotateZ = x * 2;
+    
+    // Add subtle glow effect based on cursor position
+    const glowX = (x * 50) + 50;
+    const glowY = (y * 50) + 50;
+    
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg) scale3d(1.02, 1.02, 1.02)`;
+    card.style.boxShadow = `0 20px 60px rgba(0,0,0,0.15), 0 0 40px rgba(2,132,199,${(Math.abs(x) + Math.abs(y)) * 0.15})`;
+    card.style.transition = 'transform 0.08s ease-out, box-shadow 0.08s ease-out';
+  };
+
+  const handleTiltLeave = (cardId) => {
+    const card = cardRefs.current[cardId];
+    if (!card) return;
+    card.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale3d(1, 1, 1)';
+    card.style.boxShadow = '0 4px 20px rgba(0,0,0,0.08)';
+    card.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease';
+  };
 
   // Load user data from localStorage
   useEffect(() => {
@@ -312,11 +346,16 @@ const StaffDashboard = () => {
         
         <div className="admin-content">
 
-      {/* Task Stats - Professional Grid */}
+      {/* Task Stats - Professional Grid with 3D Tilt Effect */}
       <div className="stats-section">
         <h2 className="section-title">Task Overview</h2>
         <div className="stats-grid">
-          <div className="stat-card">
+          <div 
+            className="stat-card tilt-card"
+            ref={(el) => cardRefs.current['stat-total'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-total')}
+            onMouseLeave={() => handleTiltLeave('stat-total')}
+          >
             <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
               <i className="fas fa-tasks"></i>
             </div>
@@ -326,7 +365,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card tilt-card"
+            ref={(el) => cardRefs.current['stat-pending'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-pending')}
+            onMouseLeave={() => handleTiltLeave('stat-pending')}
+          >
             <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
               <i className="fas fa-clock"></i>
             </div>
@@ -336,7 +380,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card tilt-card"
+            ref={(el) => cardRefs.current['stat-progress'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-progress')}
+            onMouseLeave={() => handleTiltLeave('stat-progress')}
+          >
             <div className="stat-icon" style={{ background: '#dbeafe', color: '#3b82f6' }}>
               <i className="fas fa-spinner"></i>
             </div>
@@ -346,7 +395,12 @@ const StaffDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card">
+          <div 
+            className="stat-card tilt-card"
+            ref={(el) => cardRefs.current['stat-completed'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'stat-completed')}
+            onMouseLeave={() => handleTiltLeave('stat-completed')}
+          >
             <div className="stat-icon" style={{ background: '#d1fae5', color: '#10b981' }}>
               <i className="fas fa-check-circle"></i>
             </div>
@@ -428,11 +482,16 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      {/* Room Assignments & Performance Info Cards */}
+      {/* Room Assignments & Performance Info Cards with Tilt Effect */}
       <div className="stats-section">
         <h2 className="section-title">Performance Metrics</h2>
         <div className="quick-stats">
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item tilt-card"
+            ref={(el) => cardRefs.current['perf-rooms'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-rooms')}
+            onMouseLeave={() => handleTiltLeave('perf-rooms')}
+          >
             <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
             <ul>
               <li>
@@ -442,7 +501,12 @@ const StaffDashboard = () => {
             </ul>
           </div>
 
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item tilt-card"
+            ref={(el) => cardRefs.current['perf-performance'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-performance')}
+            onMouseLeave={() => handleTiltLeave('perf-performance')}
+          >
             <h4><i className="fas fa-chart-line"></i> Performance</h4>
             <ul>
               <li>
@@ -464,7 +528,12 @@ const StaffDashboard = () => {
             </ul>
           </div>
 
-          <div className="quick-stat-item">
+          <div 
+            className="quick-stat-item tilt-card"
+            ref={(el) => cardRefs.current['perf-notifications'] = el}
+            onMouseMove={(e) => handleTiltMove(e, 'perf-notifications')}
+            onMouseLeave={() => handleTiltLeave('perf-notifications')}
+          >
             <h4><i className="fas fa-bell"></i> Notifications</h4>
             <ul>
               <li>
@@ -476,7 +545,7 @@ const StaffDashboard = () => {
         </div>
       </div>
 
-      {/* Tasks List */}
+      {/* Tasks List with Tilt Effect on Each Task */}
       <div className="stats-section">
         <h2 className="section-title">My Tasks</h2>
         {tasks.length === 0 ? (
@@ -487,7 +556,13 @@ const StaffDashboard = () => {
         ) : (
           <div className="tasks-list">
             {tasks.map((task) => (
-              <div key={task._id} className="task-item">
+              <div 
+                key={task._id} 
+                className="task-item tilt-card"
+                ref={(el) => cardRefs.current[`task-${task._id}`] = el}
+                onMouseMove={(e) => handleTiltMove(e, `task-${task._id}`)}
+                onMouseLeave={() => handleTiltLeave(`task-${task._id}`)}
+              >
                 <div className="task-header">
                   <div className="task-title-section">
                     <h4>{task.title}</h4>
@@ -657,3 +732,5 @@ const StaffDashboard = () => {
     </div>
   );
 };
+
+export default StaffDashboard;
