@@ -136,7 +136,7 @@ const AdminLayout = ({ children }) => {
   };
 
   return (
-    <div className="admin-layout admin-shell">
+    <div className="admin-layout">
       {/* Mobile Overlay - Click to close sidebar */}
       {isMobile && (
         <div 
