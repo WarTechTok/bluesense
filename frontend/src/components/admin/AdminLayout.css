@@ -13,7 +13,7 @@
 /* MOBILE MENU BUTTON */
 /* ============================================ */
 
-.mobile-menu-btn {
+.admin-layout.admin-shell .mobile-menu-btn {
   display: none;
   position: fixed;
   top: 16px;
@@ -32,7 +32,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.mobile-overlay {
+.admin-layout.admin-shell .mobile-overlay {
   display: none;
   position: fixed;
   top: 0;
@@ -43,7 +43,7 @@
   z-index: 99;
 }
 
-.mobile-overlay.open {
+.admin-layout.admin-shell .mobile-overlay.open {
   display: block;
 }
 
@@ -51,7 +51,7 @@
 /* SIDEBAR */
 /* ============================================ */
 
-.admin-sidebar {
+.admin-layout.admin-shell .admin-sidebar {
   width: 260px;
   background: #0284c7;
   display: flex;
@@ -66,12 +66,12 @@
 
 /* Desktop: sidebar can be toggled between open and closed */
 @media (min-width: 769px) {
-  .admin-sidebar.closed {
+  .admin-layout.admin-shell .admin-sidebar.closed {
     width: 80px;
   }
   
-  .admin-sidebar.closed .logo-text,
-  .admin-sidebar.closed .nav-label {
+  .admin-layout.admin-shell .admin-sidebar.closed .logo-text,
+  .admin-layout.admin-shell .admin-sidebar.closed .nav-label {
     display: none;
   }
 }
@@ -82,28 +82,28 @@
     display: flex;
   }
   
-  .admin-sidebar {
+  .admin-layout.admin-shell .admin-sidebar {
     left: -260px;
     width: 260px;
   }
   
-  .admin-sidebar.open {
+  .admin-layout.admin-shell .admin-sidebar.open {
     left: 0;
   }
   
   /* On mobile, closed state moves sidebar off-screen */
-  .admin-sidebar.closed {
+  .admin-layout.admin-shell .admin-sidebar.closed {
     left: -260px;
     width: 260px;
   }
   
-  .admin-sidebar.closed .logo-text,
-  .admin-sidebar.closed .nav-label {
+  .admin-layout.admin-shell .admin-sidebar.closed .logo-text,
+  .admin-layout.admin-shell .admin-sidebar.closed .nav-label {
     display: block;
   }
 }
 
-.sidebar-header {
+.admin-layout.admin-shell .sidebar-header {
   padding: 24px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
@@ -111,26 +111,26 @@
   align-items: center;
 }
 
-.logo-area {
+.admin-layout.admin-shell .logo-area {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.sidebar-logo {
+.admin-layout.admin-shell .sidebar-logo {
   width: 40px;
   height: 40px;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
 
-.logo-text {
+.admin-layout.admin-shell .logo-text {
   font-size: 1rem;
   font-weight: 600;
   color: white;
 }
 
-.sidebar-toggle {
+.admin-layout.admin-shell .sidebar-toggle {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   width: 32px;
@@ -161,7 +161,7 @@
   }
 }
 
-.sidebar-nav {
+.admin-layout.admin-shell .sidebar-nav {
   flex: 1;
   padding: 20px 12px;
   display: flex;
@@ -170,7 +170,7 @@
   overflow-y: auto;
 }
 
-.nav-item {
+.admin-layout.admin-shell .nav-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -198,13 +198,13 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-.nav-icon {
+.admin-layout.admin-shell .nav-icon {
   font-size: 1rem;
   min-width: 24px;
   text-align: center;
 }
 
-.nav-label {
+.admin-layout.admin-shell .nav-label {
   white-space: nowrap;
 }
 
@@ -212,7 +212,7 @@
 /* MAIN CONTENT */
 /* ============================================ */
 
-.admin-main {
+.admin-layout.admin-shell .admin-main {
   flex: 1;
   margin-left: 260px;
   transition: margin-left 0.3s ease;
@@ -258,7 +258,7 @@
 }
 
 /* Admin Header */
-.admin-header {
+.admin-layout.admin-shell .admin-header {
   background: white;
   border-bottom: 1px solid #e2e8f0;
   padding: 12px 24px;
@@ -278,7 +278,7 @@
 }
 
 /* Mobile Menu Toggle Button - Always Visible on Mobile */
-.mobile-menu-toggle {
+.admin-layout.admin-shell .mobile-menu-toggle {
   display: none;
   background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
   border: none;
@@ -310,7 +310,7 @@
   }
 }
 
-.header-title {
+.admin-layout.admin-shell .header-title {
   flex: 1;
   min-width: 0;
 }
@@ -394,7 +394,7 @@
   position: relative;
 }
 
-.profile-btn {
+.admin-layout.admin-shell .profile-btn {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -410,7 +410,7 @@
   background: #f1f5f9;
 }
 
-.admin-name {
+.admin-layout.admin-shell .admin-name {
   font-size: 0.9rem;
   font-weight: 500;
   color: #1e293b;
@@ -422,7 +422,7 @@
   }
 }
 
-.admin-avatar {
+.admin-layout.admin-shell .admin-avatar {
   position: relative;
   width: 40px;
   height: 40px;
@@ -460,7 +460,7 @@
 }
 
 /* Dropdown Menu */
-.admin-dropdown {
+.admin-layout.admin-shell .admin-dropdown {
   position: absolute;
   top: 50px;
   right: 0;
@@ -473,7 +473,7 @@
   overflow: hidden;
 }
 
-.dropdown-item {
+.admin-layout.admin-shell .dropdown-item {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -502,7 +502,7 @@
 }
 
 /* Admin Content */
-.admin-content {
+.admin-layout.admin-shell .admin-content {
   padding: 24px;
 }
 
@@ -558,7 +558,7 @@
 }
 
 /* Modals */
-.modal-overlay {
+.admin-layout.admin-shell .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -572,7 +572,7 @@
   z-index: 1000;
 }
 
-.modal-container {
+.admin-layout.admin-shell .modal-container {
   background: white;
   border-radius: 20px;
   width: 90%;
@@ -605,13 +605,13 @@
   object-fit: cover;
 }
 
-.profile-info {
+.admin-layout.admin-shell .profile-info {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.info-row {
+.admin-layout.admin-shell .info-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -630,7 +630,7 @@
   font-size: 0.9rem;
 }
 
-.modal-footer {
+.admin-layout.admin-shell .modal-footer {
   padding: 16px 24px;
   border-top: 1px solid #e2e8f0;
   display: flex;
@@ -638,7 +638,7 @@
   gap: 12px;
 }
 
-.btn-primary, .btn-secondary {
+.admin-layout.admin-shell .btn-primary, .admin-layout.admin-shell .btn-secondary {
   padding: 8px 20px;
   border-radius: 40px;
   font-size: 0.85rem;
@@ -686,7 +686,7 @@
   color: #94a3b8;
 }
 
-.message-banner {
+.admin-layout.admin-shell .message-banner {
   padding: 10px;
   border-radius: 8px;
   margin-bottom: 16px;
@@ -700,7 +700,7 @@
 }
 
 /* Confirmation Modal */
-.confirm-modal {
+.admin-layout.admin-shell .confirm-modal {
   max-width: 400px;
 }
 
