@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as staffApi from '../services/staffDashboardApi';
 import NotificationBell from '../components/staff/NotificationBell';
 import LogoutConfirmModal from '../components/modals/LogoutConfirmModal';
-import './StaffDashboard.css';
+import './StaffLayout.css';
 
 const StaffDashboard = () => {
   const navigate = useNavigate();
