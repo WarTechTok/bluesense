@@ -168,14 +168,13 @@
 /* ============================================ */
 
 .sidebar-header {
-  padding: 24px 16px 20px 16px;
+  padding: 20px 16px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   min-height: 100px;
-  background: #ffffff;
 }
 
 .logo-area {
@@ -183,18 +182,18 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
 .sidebar-logo {
-  width: 65px;
-  height: 65px;
+  width: 70px;  /* Changed from 40px to 70px - BIGGER */
+  height: 70px; /* Changed from 40px to 70px - BIGGER */
   object-fit: contain;
   transition: all 0.3s ease;
 }
 
-/* Logo text under the image - original color */
+/* Logo text under the image */
 .logo-text {
   font-size: 14px;
   font-weight: 600;
@@ -207,8 +206,8 @@
 
 /* When sidebar is closed - hide text and shrink logo */
 .admin-sidebar.closed .sidebar-logo {
-  width: 42px;
-  height: 42px;
+  width: 45px;  /* Changed from 32px to 45px */
+  height: 45px; /* Changed from 32px to 45px */
 }
 
 .admin-sidebar.closed .logo-text {
