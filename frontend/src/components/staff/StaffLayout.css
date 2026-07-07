@@ -1,6 +1,6 @@
 /* ============================================ */
 /* STAFF DASHBOARD - FULLY RESPONSIVE */
-/* Modern Professional Layout (Admin Style) */
+/* Modern Professional Layout (Staff Style) */
 /* ============================================ */
 
 * {
@@ -135,13 +135,13 @@
 }
 
 /* ============================================ */
-/* SIDEBAR - LIGHT BLUE (ORIGINAL) */
+/* SIDEBAR - LIGHT BLUE */
 /* ============================================ */
 
-.admin-sidebar {
+.staff-sidebar {
   width: 250px;
   height: 100vh;
-  background: linear-gradient(180deg, #e0f2fe 0%, #bae6fd 100%);
+  background: linear-gradient(180deg, #dbeafe 0%, #bfdbfe 100%);
   position: fixed;
   left: 0;
   top: 0;
@@ -152,14 +152,14 @@
   overflow-y: auto;
   overflow-x: hidden;
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
-  border-right: 1px solid #7dd3fc;
+  border-right: 1px solid #93c5fd;
 }
 
-.admin-sidebar.closed {
+.staff-sidebar.closed {
   width: 70px;
 }
 
-.admin-sidebar.closed .sidebar-header {
+.staff-sidebar.closed .sidebar-header {
   padding: 16px 10px;
 }
 
@@ -192,14 +192,13 @@
   height: 70px;
   object-fit: contain;
   transition: all 0.3s ease;
-  /* Keeps original logo colors - no filters applied */
 }
 
-/* Logo text under the image - dark color for light sidebar */
+/* Logo text under the image */
 .logo-text {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: #1e293b;
   letter-spacing: 0.5px;
   text-align: center;
   transition: all 0.3s ease;
@@ -207,19 +206,19 @@
 }
 
 /* When sidebar is closed - hide text and shrink logo */
-.admin-sidebar.closed .sidebar-logo {
+.staff-sidebar.closed .sidebar-logo {
   width: 45px;
   height: 45px;
 }
 
-.admin-sidebar.closed .logo-text {
+.staff-sidebar.closed .logo-text {
   opacity: 0;
   height: 0;
   overflow: hidden;
   margin: 0;
 }
 
-.admin-sidebar.closed .sidebar-header {
+.staff-sidebar.closed .sidebar-header {
   padding: 12px 10px;
   min-height: 70px;
 }
@@ -245,16 +244,16 @@
   color: #0f172a;
 }
 
-.admin-sidebar.open .sidebar-toggle {
+.staff-sidebar.open .sidebar-toggle {
   display: block;
 }
 
-.admin-sidebar.closed .sidebar-toggle {
+.staff-sidebar.closed .sidebar-toggle {
   display: block;
 }
 
 /* ============================================ */
-/* SIDEBAR NAVIGATION - LIGHT THEME */
+/* SIDEBAR NAVIGATION */
 /* ============================================ */
 
 .sidebar-nav {
@@ -263,6 +262,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  background: transparent;
 }
 
 .nav-item {
@@ -316,7 +316,7 @@
   transition: opacity 0.3s ease;
 }
 
-.admin-sidebar.closed .nav-label {
+.staff-sidebar.closed .nav-label {
   opacity: 0;
   width: 0;
   overflow: hidden;
@@ -327,36 +327,36 @@
 /* ============================================ */
 
 @media (max-width: 768px) {
-  .admin-sidebar {
+  .staff-sidebar {
     transform: translateX(-100%);
     width: 280px !important;
   }
 
-  .admin-sidebar.open {
+  .staff-sidebar.open {
     transform: translateX(0);
   }
 
-  .admin-sidebar.closed {
+  .staff-sidebar.closed {
     transform: translateX(-100%);
     width: 280px !important;
   }
 
-  .admin-sidebar.closed .sidebar-logo {
+  .staff-sidebar.closed .sidebar-logo {
     width: 60px !important;
     height: 60px !important;
   }
 
-  .admin-sidebar.closed .logo-text {
+  .staff-sidebar.closed .logo-text {
     opacity: 1 !important;
     height: auto !important;
   }
 
-  .admin-sidebar.closed .nav-label {
+  .staff-sidebar.closed .nav-label {
     opacity: 1 !important;
     width: auto !important;
   }
 
-  .admin-sidebar.open .sidebar-toggle {
+  .staff-sidebar.open .sidebar-toggle {
     display: block !important;
   }
 
@@ -399,7 +399,7 @@
 /* MAIN CONTENT - Adjust for sidebar */
 /* ============================================ */
 
-.admin-main {
+.staff-main {
   margin-left: 250px;
   flex: 1;
   min-height: 100vh;
@@ -407,12 +407,12 @@
   transition: margin-left 0.3s ease;
 }
 
-.admin-sidebar.closed ~ .admin-main {
+.staff-sidebar.closed ~ .staff-main {
   margin-left: 70px;
 }
 
 @media (max-width: 768px) {
-  .admin-main {
+  .staff-main {
     margin-left: 0 !important;
   }
 }
@@ -446,10 +446,10 @@
 }
 
 /* ============================================ */
-/* ADMIN HEADER */
+/* STAFF HEADER */
 /* ============================================ */
 
-.admin-header {
+.staff-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -479,10 +479,10 @@
 }
 
 /* ============================================ */
-/* ADMIN PROFILE DROPDOWN */
+/* STAFF PROFILE DROPDOWN */
 /* ============================================ */
 
-.admin-profile {
+.staff-profile {
   position: relative;
 }
 
@@ -502,13 +502,13 @@
   background: #f1f5f9;
 }
 
-.admin-name {
+.staff-name {
   font-size: 0.9rem;
   font-weight: 500;
   color: #1e293b;
 }
 
-.admin-avatar {
+.staff-avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
@@ -522,7 +522,7 @@
   position: relative;
 }
 
-.admin-avatar img {
+.staff-avatar img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -535,7 +535,7 @@
   margin-left: 4px;
 }
 
-.admin-dropdown {
+.staff-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
