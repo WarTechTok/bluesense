@@ -79,7 +79,7 @@ const StaffDashboard = () => {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest('.admin-profile')) {
+      if (!e.target.closest('.staff-profile')) {
         setShowDropdown(false);
       }
     };
@@ -198,7 +198,7 @@ const StaffDashboard = () => {
   }
 
   return (
-    <div className="admin-layout">
+    <div className="staff-layout">
       {/* Mobile Overlay */}
       {isMobile && (
         <div 
@@ -208,7 +208,7 @@ const StaffDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+      <aside className={`staff-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <div className="logo-area">
             <img 
@@ -247,8 +247,8 @@ const StaffDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="admin-main">
-        <div className="admin-header">
+      <main className="staff-main">
+        <div className="staff-header">
           {/* Mobile Menu Toggle */}
           <button 
             className="mobile-menu-toggle"
@@ -267,13 +267,13 @@ const StaffDashboard = () => {
           <NotificationBell refreshInterval={10000} />
           
           {/* Profile Dropdown */}
-          <div className="admin-profile">
+          <div className="staff-profile">
             <button 
               className="profile-btn"
               onClick={() => setShowDropdown(!showDropdown)}
             >
-              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Staff'}</span>
-              <div className="admin-avatar">
+              <span className="staff-name">{userData?.name?.split(' ')[0] || 'Staff'}</span>
+              <div className="staff-avatar">
                 {userData?.avatar ? (
                   <img src={userData.avatar} alt="avatar" />
                 ) : (
@@ -284,7 +284,7 @@ const StaffDashboard = () => {
             </button>
 
             {showDropdown && (
-              <div className="admin-dropdown">
+              <div className="staff-dropdown">
                 <button 
                   className="dropdown-item"
                   onClick={() => {
@@ -310,7 +310,7 @@ const StaffDashboard = () => {
           </div>
         </div>
         
-        <div className="admin-content">
+        <div className="staff-content">
 
       {/* Task Stats - Professional Grid */}
       <div className="stats-section">
@@ -658,3 +658,4 @@ const StaffDashboard = () => {
   );
 };
 
+export default StaffDashboard;
