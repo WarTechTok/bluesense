@@ -6,9 +6,6 @@ import NotificationBell from '../components/staff/NotificationBell';
 import LogoutConfirmModal from '../components/modals/LogoutConfirmModal';
 import './StaffDashboard.css';
 
-/**
- * Staff Dashboard Component - Professional Layout (Admin Style)
- */
 const StaffDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,11 +34,9 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load user data from localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    // Check if user is a receptionist - redirect to receptionist dashboard
     if (user.position === 'Receptionist') {
       navigate('/receptionist/dashboard', { replace: true });
       return;
@@ -55,7 +50,6 @@ const StaffDashboard = () => {
     });
   }, [navigate]);
 
-  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth <= 768;
@@ -69,14 +63,12 @@ const StaffDashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar on mobile
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
     }
   }, [isMobile]);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest('.staff-profile')) {
@@ -199,7 +191,6 @@ const StaffDashboard = () => {
 
   return (
     <div className="staff-layout">
-      {/* Mobile Overlay */}
       {isMobile && (
         <div 
           className={`mobile-overlay ${sidebarOpen ? 'open' : ''}`}
@@ -207,7 +198,6 @@ const StaffDashboard = () => {
         ></div>
       )}
 
-      {/* Sidebar */}
       <aside className={`staff-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <div className="logo-area">
@@ -246,10 +236,8 @@ const StaffDashboard = () => {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="staff-main">
         <div className="staff-header">
-          {/* Mobile Menu Toggle */}
           <button 
             className="mobile-menu-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -263,10 +251,8 @@ const StaffDashboard = () => {
             <p>Welcome back, {stats.staffName || userData?.name || 'Staff'}</p>
           </div>
           
-          {/* Notification Bell */}
           <NotificationBell refreshInterval={10000} />
           
-          {/* Profile Dropdown */}
           <div className="staff-profile">
             <button 
               className="profile-btn"
@@ -311,236 +297,230 @@ const StaffDashboard = () => {
         </div>
         
         <div className="staff-content">
-
-      {/* Task Stats - Professional Grid */}
-      <div className="stats-section">
-        <h2 className="section-title">Task Overview</h2>
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
-              <i className="fas fa-tasks"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Total Tasks</h3>
-              <div className="stat-value">{stats.totalTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
-              <i className="fas fa-clock"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Pending</h3>
-              <div className="stat-value">{stats.pendingTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#dbeafe', color: '#3b82f6' }}>
-              <i className="fas fa-spinner"></i>
-            </div>
-            <div className="stat-info">
-              <h3>In Progress</h3>
-              <div className="stat-value">{stats.inProgressTasks || 0}</div>
-            </div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon" style={{ background: '#d1fae5', color: '#10b981' }}>
-              <i className="fas fa-check-circle"></i>
-            </div>
-            <div className="stat-info">
-              <h3>Completed</h3>
-              <div className="stat-value">{stats.completedTasks || 0}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Task Summary Table */}
-      <div className="stats-section">
-        <h2 className="section-title">Task Summary</h2>
-        <div className="financial-table">
-          <div className="financial-row header">
-            <div className="financial-cell">Metric</div>
-            <div className="financial-cell text-right">Count</div>
-            <div className="financial-cell text-right">Percentage</div>
-            <div className="financial-cell text-right">Status</div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">Pending Tasks</div>
-            <div className="financial-cell text-right">{stats.pendingTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.pendingTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#f59e0b' }}>Pending</span>
-            </div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">In Progress</div>
-            <div className="financial-cell text-right">{stats.inProgressTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.inProgressTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#3b82f6' }}>In Progress</span>
-            </div>
-          </div>
-          
-          <div className="financial-row">
-            <div className="financial-cell label">Completed</div>
-            <div className="financial-cell text-right">{stats.completedTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Completed</span>
-            </div>
-          </div>
-
-          <div className="financial-row">
-            <div className="financial-cell label">Cancelled</div>
-            <div className="financial-cell text-right">{stats.cancelledTasks || 0}</div>
-            <div className="financial-cell text-right">
-              {stats.totalTasks > 0 ? `${Math.round((stats.cancelledTasks / stats.totalTasks) * 100)}%` : '0%'}
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#ef4444' }}>Cancelled</span>
-            </div>
-          </div>
-
-          <div className="financial-row highlight">
-            <div className="financial-cell label">Completion Rate</div>
-            <div className="financial-cell text-right amount-profit">
-              {stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%
-            </div>
-            <div className="financial-cell text-right amount-profit">
-              {stats.totalTasks > 0 ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100) : 0}% Active
-            </div>
-            <div className="financial-cell text-right">
-              <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Tracking</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Room Assignments & Performance Info Cards */}
-      <div className="stats-section">
-        <h2 className="section-title">Performance Metrics</h2>
-        <div className="quick-stats">
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
-            <ul>
-              <li>
-                <span>Assigned Rooms:</span>
-                <strong>{stats.assignedRoomsCount || 0}</strong>
-              </li>
-            </ul>
-          </div>
-
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-chart-line"></i> Performance</h4>
-            <ul>
-              <li>
-                <span>Completion Rate:</span>
-                <strong>
-                  {stats.totalTasks > 0 
-                    ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
-                    : 0}%
-                </strong>
-              </li>
-              <li>
-                <span>Productivity:</span>
-                <strong>
-                  {stats.totalTasks > 0 
-                    ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100)
-                    : 0}%
-                </strong>
-              </li>
-            </ul>
-          </div>
-
-          <div className="quick-stat-item">
-            <h4><i className="fas fa-bell"></i> Notifications</h4>
-            <ul>
-              <li>
-                <span>Unread:</span>
-                <strong>{stats.unreadNotifications || 0}</strong>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Tasks List */}
-      <div className="stats-section">
-        <h2 className="section-title">My Tasks</h2>
-        {tasks.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-inbox"></i>
-            <p>No tasks assigned</p>
-          </div>
-        ) : (
-          <div className="tasks-list">
-            {tasks.map((task) => (
-              <div key={task._id} className="task-item">
-                <div className="task-header">
-                  <div className="task-title-section">
-                    <h4>{task.title}</h4>
-                    <div className="task-badges">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(task.status) }}
-                      >
-                        {task.status}
-                      </span>
-                      <span 
-                        className="priority-badge"
-                        style={{ backgroundColor: getPriorityColor(task.priority) }}
-                      >
-                        {task.priority}
-                      </span>
-                    </div>
-                  </div>
+          <div className="stats-section">
+            <h2 className="section-title">Task Overview</h2>
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
+                  <i className="fas fa-tasks"></i>
                 </div>
-                <div className="task-details">
-                  {task.roomId && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-door-open"></i>
-                      <span>{task.roomId.name}</span>
-                    </div>
-                  )}
-                  {task.taskType && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-tag"></i>
-                      <span>{task.taskType}</span>
-                    </div>
-                  )}
-                  {task.dueDate && (
-                    <div className="task-detail-item">
-                      <i className="fas fa-calendar"></i>
-                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-                    </div>
-                  )}
+                <div className="stat-info">
+                  <h3>Total Tasks</h3>
+                  <div className="stat-value">{stats.totalTasks || 0}</div>
                 </div>
-                {task.description && (
-                  <div className="task-description">
-                    <p>{task.description}</p>
-                  </div>
-                )}
               </div>
-            ))}
+
+              <div className="stat-card">
+                <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
+                  <i className="fas fa-clock"></i>
+                </div>
+                <div className="stat-info">
+                  <h3>Pending</h3>
+                  <div className="stat-value">{stats.pendingTasks || 0}</div>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon" style={{ background: '#dbeafe', color: '#3b82f6' }}>
+                  <i className="fas fa-spinner"></i>
+                </div>
+                <div className="stat-info">
+                  <h3>In Progress</h3>
+                  <div className="stat-value">{stats.inProgressTasks || 0}</div>
+                </div>
+              </div>
+
+              <div className="stat-card">
+                <div className="stat-icon" style={{ background: '#d1fae5', color: '#10b981' }}>
+                  <i className="fas fa-check-circle"></i>
+                </div>
+                <div className="stat-info">
+                  <h3>Completed</h3>
+                  <div className="stat-value">{stats.completedTasks || 0}</div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-        </div>
+
+          <div className="stats-section">
+            <h2 className="section-title">Task Summary</h2>
+            <div className="financial-table">
+              <div className="financial-row header">
+                <div className="financial-cell">Metric</div>
+                <div className="financial-cell text-right">Count</div>
+                <div className="financial-cell text-right">Percentage</div>
+                <div className="financial-cell text-right">Status</div>
+              </div>
+              
+              <div className="financial-row">
+                <div className="financial-cell label">Pending Tasks</div>
+                <div className="financial-cell text-right">{stats.pendingTasks || 0}</div>
+                <div className="financial-cell text-right">
+                  {stats.totalTasks > 0 ? `${Math.round((stats.pendingTasks / stats.totalTasks) * 100)}%` : '0%'}
+                </div>
+                <div className="financial-cell text-right">
+                  <span className="status-badge" style={{ backgroundColor: '#f59e0b' }}>Pending</span>
+                </div>
+              </div>
+              
+              <div className="financial-row">
+                <div className="financial-cell label">In Progress</div>
+                <div className="financial-cell text-right">{stats.inProgressTasks || 0}</div>
+                <div className="financial-cell text-right">
+                  {stats.totalTasks > 0 ? `${Math.round((stats.inProgressTasks / stats.totalTasks) * 100)}%` : '0%'}
+                </div>
+                <div className="financial-cell text-right">
+                  <span className="status-badge" style={{ backgroundColor: '#3b82f6' }}>In Progress</span>
+                </div>
+              </div>
+              
+              <div className="financial-row">
+                <div className="financial-cell label">Completed</div>
+                <div className="financial-cell text-right">{stats.completedTasks || 0}</div>
+                <div className="financial-cell text-right">
+                  {stats.totalTasks > 0 ? `${Math.round((stats.completedTasks / stats.totalTasks) * 100)}%` : '0%'}
+                </div>
+                <div className="financial-cell text-right">
+                  <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Completed</span>
+                </div>
+              </div>
+
+              <div className="financial-row">
+                <div className="financial-cell label">Cancelled</div>
+                <div className="financial-cell text-right">{stats.cancelledTasks || 0}</div>
+                <div className="financial-cell text-right">
+                  {stats.totalTasks > 0 ? `${Math.round((stats.cancelledTasks / stats.totalTasks) * 100)}%` : '0%'}
+                </div>
+                <div className="financial-cell text-right">
+                  <span className="status-badge" style={{ backgroundColor: '#ef4444' }}>Cancelled</span>
+                </div>
+              </div>
+
+              <div className="financial-row highlight">
+                <div className="financial-cell label">Completion Rate</div>
+                <div className="financial-cell text-right amount-profit">
+                  {stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%
+                </div>
+                <div className="financial-cell text-right amount-profit">
+                  {stats.totalTasks > 0 ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100) : 0}% Active
+                </div>
+                <div className="financial-cell text-right">
+                  <span className="status-badge" style={{ backgroundColor: '#10b981' }}>Tracking</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h2 className="section-title">Performance Metrics</h2>
+            <div className="quick-stats">
+              <div className="quick-stat-item">
+                <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
+                <ul>
+                  <li>
+                    <span>Assigned Rooms:</span>
+                    <strong>{stats.assignedRoomsCount || 0}</strong>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="quick-stat-item">
+                <h4><i className="fas fa-chart-line"></i> Performance</h4>
+                <ul>
+                  <li>
+                    <span>Completion Rate:</span>
+                    <strong>
+                      {stats.totalTasks > 0 
+                        ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+                        : 0}%
+                    </strong>
+                  </li>
+                  <li>
+                    <span>Productivity:</span>
+                    <strong>
+                      {stats.totalTasks > 0 
+                        ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100)
+                        : 0}%
+                    </strong>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="quick-stat-item">
+                <h4><i className="fas fa-bell"></i> Notifications</h4>
+                <ul>
+                  <li>
+                    <span>Unread:</span>
+                    <strong>{stats.unreadNotifications || 0}</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="stats-section">
+            <h2 className="section-title">My Tasks</h2>
+            {tasks.length === 0 ? (
+              <div className="empty-state">
+                <i className="fas fa-inbox"></i>
+                <p>No tasks assigned</p>
+              </div>
+            ) : (
+              <div className="tasks-list">
+                {tasks.map((task) => (
+                  <div key={task._id} className="task-item">
+                    <div className="task-header">
+                      <div className="task-title-section">
+                        <h4>{task.title}</h4>
+                        <div className="task-badges">
+                          <span 
+                            className="status-badge"
+                            style={{ backgroundColor: getStatusColor(task.status) }}
+                          >
+                            {task.status}
+                          </span>
+                          <span 
+                            className="priority-badge"
+                            style={{ backgroundColor: getPriorityColor(task.priority) }}
+                          >
+                            {task.priority}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="task-details">
+                      {task.roomId && (
+                        <div className="task-detail-item">
+                          <i className="fas fa-door-open"></i>
+                          <span>{task.roomId.name}</span>
+                        </div>
+                      )}
+                      {task.taskType && (
+                        <div className="task-detail-item">
+                          <i className="fas fa-tag"></i>
+                          <span>{task.taskType}</span>
+                        </div>
+                      )}
+                      {task.dueDate && (
+                        <div className="task-detail-item">
+                          <i className="fas fa-calendar"></i>
+                          <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                    </div>
+                    {task.description && (
+                      <div className="task-description">
+                        <p>{task.description}</p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
 
-      {/* View Profile Modal */}
       {showProfileModal && (
         <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
           <div className="modal-container profile-modal" onClick={(e) => e.stopPropagation()}>
@@ -596,7 +576,6 @@ const StaffDashboard = () => {
         </div>
       )}
 
-      {/* Edit Profile Modal */}
       {showEditModal && (
         <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
           <div className="modal-container edit-modal" onClick={(e) => e.stopPropagation()}>
@@ -648,7 +627,6 @@ const StaffDashboard = () => {
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
       <LogoutConfirmModal
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
