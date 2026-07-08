@@ -14,6 +14,26 @@ import "./Navbar.css";
 
 // Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+// If the frontend is running on a deployed host (not localhost) but
+// the env var wasn't set (left as localhost), use the known Render backend URL.
+const getApiBase = () => {
+  // Known deployed backend URL (fallback)
+  const FALLBACK_BACKEND = 'https://bluesense.onrender.com';
+
+  // If API_BASE_URL points to localhost but we're on a production host, switch.
+  try {
+    const hostname = window.location.hostname || '';
+    if ((API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) 
+        && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      return FALLBACK_BACKEND;
+    }
+  } catch (e) {
+    // ignore and return API_BASE_URL
+  }
+
+  return API_BASE_URL;
+};
+const BASE_API = getApiBase();
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -155,7 +175,7 @@ function Navbar() {
       if (userData.avatar.startsWith("http")) {
         return userData.avatar;
       }
-      return `${API_BASE_URL}${userData.avatar}`;
+      return `${BASE_API}${userData.avatar}`;
     }
 
     if (userData.googleAvatar) {
@@ -180,7 +200,7 @@ function Navbar() {
       console.log('Saving profile data:', updatedData);
       
       const response = await axios.put(
-        `${API_BASE_URL}/api/auth/profile`,
+        `${BASE_API}/api/auth/profile`,
         {
           name: updatedData.name,
           phone: updatedData.phone || "",

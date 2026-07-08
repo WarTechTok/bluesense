@@ -113,25 +113,39 @@ const AdminLayout = ({ children }) => {
   const getInitial = userData?.name?.charAt(0).toUpperCase() || 'A';
 
   const handleUpdateProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setMessage('Please login again');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.put(
         'http://localhost:8080/api/auth/profile',
         { name: editForm.name, phone: editForm.phone, address: editForm.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      if (response.data.user) {
+
+      if (response.data && response.data.user) {
         const updatedUser = { ...userData, ...response.data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUserData(updatedUser);
         setShowEditModal(false);
         setMessage('Profile updated successfully!');
+        // notify other parts of app if needed
+        window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updatedUser }));
+        setTimeout(() => setMessage(''), 3000);
+      } else {
+        const text = response.data?.message || 'Failed to update profile';
+        setMessage(text);
         setTimeout(() => setMessage(''), 3000);
       }
     } catch (error) {
-      setMessage('Failed to update profile');
-      setTimeout(() => setMessage(''), 3000);
+      console.error('Profile update error:', error);
+      const serverMsg = error?.response?.data?.message || error?.message || 'Failed to update profile';
+      setMessage(serverMsg);
+      setTimeout(() => setMessage(''), 5000);
     }
   };
 
