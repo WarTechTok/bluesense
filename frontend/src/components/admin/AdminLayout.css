@@ -53,8 +53,11 @@
 
 .admin-sidebar {
   width: 260px;
-  /* Use flat blue color provided by user */
-  background: #0284c7;
+  /* Use exact flat blue color provided by user and override gradients */
+  background: #0284c7 !important;
+  background-image: none !important;
+  filter: none !important;
+  opacity: 1 !important;
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -69,6 +72,14 @@
 .admin-sidebar .sidebar-header,
 .admin-sidebar .sidebar-nav {
   background: transparent;
+}
+
+/* Remove any sidebar pseudo-element backgrounds (overrides) */
+.admin-sidebar::before,
+.admin-sidebar::after {
+  content: none !important;
+  background: none !important;
+  display: none !important;
 }
 
 /* Desktop: sidebar can be toggled between open and closed */
