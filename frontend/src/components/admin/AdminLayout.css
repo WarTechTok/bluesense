@@ -53,8 +53,8 @@
 
 .admin-sidebar {
   width: 260px;
-  /* Use a consistent blue gradient matching design and ensure it stays on top */
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  /* Use flat blue color provided by user */
+  background: #0284c7;
   display: flex;
   flex-direction: column;
   position: fixed;
