@@ -8,6 +8,8 @@ import ConfirmationModal from "../../components/admin/ConfirmationModal";
 import "./ManagementPages.css";
 import * as adminApi from '../../services/admin';
 import * as XLSX from "xlsx";
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const Reports = () => {
   const [reportType, setReportType] = useState("booking");
@@ -339,11 +341,69 @@ const Reports = () => {
       }
 
       if (exportFormat === "word") {
-        const wordContent = `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${sheetName}</w:t></w:r></w:p>${exportData.map((row) => `<w:p>${Object.values(row).map((value) => `<w:r><w:t>${String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</w:t></w:r>`).join('')}</w:p>`).join('')}</w:body></w:document>`;
-        downloadFile(wordContent, filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        // Word export: create an HTML-based .doc file which Word can open
+        const htmlHeader = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${sheetName}</title><style>body{font-family: Arial, Helvetica, sans-serif; color:#111;} table{border-collapse:collapse;width:100%} th,td{border:1px solid #ddd;padding:8px;} th{background:#0284c7;color:#fff;text-align:left}</style></head><body>`;
+        const htmlFooter = `</body></html>`;
+        let tableHtml = `<h2 style="color:#0284c7">${sheetName}</h2>`;
+        tableHtml += `<table><thead><tr>`;
+        const cols = Object.keys(exportData[0] || {});
+        cols.forEach(c => { tableHtml += `<th>${c}</th>`; });
+        tableHtml += `</tr></thead><tbody>`;
+        exportData.forEach(row => {
+          tableHtml += `<tr>`;
+          cols.forEach(c => { tableHtml += `<td>${String(row[c] ?? '')}</td>`; });
+          tableHtml += `</tr>`;
+        });
+        tableHtml += `</tbody></table>`;
+        const wordContent = htmlHeader + tableHtml + htmlFooter;
+        const blob = new Blob([wordContent], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename.replace(/\.docx?$|\.pdf$|\.xlsx?$/i, '.doc');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } else if (exportFormat === "pdf") {
-        const pdfContent = `%PDF-1.4\n1 0 obj<< /Type /Catalog /Pages 2 0 R>>endobj\n2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1>>endobj\n3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj\n4 0 obj<< /Length 44 >>stream\nBT /F1 24 Tf 72 720 (${sheetName}) Tj ET\nendstream\nendobj\n5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\nxref\n0 6\n0000000000 65535 f \n0000000010 00000 n \n0000000062 00000 n \n0000000119 00000 n \n0000000206 00000 n \n0000000303 00000 n \ntrailer<< /Size 6 /Root 1 0 R>>\nstartxref\n0\n%%EOF`;
-        downloadFile(pdfContent, filename, "application/pdf");
+        // Use jsPDF + autoTable to create a professional PDF
+        try {
+          const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+          const margin = 40;
+          doc.setFontSize(16);
+          doc.setTextColor('#0284c7');
+          doc.text(sheetName, margin, 50);
+
+          // Subtitle / date range
+          const rangeText = (startDate && endDate) ? `${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}` : '';
+          doc.setFontSize(10);
+          doc.setTextColor('#444');
+          if (rangeText) doc.text(rangeText, margin, 68);
+
+          const cols = Object.keys(exportData[0] || {});
+          const rows = exportData.map(r => cols.map(c => (r[c] === null || r[c] === undefined) ? '' : String(r[c])));
+
+          doc.autoTable({
+            head: [cols],
+            body: rows,
+            startY: 80,
+            theme: 'striped',
+            headStyles: { fillColor: [2,132,199], textColor: 255, halign: 'left' },
+            styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
+            columnStyles: cols.reduce((acc, c, i) => { acc[i] = { cellWidth: 'auto' }; return acc; }, {}),
+            didDrawPage: (data) => {
+              const pageCount = doc.internal.getNumberOfPages();
+              const pageSize = doc.internal.pageSize;
+              doc.setFontSize(9);
+              doc.setTextColor('#888');
+              const footerText = `Generated: ${new Date().toLocaleString()} — Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${pageCount}`;
+              doc.text(footerText, margin, pageSize.height - 30);
+            }
+          });
+
+          doc.save(filename);
+        } catch (err) {
+          console.error('Error generating PDF with jsPDF:', err);
+          showConfirmationModal('Error', 'Failed to generate PDF: ' + err.message, null, 'OK');
+        }
       } else {
         // Create worksheet and workbook
         const ws = XLSX.utils.json_to_sheet(exportData);

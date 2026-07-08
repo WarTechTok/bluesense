@@ -20,6 +20,8 @@
     "swiper": "^12.1.2",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
+    ,"jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.28"
   },
   "scripts": {
     "start": "node cleanup-port.js && react-scripts start",

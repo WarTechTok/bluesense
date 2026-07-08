@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { BASE_API } from '../../utils/apiBase';
 import NotificationBell from '../staff/NotificationBell';
 import LogoutConfirmModal from '../modals/LogoutConfirmModal';
 import '../admin/AdminLayout.css';
@@ -108,7 +109,7 @@ const ReceptionistLayout = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.put(
-        'http://localhost:8080/api/auth/profile',
+        `${BASE_API}/api/auth/profile`,
         { name: editForm.name, phone: editForm.phone, address: editForm.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
