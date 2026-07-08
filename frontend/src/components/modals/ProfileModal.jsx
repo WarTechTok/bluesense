@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './Modal.css';
+import { getApiUrl } from '../../utils/apiBase';
 
-// Get API URL from environment variable
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+const API_BASE_URL = getApiUrl();
 
 function ProfileModal({ isOpen, onClose, user, onUpdate, onLogout }) {
   const [isEditing, setIsEditing] = useState(false);

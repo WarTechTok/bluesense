@@ -1,21 +1,35 @@
 // frontend/src/utils/apiBase.js
-// Provides a centralized API base URL that prefers REACT_APP_API_URL
-// but falls back to the deployed Render backend when the frontend is not localhost.
+// Provides a centralized API base URL that prefers the configured backend
+// and falls back to the deployed Render backend when the app is running locally.
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+const DEFAULT_API_BASE_URL = 'http://localhost:8080';
+const FALLBACK_BACKEND = 'https://bluesense.onrender.com';
+
+const getConfiguredApiBase = () => process.env.REACT_APP_API_URL || DEFAULT_API_BASE_URL;
 
 export const getApiBase = () => {
-  const FALLBACK_BACKEND = 'https://bluesense.onrender.com';
+  const configuredApiBase = getConfiguredApiBase();
+
   try {
-    const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
-    if ((API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1'))
-        && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    const hostname = (typeof window !== 'undefined' && window.location && window.location.hostname)
+      ? window.location.hostname
+      : '';
+    const isLocalHost = ['localhost', '127.0.0.1', '0.0.0.0'].includes(hostname);
+
+    if (isLocalHost && (configuredApiBase.includes('localhost') || configuredApiBase.includes('127.0.0.1'))) {
       return FALLBACK_BACKEND;
     }
   } catch (e) {
     // ignore
   }
-  return API_BASE_URL;
+
+  return configuredApiBase;
+};
+
+export const getApiUrl = (path = '') => {
+  const base = getApiBase();
+  if (!path) return base;
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 };
 
 export const BASE_API = getApiBase();

@@ -7,24 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import LogoutConfirmModal from '../modals/LogoutConfirmModal';
+import { getApiUrl } from '../../utils/apiBase';
 import './AdminLayout.css';
 
-// API base handling: prefer REACT_APP_API_URL, but fallback to deployed backend when frontend is not localhost
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
-const getApiBase = () => {
-  const FALLBACK_BACKEND = 'https://bluesense.onrender.com';
-  try {
-    const hostname = window.location.hostname || '';
-    if ((API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1'))
-        && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return FALLBACK_BACKEND;
-    }
-  } catch (e) {
-    // ignore
-  }
-  return API_BASE_URL;
-};
-const BASE_API = getApiBase();
+const BASE_API = getApiUrl();
 
 const AdminLayout = ({ children }) => {
   // On mobile, sidebar starts closed; on desktop, it starts open
@@ -138,8 +124,9 @@ const AdminLayout = ({ children }) => {
     }
 
     try {
+      const profileUrl = `${BASE_API}/api/auth/profile`;
       const response = await axios.put(
-        `${BASE_API}/api/auth/profile`,
+        profileUrl,
         { name: editForm.name, phone: editForm.phone, address: editForm.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
