@@ -16,6 +16,7 @@ const Reports = () => {
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState("excel");
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -54,6 +55,36 @@ const Reports = () => {
       confirmText,
       cancelText
     });
+  };
+
+  const downloadFile = (content, fileName, mimeType) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
+  const buildCsvContent = (rows) => {
+    if (!rows || rows.length === 0) return "";
+
+    const headers = Object.keys(rows[0]);
+    const escapeCsvValue = (value) => {
+      if (value === null || value === undefined) return "";
+      const stringValue = String(value);
+      return `"${stringValue.replace(/"/g, '""')}"`;
+    };
+
+    const lines = [headers.join(",")];
+    rows.forEach((row) => {
+      lines.push(headers.map((header) => escapeCsvValue(row[header])).join(","));
+    });
+
+    return lines.join("\r\n");
   };
 
   // Helper function to get the data array based on report type
@@ -229,6 +260,15 @@ const Reports = () => {
       let exportData = [];
       let sheetName = "";
       let filename = "";
+      let formatExtension = "xlsx";
+
+      if (exportFormat === "word") {
+        formatExtension = "docx";
+      } else if (exportFormat === "pdf") {
+        formatExtension = "pdf";
+      } else {
+        formatExtension = "xlsx";
+      }
 
       if (reportType === "sales") {
         const salesData = reportData.sales || [];
@@ -249,7 +289,7 @@ const Reports = () => {
         }));
         
         sheetName = "Sales Report";
-        filename = `sales-report-${new Date().toISOString().split("T")[0]}.xlsx`;
+        filename = `sales-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
         
       } else if (reportType === "booking") {
         const bookingData = Array.isArray(reportData) ? reportData : [];
@@ -277,7 +317,7 @@ const Reports = () => {
         }));
         
         sheetName = "Booking Report";
-        filename = `booking-report-${new Date().toISOString().split("T")[0]}.xlsx`;
+        filename = `booking-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
         
       } else if (reportType === "inventory") {
         const inventoryData = Array.isArray(reportData) ? reportData : [];
@@ -295,23 +335,45 @@ const Reports = () => {
         }));
         
         sheetName = "Inventory Report";
-        filename = `inventory-report-${new Date().toISOString().split("T")[0]}.xlsx`;
+        filename = `inventory-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
       }
 
-      // Create worksheet and workbook
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+      if (exportFormat === "word") {
+        const wordContent = `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${sheetName}</w:t></w:r></w:p>${exportData.map((row) => `<w:p>${Object.values(row).map((value) => `<w:r><w:t>${String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</w:t></w:r>`).join('')}</w:p>`).join('')}</w:body></w:document>`;
+        downloadFile(wordContent, filename, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      } else if (exportFormat === "pdf") {
+        const pdfContent = `%PDF-1.4\n1 0 obj<< /Type /Catalog /Pages 2 0 R>>endobj\n2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1>>endobj\n3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>endobj\n4 0 obj<< /Length 44 >>stream\nBT /F1 24 Tf 72 720 (${sheetName}) Tj ET\nendstream\nendobj\n5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\nxref\n0 6\n0000000000 65535 f \n0000000010 00000 n \n0000000062 00000 n \n0000000119 00000 n \n0000000206 00000 n \n0000000303 00000 n \ntrailer<< /Size 6 /Root 1 0 R>>\nstartxref\n0\n%%EOF`;
+        downloadFile(pdfContent, filename, "application/pdf");
+      } else {
+        // Create worksheet and workbook
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-      // Auto-size columns (optional)
-      const maxWidth = 50;
-      const colWidths = Object.keys(exportData[0] || {}).map(key => ({
-        wch: Math.min(Math.max(key.length, 15), maxWidth)
-      }));
-      ws['!cols'] = colWidths;
+        // Auto-size columns and center-align content
+        const maxWidth = 50;
+        const colWidths = Object.keys(exportData[0] || {}).map((key) => ({
+          wch: Math.min(Math.max(key.length, 15), maxWidth),
+        }));
+        ws["!cols"] = colWidths;
 
-      // Export to Excel
-      XLSX.writeFile(wb, filename);
+        const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
+        for (let row = range.s.r; row <= range.e.r; row += 1) {
+          for (let col = range.s.c; col <= range.e.c; col += 1) {
+            const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+            const cell = ws[cellRef];
+            if (cell) {
+              cell.s = cell.s || {};
+              cell.s.alignment = { horizontal: "center", vertical: "center" };
+              if (row === range.s.r) {
+                cell.s.font = { ...cell.s.font, bold: true };
+              }
+            }
+          }
+        }
+
+        XLSX.writeFile(wb, filename);
+      }
       
     } catch (error) {
       console.error("Error exporting Excel:", error);
@@ -392,12 +454,21 @@ const Reports = () => {
             >
               {loading ? "Generating..." : "Generate Report"}
             </button>
+            <select
+              value={exportFormat}
+              onChange={(e) => setExportFormat(e.target.value)}
+              className="filter-select"
+            >
+              <option value="excel">Excel (.xlsx)</option>
+              <option value="pdf">PDF (.pdf)</option>
+              <option value="word">Word (.docx)</option>
+            </select>
             <button
               className="btn-outline"
               onClick={handleExport}
               disabled={!reportData || exporting || loading}
             >
-              {exporting ? "Exporting..." : "Export Excel"}
+              {exporting ? "Exporting..." : "Export Report"}
             </button>
           </div>
         </div>
