@@ -141,7 +141,7 @@
 .staff-layout .staff-sidebar {
   width: 250px;
   height: 100vh;
-  background: linear-gradient(135deg, #f8fbff 0%, #eaf4ff 100%) !important;
+  background: linear-gradient(135deg, #286bc2 0%, #3f99f8 100%);
   position: fixed;
   left: 0;
   top: 0;
