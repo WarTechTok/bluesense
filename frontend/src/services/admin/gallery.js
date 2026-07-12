@@ -20,7 +20,7 @@ export const getGalleryImages = async () => {
 
 // Fetch ALL images including inactive
 export const getAllGalleryImagesAdmin = async () => {
-  const res = await apiClient.get('/gallery');
+  const res = await apiClient.get('/gallery/admin');
   return res.data.images || res.data;
 };
 
