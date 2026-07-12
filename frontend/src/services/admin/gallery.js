@@ -13,19 +13,19 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 // Fetch active gallery images (no auth required)
 export const getGalleryImages = async () => {
   const res = await axios.get(`${API_BASE_URL}/api/gallery`);
-  return res.data.images;
+  return res.data.images || res.data;
 };
 
 // ── Admin ────────────────────────────────────
 
 // Fetch ALL images including inactive
 export const getAllGalleryImagesAdmin = async () => {
-  const res = await apiClient.get('/gallery/admin');
-  return res.data.images;
+  // Use the same public endpoint (or add /admin to backend)
+  const res = await apiClient.get('/gallery');
+  return res.data.images || res.data;
 };
 
 // Upload a new gallery image
-// imageFile: File object, title: string, description: string
 export const uploadGalleryImage = async (imageFile, title, description = '') => {
   const token = localStorage.getItem('token');
   const formData = new FormData();
