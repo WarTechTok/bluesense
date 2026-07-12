@@ -43,6 +43,11 @@ const tasksRoutes = require("./routes/tasks.js");
 const notificationsRoutes = require("./routes/notifications.js");
 const contactRoutes = require("./routes/contact.js");
 
+// ============================================ 
+// GALLERY MANAGEMENT ROUTE
+// ============================================
+const galleryRoutes = require("./routes/gallery.js");
+
 const app = express();
 
 // Create uploads folder for payment proofs if it doesn't exist
@@ -197,6 +202,11 @@ app.use("/api/admin/sessions", sessionRoutes);
 app.use("/api/admin/tasks", tasksRoutes);
 app.use("/api/admin/notifications", notificationsRoutes);
 app.use("/api/contact", contactRoutes);
+
+// ============================================
+// GALLERY API ROUTES
+// ============================================
+app.use("/api/gallery", galleryRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access

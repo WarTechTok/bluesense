@@ -118,6 +118,7 @@ const uploadAvatar = (buffer, userId) =>
   });
 
 module.exports = {
+  uploadToCloudinary,      // ← ADDED THIS LINE
   uploadPackageImage,
   uploadRoomImage,
   uploadPaymentProof,

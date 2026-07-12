@@ -23,6 +23,7 @@ import BookingManagement from "./pages/admin/BookingManagement";
 import SalesTracking from "./pages/admin/SalesTracking";
 import Reports from "./pages/admin/Reports";
 import MaintenanceManagement from "./pages/admin/MaintenanceManagement";
+import GalleryManagement from "./pages/admin/GalleryManagement"; // ← ADD THIS IMPORT
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -36,7 +37,7 @@ import Gallery from "./pages/Gallery";
 import Booking from "./pages/booking/Booking";
 import MyBookings from "./pages/booking/MyBookings";
 import Profile from "./pages/Profile";
-import VerifyEmail from "./pages/VerifyEmail"; // ADD THIS IMPORT
+import VerifyEmail from "./pages/VerifyEmail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from "./pages/OAuthRedirect";
 import PackageAddOnSessionManagement from "./pages/admin/PackageAddOnSessionManagement";
@@ -97,8 +98,7 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />{" "}
-        {/* ADD THIS ROUTE */}
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/oauth-redirect" element={<OAuthRedirect />} />
@@ -265,6 +265,19 @@ function App() {
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <PackageAddOnSessionManagement />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* ============================================
+            GALLERY MANAGEMENT - Admin ONLY
+            ============================================ */}
+        <Route
+          path="/admin/gallery"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <GalleryManagement />
               </AdminLayout>
             </ProtectedRoute>
           }
