@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { BASE_API } from './utils/apiBase';
+import { BASE_API } from '../utils/apiBase';
 import * as staffApi from '../services/staffDashboardApi';
 import NotificationBell from '../components/staff/NotificationBell';
 import LogoutConfirmModal from '../components/modals/LogoutConfirmModal';
