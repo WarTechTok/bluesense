@@ -3,7 +3,7 @@
 // GALLERY API - Admin + Public
 // ============================================
 
-import { apiClient } from './apiClient';
+import { bookingsApiClient as apiClient } from './apiClient';  // ← CHANGED THIS LINE
 import axios from 'axios';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
@@ -20,7 +20,6 @@ export const getGalleryImages = async () => {
 
 // Fetch ALL images including inactive
 export const getAllGalleryImagesAdmin = async () => {
-  // Use the same public endpoint (or add /admin to backend)
   const res = await apiClient.get('/gallery');
   return res.data.images || res.data;
 };
