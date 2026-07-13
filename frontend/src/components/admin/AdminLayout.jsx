@@ -81,7 +81,8 @@ const AdminLayout = ({ children }) => {
     { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/admin/dashboard' },
     { id: 'bookings', label: 'Bookings', icon: 'fas fa-calendar-alt', path: '/admin/bookings' },
     { id: 'packages', label: 'Packages', icon: 'fas fa-box', path: '/admin/packages' },
-    { id: 'gallery', label: 'Gallery', icon: 'fas fa-images', path: '/admin/gallery' }, // ← ADDED
+    { id: 'gallery', label: 'Gallery', icon: 'fas fa-images', path: '/admin/gallery' },
+    { id: 'reviews', label: 'Customer Reviews', icon: 'fas fa-star', path: '/admin/reviews' }, // ← ADDED
     { id: 'rooms', label: 'Rooms', icon: 'fas fa-bed', path: '/admin/rooms' },
     { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/admin/inventory' },
     { id: 'staff', label: 'Staff', icon: 'fas fa-users', path: '/admin/staff' },

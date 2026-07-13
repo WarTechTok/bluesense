@@ -23,7 +23,8 @@ import BookingManagement from "./pages/admin/BookingManagement";
 import SalesTracking from "./pages/admin/SalesTracking";
 import Reports from "./pages/admin/Reports";
 import MaintenanceManagement from "./pages/admin/MaintenanceManagement";
-import GalleryManagement from "./pages/admin/GalleryManagement"; // ← ADD THIS IMPORT
+import GalleryManagement from "./pages/admin/GalleryManagement";
+import CustomerReviews from "./pages/admin/CustomerReviews"; // ← ADD THIS
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -278,6 +279,19 @@ function App() {
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminLayout>
                 <GalleryManagement />
+              </AdminLayout>
+            </ProtectedRoute>
+          }
+        />
+        {/* ============================================
+            CUSTOMER REVIEWS - Admin ONLY
+            ============================================ */}
+        <Route
+          path="/admin/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout>
+                <CustomerReviews />
               </AdminLayout>
             </ProtectedRoute>
           }
