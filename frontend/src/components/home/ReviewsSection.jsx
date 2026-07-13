@@ -204,9 +204,10 @@ export default function ReviewsSection() {
   return (
     <section className="reviews-section">
       <div className="container">
-        {/* Header */}
+        {/* Header - simple like Login page */}
         <div className="section-header">
           <h2 className="section-title">What Our Guests Say</h2>
+          <p className="section-subtitle">Real reviews from real visitors</p>
         </div>
 
         {/* Summary bar */}
@@ -238,13 +239,13 @@ export default function ReviewsSection() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Filters - simple icons like Login page */}
         <div className="reviews-filters">
           <button
             className={`filter-chip ${filterMedia ? 'active' : ''}`}
             onClick={() => setFilterMedia((v) => !v)}
           >
-            📷 With Media
+            <i className="fas fa-image"></i> With Media
           </button>
 
           <select
@@ -252,7 +253,7 @@ export default function ReviewsSection() {
             value={filterRating}
             onChange={(e) => setFilterRating(e.target.value)}
           >
-            <option value="">⭐ All Stars</option>
+            <option value=""><i className="fas fa-star"></i> All Stars</option>
             {[5, 4, 3, 2, 1].map((s) => (
               <option key={s} value={s}>{s} Star{s !== 1 ? 's' : ''}</option>
             ))}
@@ -264,7 +265,7 @@ export default function ReviewsSection() {
             onChange={(e) => setFilterOasis(e.target.value)}
           >
             {OASIS_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o === 'All' ? '🏖️ All Oasis' : o}</option>
+              <option key={o} value={o}>{o === 'All' ? 'All Oasis' : o}</option>
             ))}
           </select>
 
@@ -275,14 +276,14 @@ export default function ReviewsSection() {
               onChange={(e) => setFilterPackage(e.target.value)}
             >
               {packageOptions.map((p) => (
-                <option key={p} value={p}>{p === 'All' ? '📦 All Packages' : p}</option>
+                <option key={p} value={p}>{p === 'All' ? 'All Packages' : p}</option>
               ))}
             </select>
           )}
 
           {hasActiveFilters && (
             <button className="filter-chip filter-chip--clear" onClick={clearFilters}>
-              ✕ Clear
+              <i className="fas fa-times"></i> Clear
             </button>
           )}
         </div>
