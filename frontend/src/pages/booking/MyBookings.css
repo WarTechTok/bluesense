@@ -840,21 +840,18 @@
 /* ============================================ */
 
 .btn-leave-review {
+  background: #0284c7; /* Your brand blue */
+  color: white;
+  border: none;
   padding: 8px 16px;
-  border-radius: 8px;
-  border: 1.5px solid #f59e0b;
-  background: #fffbeb;
-  color: #b45309;
-  font-size: 0.85rem;
-  font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+  font-size: 0.85rem;
+  transition: background 0.2s;
 }
 
 .btn-leave-review:hover {
-  background: #f59e0b;
-  color: #fff;
+  background: #0369a1; /* Darker blue on hover */
 }
 
 .btn-reviewed {
