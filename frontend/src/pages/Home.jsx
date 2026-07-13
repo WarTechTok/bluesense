@@ -92,33 +92,25 @@ const faqs = [
   },
 ];
 
-// Static fallback in case the API is empty
-const FALLBACK_GALLERY = [
-  { id: 1, url: "/images/gallery/pool.jpg",         title: "Swimming Pool" },
-  { id: 2, url: "/images/gallery/cottage.jpg",      title: "Cozy Cottages" },
-  { id: 3, url: "/images/gallery/family-room.jpg",  title: "Family Room" },
-  { id: 4, url: "/images/gallery/events.jpg",       title: "Event Spaces" },
-  { id: 5, url: "/images/gallery/garden.jpg",       title: "Lush Gardens" },
-  { id: 6, url: "/images/gallery/superior-room.jpg",title: "Superior Room" },
-];
-
 function Home() {
   const [openFaq, setOpenFaq] = useState(null);
 
   // ── Gallery from API ──────────────────────────
   const [galleryImages, setGalleryImages] = useState([]);
   const [galleryLoading, setGalleryLoading] = useState(true);
+  const [galleryError, setGalleryError] = useState(null);
 
   useEffect(() => {
     const fetchGallery = async () => {
       try {
         const images = await getGalleryImages();
-        // API returns array of { _id, url, title, ... }; take first 6 active ones
-        const active = (images || []).filter(img => img.isActive !== false);
-        setGalleryImages(active.length > 0 ? active.slice(0, 6) : FALLBACK_GALLERY);
+        // API returns array of { _id, imageUrl, title, description, isActive, ... }
+        // (same shape Gallery.jsx uses) — take the first 6 active ones.
+        const active = (images || []).filter((img) => img.isActive !== false);
+        setGalleryImages(active.slice(0, 6));
       } catch (err) {
         console.error("Failed to load gallery:", err);
-        setGalleryImages(FALLBACK_GALLERY);
+        setGalleryError("Failed to load gallery images.");
       } finally {
         setGalleryLoading(false);
       }
@@ -208,14 +200,26 @@ function Home() {
             <div className="gallery-loading">
               <div className="gallery-spinner" />
             </div>
+          ) : galleryError ? (
+            <div className="gallery-loading">
+              <p>{galleryError}</p>
+            </div>
+          ) : galleryImages.length === 0 ? (
+            <div className="gallery-loading">
+              <p>No images yet.</p>
+            </div>
           ) : (
             <div className="gallery-grid">
               {galleryImages.map((image, idx) => (
-                <div key={image._id || image.id || idx} className="gallery-item">
+                <div key={image._id || idx} className="gallery-item">
                   <img
-                    src={image.url || image.src}
+                    src={image.imageUrl}
                     alt={image.title || ''}
-                    onError={(e) => { e.target.onerror = null; e.target.src = '/images/placeholder.jpg'; }}
+                    loading="lazy"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `https://placehold.co/600x400/f8fafc/94a3b8?text=${encodeURIComponent(image.title || '')}`;
+                    }}
                   />
                   <div className="gallery-overlay">
                     <span>{image.title}</span>
