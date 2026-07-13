@@ -33,7 +33,7 @@ const mediaFilter = (req, file, cb) => {
 
 const uploadReviewMedia = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024, files: 6 }, // 50 MB per file, max 6 (5 photos + 1 video)
+  limits: { fileSize: 100 * 1024 * 1024, files: 6 }, // 100 MB per file, max 6 (5 photos + 1 video)
   fileFilter: mediaFilter,
 }).fields([
   { name: 'photos', maxCount: 5 },

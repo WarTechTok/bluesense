@@ -53,6 +53,11 @@ const galleryRoutes = require("./routes/gallery.js");
 // ============================================
 const settingsRoutes = require("./routes/settings.js");
 
+// ============================================
+// REVIEWS ROUTE
+// ============================================
+const reviewRoutes = require("./routes/reviews.js");
+
 const app = express();
 
 // Create uploads folder for payment proofs if it doesn't exist
@@ -115,8 +120,8 @@ app.post('/api/test-cors', (req, res) => {
 });
 
 // Apply urlencoded and json AFTER cors
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
 
 // Serve static files from public folder (for logo, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
@@ -217,6 +222,11 @@ app.use("/api/gallery", galleryRoutes);
 // SETTINGS API ROUTES
 // ============================================
 app.use("/api/settings", settingsRoutes);
+
+// ============================================
+// REVIEWS API ROUTES
+// ============================================
+app.use("/api/reviews", reviewRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access
