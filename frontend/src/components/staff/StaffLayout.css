@@ -158,21 +158,21 @@
   width: 70px;
 }
 
-.staff-layout .staff-sidebar.closed .sidebar-header {
-  padding: 16px 10px;
-}
-
 /* ============================================ */
 /* SIDEBAR HEADER - LOGO CENTERED */
 /* ============================================ */
 
 .staff-layout .staff-sidebar .sidebar-header {
-  padding: 20px 16px;
+  height: 64px;
+  min-height: 64px;
+  padding: 0 10px 0 14px;
   border-bottom: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 72px;
+  gap: 8px;
+  flex-shrink: 0;
+  box-sizing: border-box;
   background: white;
 }
 
@@ -217,10 +217,7 @@
   margin: 0;
 }
 
-.staff-layout .staff-sidebar.closed .sidebar-header {
-  padding: 12px 10px;
-  min-height: 70px;
-}
+/* closed sidebar header keeps same 64px height, just narrower width */
 
 /* ============================================ */
 /* SIDEBAR TOGGLE BUTTON */
