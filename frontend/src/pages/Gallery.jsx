@@ -237,44 +237,51 @@ function Gallery() {
             </div>
           )}
 
-          {/* ── Slideshow ── */}
+          {/* ── Slideshow — self-contained, no scroll wrapper needed ── */}
           {!loading && !error && images.length > 0 && layout === 'slideshow' && (
             <Slideshow images={images} onImageClick={openLightbox} />
           )}
 
-          {/* ── Grid (3 columns, square) ── */}
-          {!loading && !error && images.length > 0 && layout === 'grid' && (
-            <div className="gallery-grid">
-              {images.map((img, i) => (
-                <GalleryItem key={img._id} image={img} onClick={() => openLightbox(i)} />
-              ))}
-            </div>
-          )}
+          {/* ── Grid, Masonry, Horizontal, Vertical — fixed-height scrollable ── */}
+          {!loading && !error && images.length > 0 && layout !== 'slideshow' && (
+            <div className="gallery-scroll-area">
 
-          {/* ── Masonry (Pinterest-style) ── */}
-          {!loading && !error && images.length > 0 && layout === 'masonry' && (
-            <div className="gallery-masonry">
-              {images.map((img, i) => (
-                <GalleryItem key={img._id} image={img} className="gallery-masonry-item" onClick={() => openLightbox(i)} />
-              ))}
-            </div>
-          )}
+              {/* Grid (3 columns, square) */}
+              {layout === 'grid' && (
+                <div className="gallery-grid">
+                  {images.map((img, i) => (
+                    <GalleryItem key={img._id} image={img} onClick={() => openLightbox(i)} />
+                  ))}
+                </div>
+              )}
 
-          {/* ── Horizontal (wide 16:9) ── */}
-          {!loading && !error && images.length > 0 && layout === 'horizontal' && (
-            <div className="gallery-horizontal">
-              {images.map((img, i) => (
-                <GalleryItem key={img._id} image={img} className="gallery-horizontal-item" onClick={() => openLightbox(i)} />
-              ))}
-            </div>
-          )}
+              {/* Masonry (Pinterest-style) */}
+              {layout === 'masonry' && (
+                <div className="gallery-masonry">
+                  {images.map((img, i) => (
+                    <GalleryItem key={img._id} image={img} className="gallery-masonry-item" onClick={() => openLightbox(i)} />
+                  ))}
+                </div>
+              )}
 
-          {/* ── Vertical (2 columns, portrait 3:4) ── */}
-          {!loading && !error && images.length > 0 && layout === 'vertical' && (
-            <div className="gallery-vertical">
-              {images.map((img, i) => (
-                <GalleryItem key={img._id} image={img} className="gallery-vertical-item" onClick={() => openLightbox(i)} />
-              ))}
+              {/* Horizontal (wide 16:9) */}
+              {layout === 'horizontal' && (
+                <div className="gallery-horizontal">
+                  {images.map((img, i) => (
+                    <GalleryItem key={img._id} image={img} className="gallery-horizontal-item" onClick={() => openLightbox(i)} />
+                  ))}
+                </div>
+              )}
+
+              {/* Vertical (2 columns, portrait 3:4) */}
+              {layout === 'vertical' && (
+                <div className="gallery-vertical">
+                  {images.map((img, i) => (
+                    <GalleryItem key={img._id} image={img} className="gallery-vertical-item" onClick={() => openLightbox(i)} />
+                  ))}
+                </div>
+              )}
+
             </div>
           )}
         </div>
