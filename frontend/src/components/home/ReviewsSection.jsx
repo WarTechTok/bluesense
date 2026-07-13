@@ -192,7 +192,6 @@ export default function ReviewsSection() {
             <p className="rs__label">WHAT OUR GUESTS SAY</p>
             <div className="rs__underline" />
           </div>
-          <p className="rs__sub">Real reviews from real visitors</p>
         </div>
 
         {/* Summary */}
