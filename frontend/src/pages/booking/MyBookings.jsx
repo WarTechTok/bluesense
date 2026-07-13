@@ -249,7 +249,7 @@ const MyBookings = () => {
                               setShowReviewModal(true);
                             }}
                           >
-                            ⭐ Leave a Review
+                            Leave a Review
                           </button>
                         )
                       )}
@@ -434,7 +434,7 @@ const MyBookings = () => {
                       setShowReviewModal(true);
                     }}
                   >
-                    ⭐ Leave a Review
+                    Leave a Review
                   </button>
                 )
               )}
