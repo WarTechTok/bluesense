@@ -1,25 +1,19 @@
 // frontend/src/pages/Gallery.jsx
 // ============================================
-// GALLERY PAGE - Dynamic images from API + 5 layout modes
+// GALLERY PAGE — layout driven by admin setting, no user controls
 // ============================================
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from '../components/navbar/Navbar';
 import Footer from '../components/footer/Footer';
 import { getGalleryImages } from '../services/admin/gallery';
 import './Gallery.css';
 
-// ── Layout mode config ───────────────────────
-const LAYOUT_MODES = [
-  { id: 'grid',      label: 'Grid',      icon: 'fas fa-th' },
-  { id: 'masonry',   label: 'Masonry',   icon: 'fas fa-columns' },
-  { id: 'horizontal',label: 'Wide',      icon: 'fas fa-grip-lines' },
-  { id: 'vertical',  label: 'Portrait',  icon: 'fas fa-grip-lines-vertical' },
-  { id: 'slideshow', label: 'Slideshow', icon: 'fas fa-play-circle' },
-];
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
-// ── Lightbox ─────────────────────────────────
+// ── Lightbox ──────────────────────────────────────────────────
 const Lightbox = ({ images, index, onClose }) => {
   const [current, setCurrent] = useState(index);
 
@@ -30,9 +24,9 @@ const Lightbox = ({ images, index, onClose }) => {
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft') prev();
-      if (e.key === 'ArrowRight') next();
+      if (e.key === 'Escape')      onClose();
+      if (e.key === 'ArrowLeft')   prev();
+      if (e.key === 'ArrowRight')  next();
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -63,7 +57,7 @@ const Lightbox = ({ images, index, onClose }) => {
   );
 };
 
-// ── Slideshow ─────────────────────────────────
+// ── Slideshow ─────────────────────────────────────────────────
 const Slideshow = ({ images, onImageClick }) => {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -137,7 +131,7 @@ const Slideshow = ({ images, onImageClick }) => {
   );
 };
 
-// ── Image Item (shared across grid layouts) ───
+// ── Shared image item ─────────────────────────────────────────
 const GalleryItem = ({ image, className, onClick }) => (
   <div className={`gallery-item ${className || ''}`} onClick={onClick}>
     <img
@@ -158,19 +152,26 @@ const GalleryItem = ({ image, className, onClick }) => (
   </div>
 );
 
-// ── Main Gallery Component ────────────────────
+// ── Main Gallery Component ────────────────────────────────────
 function Gallery() {
   const [images, setImages] = useState([]);
+  const [layout, setLayout] = useState('grid');   // driven by admin setting
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [layout, setLayout] = useState('grid');
+  const [error, setError]     = useState(null);
   const [lightboxIndex, setLightboxIndex] = useState(null);
 
   useEffect(() => {
-    const fetchImages = async () => {
+    const fetchAll = async () => {
       try {
-        const data = await getGalleryImages();
+        // Run both requests in parallel — neither blocks the other
+        const [data, settingsRes] = await Promise.all([
+          getGalleryImages(),
+          axios.get(`${API_BASE_URL}/api/settings/gallery-layout`).catch(() => null),
+        ]);
         setImages(data);
+        if (settingsRes?.data?.layout) {
+          setLayout(settingsRes.data.layout);
+        }
       } catch (err) {
         console.error('Gallery fetch error:', err);
         setError('Failed to load gallery images.');
@@ -178,7 +179,7 @@ function Gallery() {
         setLoading(false);
       }
     };
-    fetchImages();
+    fetchAll();
   }, []);
 
   const openLightbox = useCallback((index) => {
@@ -207,23 +208,10 @@ function Gallery() {
       <section className="gallery-content">
         <div className="container">
 
-          {/* Layout switcher */}
+          {/* Count — no layout switcher, that's admin-only now */}
           {!loading && !error && images.length > 0 && (
             <div className="gallery-toolbar">
               <p className="gallery-count">{images.length} photo{images.length !== 1 ? 's' : ''}</p>
-              <div className="gallery-layout-switcher">
-                {LAYOUT_MODES.map((mode) => (
-                  <button
-                    key={mode.id}
-                    className={`gallery-layout-btn ${layout === mode.id ? 'gallery-layout-btn-active' : ''}`}
-                    onClick={() => setLayout(mode.id)}
-                    title={mode.label}
-                  >
-                    <i className={mode.icon} />
-                    <span>{mode.label}</span>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
@@ -254,7 +242,7 @@ function Gallery() {
             <Slideshow images={images} onImageClick={openLightbox} />
           )}
 
-          {/* ── Default Grid (3 columns, square) ── */}
+          {/* ── Grid (3 columns, square) ── */}
           {!loading && !error && images.length > 0 && layout === 'grid' && (
             <div className="gallery-grid">
               {images.map((img, i) => (
@@ -263,7 +251,7 @@ function Gallery() {
             </div>
           )}
 
-          {/* ── Masonry (Pinterest-style, pure CSS columns) ── */}
+          {/* ── Masonry (Pinterest-style) ── */}
           {!loading && !error && images.length > 0 && layout === 'masonry' && (
             <div className="gallery-masonry">
               {images.map((img, i) => (
@@ -272,7 +260,7 @@ function Gallery() {
             </div>
           )}
 
-          {/* ── Horizontal (wide 16:9, 2 rows) ── */}
+          {/* ── Horizontal (wide 16:9) ── */}
           {!loading && !error && images.length > 0 && layout === 'horizontal' && (
             <div className="gallery-horizontal">
               {images.map((img, i) => (

@@ -554,6 +554,68 @@
 .gm-toast-success { background: #10b981; color: white; }
 .gm-toast-error   { background: #ef4444; color: white; }
 
+/* ── Append these rules to GalleryManagement.css ── */
+
+/* Layout picker panel */
+.gm-layout-picker {
+  gap: 14px;
+}
+
+.gm-layout-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Button group */
+.gm-layout-options {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.gm-layout-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 4px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  color: #475569;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.gm-layout-opt i {
+  font-size: 1rem;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.gm-layout-opt:hover {
+  border-color: #0284c7;
+  background: #eff6ff;
+  color: #0284c7;
+}
+
+.gm-layout-opt:hover i {
+  color: #0284c7;
+}
+
+.gm-layout-opt-active {
+  border-color: #0284c7;
+  background: #0284c7;
+  color: #fff;
+}
+
+.gm-layout-opt-active i {
+  color: #fff;
+}
+
 @keyframes gm-slideUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }

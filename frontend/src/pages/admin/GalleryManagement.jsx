@@ -1,9 +1,10 @@
 // frontend/src/pages/admin/GalleryManagement.jsx
 // ============================================
-// GALLERY MANAGEMENT - Upload, reorder (drag & drop), edit, delete
+// GALLERY MANAGEMENT — Upload, reorder, edit, delete + layout picker
 // ============================================
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { bookingsApiClient as apiClient } from '../../services/admin/apiClient';
 import {
   getAllGalleryImagesAdmin,
   uploadGalleryImage,
@@ -13,7 +14,75 @@ import {
 } from '../../services/admin/gallery';
 import './GalleryManagement.css';
 
-// ── Confirmation Modal ───────────────────────────────────────
+// ── Layout options (mirrors public Gallery page) ─────────────
+const LAYOUT_OPTIONS = [
+  { id: 'grid',       label: 'Grid',      icon: 'fas fa-th' },
+  { id: 'masonry',    label: 'Masonry',   icon: 'fas fa-columns' },
+  { id: 'horizontal', label: 'Wide',      icon: 'fas fa-grip-lines' },
+  { id: 'vertical',   label: 'Portrait',  icon: 'fas fa-grip-lines-vertical' },
+  { id: 'slideshow',  label: 'Slideshow', icon: 'fas fa-play-circle' },
+];
+
+// ── Layout Picker Panel ──────────────────────────────────────
+const LayoutPicker = ({ current, onSave }) => {
+  const [selected, setSelected] = useState(current);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  // Keep local selection in sync if parent re-fetches
+  useEffect(() => { setSelected(current); }, [current]);
+
+  const handleSave = async () => {
+    if (selected === current) return;
+    setSaving(true);
+    try {
+      await onSave(selected);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const isDirty = selected !== current;
+
+  return (
+    <div className="gm-upload-panel gm-layout-picker">
+      <h2 className="gm-section-title">Public Gallery Layout</h2>
+      <p className="gm-layout-hint">Choose how images appear on the public Gallery page.</p>
+
+      <div className="gm-layout-options">
+        {LAYOUT_OPTIONS.map((opt) => (
+          <button
+            key={opt.id}
+            type="button"
+            className={`gm-layout-opt ${selected === opt.id ? 'gm-layout-opt-active' : ''}`}
+            onClick={() => setSelected(opt.id)}
+          >
+            <i className={opt.icon} />
+            <span>{opt.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <button
+        className="gm-btn gm-btn-primary gm-upload-btn"
+        onClick={handleSave}
+        disabled={!isDirty || saving}
+      >
+        {saving ? (
+          <><i className="fas fa-spinner fa-spin" /> Saving…</>
+        ) : saved ? (
+          <><i className="fas fa-check" /> Saved!</>
+        ) : (
+          <><i className="fas fa-save" /> Save Layout</>
+        )}
+      </button>
+    </div>
+  );
+};
+
+// ── Confirmation Modal ────────────────────────────────────────
 const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => (
   <div className="gm-overlay" onClick={onCancel}>
     <div className="gm-modal gm-confirm-modal" onClick={(e) => e.stopPropagation()}>
@@ -36,7 +105,7 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => (
   </div>
 );
 
-// ── Edit Modal ───────────────────────────────────────────────
+// ── Edit Modal ────────────────────────────────────────────────
 const EditModal = ({ image, onSave, onClose, loading }) => {
   const [title, setTitle] = useState(image.title);
   const [description, setDescription] = useState(image.description || '');
@@ -106,7 +175,7 @@ const EditModal = ({ image, onSave, onClose, loading }) => {
   );
 };
 
-// ── Upload Panel ─────────────────────────────────────────────
+// ── Upload Panel ──────────────────────────────────────────────
 const UploadPanel = ({ onUpload, uploading }) => {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
@@ -121,7 +190,6 @@ const UploadPanel = ({ onUpload, uploading }) => {
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target.result);
     reader.readAsDataURL(f);
-    // Auto-fill title from filename if empty
     if (!title) {
       const name = f.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
       setTitle(name.charAt(0).toUpperCase() + name.slice(1));
@@ -147,7 +215,6 @@ const UploadPanel = ({ onUpload, uploading }) => {
     <div className="gm-upload-panel">
       <h2 className="gm-section-title">Upload New Image</h2>
 
-      {/* Drop zone */}
       <div
         className={`gm-dropzone ${dragOver ? 'gm-dropzone-active' : ''} ${preview ? 'gm-dropzone-has-preview' : ''}`}
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -183,7 +250,6 @@ const UploadPanel = ({ onUpload, uploading }) => {
         />
       </div>
 
-      {/* Fields */}
       <div className="gm-form-group">
         <label>Title *</label>
         <input
@@ -222,7 +288,7 @@ const UploadPanel = ({ onUpload, uploading }) => {
   );
 };
 
-// ── Draggable Image Card ─────────────────────────────────────
+// ── Draggable Image Card ──────────────────────────────────────
 const ImageCard = ({
   image, index,
   onEdit, onDelete,
@@ -260,7 +326,7 @@ const ImageCard = ({
   </div>
 );
 
-// ── Main Component ───────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────
 const GalleryManagement = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -270,6 +336,9 @@ const GalleryManagement = () => {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Layout state
+  const [activeLayout, setActiveLayout] = useState('grid');
 
   // Drag state
   const dragIndexRef = useRef(null);
@@ -293,9 +362,29 @@ const GalleryManagement = () => {
     }
   }, [showToast]);
 
-  useEffect(() => { fetchImages(); }, [fetchImages]);
+  // Fetch saved layout from settings on mount
+  const fetchLayout = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/settings/gallery-layout');
+      setActiveLayout(res.data.layout || 'grid');
+    } catch {
+      // Non-fatal — default stays 'grid'
+    }
+  }, []);
 
-  // ── Upload ───────────────────────────────
+  useEffect(() => {
+    fetchImages();
+    fetchLayout();
+  }, [fetchImages, fetchLayout]);
+
+  // ── Save layout ───────────────────────────
+  const handleSaveLayout = async (layout) => {
+    const res = await apiClient.put('/settings/gallery-layout', { layout });
+    setActiveLayout(res.data.layout);
+    showToast(`Layout set to "${LAYOUT_OPTIONS.find(o => o.id === layout)?.label}"`);
+  };
+
+  // ── Upload ────────────────────────────────
   const handleUpload = async (file, title, description) => {
     setUploading(true);
     try {
@@ -309,7 +398,7 @@ const GalleryManagement = () => {
     }
   };
 
-  // ── Edit ─────────────────────────────────
+  // ── Edit ──────────────────────────────────
   const handleEditSave = async (id, updates) => {
     setEditLoading(true);
     try {
@@ -324,7 +413,7 @@ const GalleryManagement = () => {
     }
   };
 
-  // ── Delete ───────────────────────────────
+  // ── Delete ────────────────────────────────
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
@@ -340,14 +429,9 @@ const GalleryManagement = () => {
     }
   };
 
-  // ── Drag & Drop Reorder ──────────────────
-  const handleDragStart = (index) => {
-    dragIndexRef.current = index;
-  };
-
-  const handleDragOver = (index) => {
-    setDragOverIndex(index);
-  };
+  // ── Drag & Drop Reorder ───────────────────
+  const handleDragStart = (index) => { dragIndexRef.current = index; };
+  const handleDragOver  = (index) => { setDragOverIndex(index); };
 
   const handleDrop = (dropIndex) => {
     const dragIndex = dragIndexRef.current;
@@ -358,15 +442,14 @@ const GalleryManagement = () => {
     reordered.splice(dropIndex, 0, dragged);
     setImages(reordered);
 
-    // Debounce the API call so rapid drags don't hammer the server
     clearTimeout(reorderTimeoutRef.current);
     reorderTimeoutRef.current = setTimeout(async () => {
       try {
         await reorderGalleryImages(reordered.map((img) => img._id));
         showToast('Order saved');
-      } catch (err) {
+      } catch {
         showToast('Failed to save order', 'error');
-        fetchImages(); // Re-fetch to restore true state
+        fetchImages();
       }
     }, 600);
   };
@@ -400,8 +483,11 @@ const GalleryManagement = () => {
       </div>
 
       <div className="gm-layout">
-        {/* Left: Upload Panel */}
+        {/* Left: Sidebar panels */}
         <aside className="gm-sidebar">
+          {/* Layout picker — admin only, shown here instead of public page */}
+          <LayoutPicker current={activeLayout} onSave={handleSaveLayout} />
+
           <UploadPanel onUpload={handleUpload} uploading={uploading} />
 
           <div className="gm-hint-box">

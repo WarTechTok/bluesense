@@ -48,6 +48,11 @@ const contactRoutes = require("./routes/contact.js");
 // ============================================
 const galleryRoutes = require("./routes/gallery.js");
 
+// ============================================
+// SETTINGS ROUTE
+// ============================================
+const settingsRoutes = require("./routes/settings.js");
+
 const app = express();
 
 // Create uploads folder for payment proofs if it doesn't exist
@@ -207,6 +212,11 @@ app.use("/api/contact", contactRoutes);
 // GALLERY API ROUTES
 // ============================================
 app.use("/api/gallery", galleryRoutes);
+
+// ============================================
+// SETTINGS API ROUTES
+// ============================================
+app.use("/api/settings", settingsRoutes);
 
 // ============================================
 // TEST ENDPOINT - Direct database access
