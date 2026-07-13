@@ -216,7 +216,6 @@ export default function ReviewsSection() {
         {/* Header - simple like Login page */}
         <div className="section-header">
           <h2 className="section-title">What Our Guests Say</h2>
-          <p className="section-subtitle">Real reviews from real visitors</p>
         </div>
 
         {/* Summary bar */}
