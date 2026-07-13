@@ -1,5 +1,6 @@
 // frontend/src/components/home/ReviewsSection.jsx
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { getPublicReviews } from '../../services/reviews';
 import './ReviewsSection.css';
 
@@ -19,30 +20,67 @@ function Stars({ rating, size = 'sm' }) {
   );
 }
 
+// ── Lightbox rendered via portal so it's never clipped by card CSS ──
+function Lightbox({ items, index, onClose, onPrev, onNext }) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handler = e => {
+      if (e.key === 'Escape')      onClose();
+      if (e.key === 'ArrowRight')  onNext();
+      if (e.key === 'ArrowLeft')   onPrev();
+    };
+    window.addEventListener('keydown', handler);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handler);
+    };
+  }, [onClose, onNext, onPrev]);
+
+  const item = items[index];
+
+  return createPortal(
+    <div className="lb" onClick={onClose}>
+      <div className="lb__box" onClick={e => e.stopPropagation()}>
+        <button className="lb__close" onClick={onClose} aria-label="Close">✕</button>
+
+        {item.type === 'video'
+          ? <video src={item.url} controls autoPlay className="lb__media" />
+          : <img src={item.url} alt="" className="lb__media" />}
+
+        {items.length > 1 && (
+          <>
+            <button
+              className="lb__nav lb__nav--l"
+              onClick={e => { e.stopPropagation(); onPrev(); }}
+              disabled={index === 0}
+            >‹</button>
+            <button
+              className="lb__nav lb__nav--r"
+              onClick={e => { e.stopPropagation(); onNext(); }}
+              disabled={index === items.length - 1}
+            >›</button>
+            <div className="lb__counter">{index + 1} / {items.length}</div>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function ReviewCard({ review }) {
-  const [lightbox, setLightbox] = useState(null); // null | index
+  const [lbIndex, setLbIndex] = useState(null);
 
   const media = [
     ...(review.photos || []).map(p => ({ type: 'image', url: p.url })),
     ...(review.video?.url ? [{ type: 'video', url: review.video.url }] : []),
   ];
 
-  const name = review.isAnonymous ? 'Anonymous Guest' : review.customerName;
+  const name     = review.isAnonymous ? 'Anonymous Guest' : review.customerName;
   const initials = name.charAt(0).toUpperCase();
-  const date = new Date(review.createdAt).toLocaleDateString('en-US', {
+  const date     = new Date(review.createdAt).toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
   });
-
-  useEffect(() => {
-    if (lightbox === null) return;
-    const handler = e => {
-      if (e.key === 'Escape') setLightbox(null);
-      if (e.key === 'ArrowRight') setLightbox(i => Math.min(i + 1, media.length - 1));
-      if (e.key === 'ArrowLeft')  setLightbox(i => Math.max(i - 1, 0));
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [lightbox, media.length]);
 
   return (
     <div className="rc">
@@ -62,10 +100,10 @@ function ReviewCard({ review }) {
       {media.length > 0 && (
         <div className="rc__media">
           {media.map((item, i) => (
-            <button key={i} className="rc__thumb" onClick={() => setLightbox(i)}>
+            <button key={i} className="rc__thumb" onClick={() => setLbIndex(i)}>
               {item.type === 'video'
                 ? <div className="rc__thumb-video"><span>▶</span></div>
-                : <img src={item.url} alt="" />}
+                : <img src={item.url} alt={`Review photo ${i + 1}`} />}
             </button>
           ))}
         </div>
@@ -75,25 +113,21 @@ function ReviewCard({ review }) {
         <span className="rc__package">{review.package}</span>
       </div>
 
-      {lightbox !== null && (
-        <div className="lb" onClick={() => setLightbox(null)}>
-          <div className="lb__box" onClick={e => e.stopPropagation()}>
-            <button className="lb__close" onClick={() => setLightbox(null)}>✕</button>
-            {media[lightbox].type === 'video'
-              ? <video src={media[lightbox].url} controls autoPlay className="lb__media" />
-              : <img src={media[lightbox].url} alt="" className="lb__media" />}
-            {media.length > 1 && <>
-              <button className="lb__nav lb__nav--l" onClick={() => setLightbox(i => Math.max(i-1,0))} disabled={lightbox===0}>‹</button>
-              <button className="lb__nav lb__nav--r" onClick={() => setLightbox(i => Math.min(i+1,media.length-1))} disabled={lightbox===media.length-1}>›</button>
-              <div className="lb__counter">{lightbox+1} / {media.length}</div>
-            </>}
-          </div>
-        </div>
+      {/* Portal lightbox — rendered at body level, never clipped */}
+      {lbIndex !== null && (
+        <Lightbox
+          items={media}
+          index={lbIndex}
+          onClose={() => setLbIndex(null)}
+          onPrev={() => setLbIndex(i => Math.max(i - 1, 0))}
+          onNext={() => setLbIndex(i => Math.min(i + 1, media.length - 1))}
+        />
       )}
     </div>
   );
 }
 
+// ── Main Section ────────────────────────────────────────────────────────────
 export default function ReviewsSection() {
   const [reviews,      setReviews]      = useState([]);
   const [avgRating,    setAvgRating]    = useState(0);
@@ -105,10 +139,9 @@ export default function ReviewsSection() {
   const [filterRating,  setFilterRating]  = useState('');
   const [filterOasis,   setFilterOasis]   = useState('All');
   const [filterPackage, setFilterPackage] = useState('All');
+  const [page,          setPage]          = useState(0);
 
-  const [page, setPage] = useState(0);
   const PER_PAGE = 3;
-
   const packageOptions = filterOasis !== 'All' ? PACKAGES_BY_OASIS[filterOasis] || ['All'] : ['All'];
   const hasFilters = filterMedia || filterRating || filterOasis !== 'All' || filterPackage !== 'All';
 
@@ -117,10 +150,10 @@ export default function ReviewsSection() {
     setPage(0);
     try {
       const f = {};
-      if (filterMedia)              f.media   = true;
-      if (filterRating)             f.rating  = filterRating;
-      if (filterOasis   !== 'All')  f.oasis   = filterOasis;
-      if (filterPackage !== 'All')  f.package = filterPackage;
+      if (filterMedia)             f.media   = true;
+      if (filterRating)            f.rating  = filterRating;
+      if (filterOasis   !== 'All') f.oasis   = filterOasis;
+      if (filterPackage !== 'All') f.package = filterPackage;
 
       const data = await getPublicReviews(f);
       if (data.success) {
@@ -139,7 +172,7 @@ export default function ReviewsSection() {
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
   useEffect(() => { setFilterPackage('All'); }, [filterOasis]);
 
-  const totalPages = Math.ceil(reviews.length / PER_PAGE);
+  const totalPages  = Math.ceil(reviews.length / PER_PAGE);
   const pageReviews = reviews.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
 
   const clearFilters = () => {
@@ -159,6 +192,7 @@ export default function ReviewsSection() {
             <p className="rs__label">WHAT OUR GUESTS SAY</p>
             <div className="rs__underline" />
           </div>
+          <p className="rs__sub">Real reviews from real visitors</p>
         </div>
 
         {/* Summary */}
@@ -174,7 +208,7 @@ export default function ReviewsSection() {
             <div className="rs__bars">
               {[5,4,3,2,1].map(star => {
                 const count = distribution[star] || 0;
-                const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                const pct   = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                 return (
                   <div key={star} className="rs__bar-row">
                     <span className="rs__bar-label">{star}★</span>
@@ -245,7 +279,6 @@ export default function ReviewsSection() {
             )}
           </>
         )}
-
       </div>
     </section>
   );

@@ -789,3 +789,23 @@
     font-size: 0.85rem;
   }
 }
+/* ── Gallery loading state ── */
+.gallery-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 220px;
+}
+
+.gallery-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0284c7;
+  border-radius: 50%;
+  animation: gallery-spin 0.7s linear infinite;
+}
+
+@keyframes gallery-spin {
+  to { transform: rotate(360deg); }
+}

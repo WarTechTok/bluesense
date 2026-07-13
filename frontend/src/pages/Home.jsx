@@ -1,9 +1,5 @@
 // frontend/src/pages/Home.jsx
-// ============================================
-// HOME PAGE - Hero carousel + Oasis cards + Gallery + Why Choose Us + Testimonials + FAQ + Rules + CTA
-// ============================================
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
@@ -11,23 +7,18 @@ import Navbar from "../components/navbar/Navbar";
 import Footer from "../components/footer/Footer";
 import ReviewsSection from "../components/home/ReviewsSection";
 import { BOOKING_RULES } from "../constants/packages";
+import { getGalleryImages } from "../services/admin/gallery";
 
-// Import Swiper styles
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import "./Home.css";
 
-// src/pages/Home.jsx
-// ============================================
-// HERO CAROUSEL DATA
-// ============================================
-
 const heroImages = [
   {
     url: '/images/hero/welcome.jpg',
-    title: 'Welcome to Catherine\'s Oasis',
+    title: "Welcome to Catherine's Oasis",
     subtitle: 'Your premier destination for relaxation and unforgettable memories',
     buttonText: 'Explore Now',
     buttonLink: '/oasis-1'
@@ -48,158 +39,107 @@ const heroImages = [
   }
 ];
 
-// ============================================
-// OASIS CARDS DATA
-// ============================================
-
 const oasisCards = [
   {
     id: 1,
     name: "Oasis 1",
     image: "/images/oasis1-card.jpg",
-    description:
-      "Cozy retreat designed for smaller groups seeking a peaceful escape. Perfect for family reunions, intimate celebrations, and romantic getaways.",
-    features: [
-      "🌊 Private Pool",
-      "👥 Up to 20 Guests",
-      "🍽️ Catering",
-      "🎉 Events",
-    ],
+    description: "Cozy retreat designed for smaller groups seeking a peaceful escape. Perfect for family reunions, intimate celebrations, and romantic getaways.",
+    features: ["🌊 Private Pool", "👥 Up to 20 Guests", "🍽️ Catering", "🎉 Events"],
     link: "/oasis-1",
   },
   {
     id: 2,
     name: "Oasis 2",
     image: "/images/oasis2-card.jpg",
-    description:
-      "Expansive gardens and spacious facilities perfect for large gatherings. Ideal for grand celebrations, corporate events, and weddings.",
-    features: [
-      "🏛️ Grand Hall",
-      "👥 Up to 100 Guests",
-      "🍽️ Full Catering",
-      "🎪 Event Planning",
-    ],
+    description: "Expansive gardens and spacious facilities perfect for large gatherings. Ideal for grand celebrations, corporate events, and weddings.",
+    features: ["🏛️ Grand Hall", "👥 Up to 100 Guests", "🍽️ Full Catering", "🎪 Event Planning"],
     link: "/oasis-2",
   },
 ];
 
-// ============================================
-// GALLERY IMAGES DATA
-// ============================================
-
-const galleryImages = [
-  {
-    id: 1,
-    src: "/images/gallery/pool.jpg",
-    title: "Swimming Pool with Jacuzzi",
-  },
-  { id: 2, src: "/images/gallery/cottage.jpg", title: "Cozy Cottages" },
-  { id: 3, src: "/images/gallery/family-room.jpg", title: "Family Room" },
-  { id: 4, src: "/images/gallery/events.jpg", title: "Event Spaces" },
-  { id: 5, src: "/images/gallery/garden.jpg", title: "Lush Gardens" },
-  { id: 6, src: "/images/gallery/superior-room.jpg", title: "Superior Room" },
-];
-
-// ============================================
-// WHY CHOOSE US DATA - NO ICONS
-// ============================================
-
 const whyChooseUs = [
-  { title: "Swimming Pool", description: "With bubble jacuzzi and fountain" },
-  { title: "Cozy Cottages", description: "Gazebo and kubo cottages available" },
-  { title: "Free WiFi", description: "Stay connected throughout your visit" },
-  { title: "Portable Griller", description: "Perfect for family cookouts" },
-  { title: "Karaoke", description: "Add-on for fun entertainment" },
-  { title: "Stove Rental", description: "Cook your favorite meals" },
-  { title: "Smart TV", description: "With Netflix on selected packages" },
-  { title: "Cooler/Fridge", description: "Keep your drinks cold" },
+  { title: "Swimming Pool",    description: "With bubble jacuzzi and fountain" },
+  { title: "Cozy Cottages",   description: "Gazebo and kubo cottages available" },
+  { title: "Free WiFi",       description: "Stay connected throughout your visit" },
+  { title: "Portable Griller",description: "Perfect for family cookouts" },
+  { title: "Karaoke",         description: "Add-on for fun entertainment" },
+  { title: "Stove Rental",    description: "Cook your favorite meals" },
+  { title: "Smart TV",        description: "With Netflix on selected packages" },
+  { title: "Cooler/Fridge",   description: "Keep your drinks cold" },
 ];
-
-// ============================================
-// TESTIMONIALS DATA
-// ============================================
-
-const testimonials = [
-  {
-    id: 1,
-    name: "Ms. Pia",
-    rating: 5,
-    text: "Experience was great, They were accomodating and helpful lalo na kapag may questions and requests kami. The pool was clean, also the rooms. Hoping makabalik kami!",
-    date: "March 2026",
-  },
-  {
-    id: 2,
-    name: "Ma'am Joyce",
-    rating: 5,
-    text: "Thank you po ulit sa super affordable and nice place po. Very recommended po ang place since it's super accessible po.",
-    date: "September 2025",
-  },
-  {
-    id: 3,
-    name: "Ma'am Lhei",
-    rating: 5,
-    text: "Thank you so much po sobrang nag enioy po kaming Lahat sa Year End Party namin. sulit po ang bait pa ni Mam.",
-    date: "December 2025",
-  },
-];
-
-// ============================================
-// FAQ DATA
-// ============================================
 
 const faqs = [
   {
     id: 1,
     question: "What time is check-in and check-out?",
-    answer:
-      "Day session: 8AM - 5PM | Night session: 6PM - 6AM | 22-hour session: Flexible based on your arrival time.",
+    answer: "Day session: 8AM - 5PM | Night session: 6PM - 6AM | 22-hour session: Flexible based on your arrival time.",
   },
   {
     id: 2,
     question: "How do I book and pay?",
-    answer:
-      "You can book online through our website. A downpayment is required to secure your reservation. Balance can be paid upon arrival.",
+    answer: "You can book online through our website. A downpayment is required to secure your reservation. Balance can be paid upon arrival.",
   },
   {
     id: 3,
     question: "Can I bring outside food?",
-    answer:
-      "Yes, you can bring outside food. We also have stove rental available if you want to cook.",
+    answer: "Yes, you can bring outside food. We also have stove rental available if you want to cook.",
   },
   {
     id: 4,
     question: "Is there a corkage fee?",
-    answer:
-      "Please contact us for corkage fees and special arrangements for events.",
+    answer: "Please contact us for corkage fees and special arrangements for events.",
   },
 ];
 
-// ============================================
-// MAIN HOME COMPONENT
-// ============================================
+// Static fallback in case the API is empty
+const FALLBACK_GALLERY = [
+  { id: 1, url: "/images/gallery/pool.jpg",         title: "Swimming Pool" },
+  { id: 2, url: "/images/gallery/cottage.jpg",      title: "Cozy Cottages" },
+  { id: 3, url: "/images/gallery/family-room.jpg",  title: "Family Room" },
+  { id: 4, url: "/images/gallery/events.jpg",       title: "Event Spaces" },
+  { id: 5, url: "/images/gallery/garden.jpg",       title: "Lush Gardens" },
+  { id: 6, url: "/images/gallery/superior-room.jpg",title: "Superior Room" },
+];
 
 function Home() {
   const [openFaq, setOpenFaq] = useState(null);
 
-  const toggleFaq = (id) => {
-    setOpenFaq(openFaq === id ? null : id);
-  };
+  // ── Gallery from API ──────────────────────────
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGallery = async () => {
+      try {
+        const images = await getGalleryImages();
+        // API returns array of { _id, url, title, ... }; take first 6 active ones
+        const active = (images || []).filter(img => img.isActive !== false);
+        setGalleryImages(active.length > 0 ? active.slice(0, 6) : FALLBACK_GALLERY);
+      } catch (err) {
+        console.error("Failed to load gallery:", err);
+        setGalleryImages(FALLBACK_GALLERY);
+      } finally {
+        setGalleryLoading(false);
+      }
+    };
+    fetchGallery();
+  }, []);
+
+  const toggleFaq = (id) => setOpenFaq(openFaq === id ? null : id);
 
   return (
     <div className="home">
       <Navbar />
 
-      {/* ===== SECTION 1: HERO CAROUSEL ===== */}
+      {/* ===== HERO CAROUSEL ===== */}
       <section className="hero-carousel">
         <Swiper
           modules={[Navigation, Pagination, Autoplay, EffectFade]}
           effect="fade"
           navigation={true}
           pagination={{ clickable: true }}
-          autoplay={{
-            delay: 5000,
-            disableOnInteraction: false,
-          }}
+          autoplay={{ delay: 5000, disableOnInteraction: false }}
           loop={true}
           speed={1000}
           className="hero-swiper"
@@ -216,13 +156,11 @@ function Home() {
                     e.target.src = `https://via.placeholder.com/1920x1080?text=${encodeURIComponent(image.title)}`;
                   }}
                 />
-                <div className="hero-overlay"></div>
+                <div className="hero-overlay" />
                 <div className="hero-content">
                   <h1 className="hero-title">{image.title}</h1>
                   <p className="hero-subtitle">{image.subtitle}</p>
-                  <a href={image.buttonLink} className="hero-btn">
-                    {image.buttonText}
-                  </a>
+                  <a href={image.buttonLink} className="hero-btn">{image.buttonText}</a>
                 </div>
               </div>
             </SwiperSlide>
@@ -230,13 +168,12 @@ function Home() {
         </Swiper>
       </section>
 
-      {/* ===== SECTION 2: OASIS CARDS (SIDE BY SIDE) ===== */}
+      {/* ===== OASIS CARDS ===== */}
       <section className="oasis-cards-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Choose Your Oasis</h2>
           </div>
-
           <div className="oasis-cards-grid">
             {oasisCards.map((oasis) => (
               <div key={oasis.id} className="oasis-card">
@@ -249,14 +186,10 @@ function Home() {
                   <p>{oasis.description}</p>
                   <div className="oasis-features">
                     {oasis.features.map((feature, idx) => (
-                      <span key={idx} className="feature-tag">
-                        {feature}
-                      </span>
+                      <span key={idx} className="feature-tag">{feature}</span>
                     ))}
                   </div>
-                  <Link to={oasis.link} className="oasis-card-btn">
-                    Explore {oasis.name} →
-                  </Link>
+                  <Link to={oasis.link} className="oasis-card-btn">Explore {oasis.name} →</Link>
                 </div>
               </div>
             ))}
@@ -264,39 +197,46 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 3: GALLERY PREVIEW ===== */}
+      {/* ===== GALLERY PREVIEW — live from API ===== */}
       <section className="gallery-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Photo Gallery</h2>
           </div>
 
-          <div className="gallery-grid">
-            {galleryImages.slice(0, 6).map((image) => (
-              <div key={image.id} className="gallery-item">
-                <img src={image.src} alt={image.title} />
-                <div className="gallery-overlay">
-                  <span>{image.title}</span>
+          {galleryLoading ? (
+            <div className="gallery-loading">
+              <div className="gallery-spinner" />
+            </div>
+          ) : (
+            <div className="gallery-grid">
+              {galleryImages.map((image, idx) => (
+                <div key={image._id || image.id || idx} className="gallery-item">
+                  <img
+                    src={image.url || image.src}
+                    alt={image.title || ''}
+                    onError={(e) => { e.target.onerror = null; e.target.src = '/images/placeholder.jpg'; }}
+                  />
+                  <div className="gallery-overlay">
+                    <span>{image.title}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="text-center">
-            <Link to="/gallery" className="view-all-btn">
-              View Full Gallery →
-            </Link>
+            <Link to="/gallery" className="view-all-btn">View Full Gallery →</Link>
           </div>
         </div>
       </section>
 
-      {/* ===== SECTION 4: WHY CHOOSE US ===== */}
+      {/* ===== WHY CHOOSE US ===== */}
       <section className="why-choose-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Why Choose Catherine's Oasis?</h2>
           </div>
-
           <div className="features-grid">
             {whyChooseUs.map((feature, index) => (
               <div key={index} className="feature-card">
@@ -308,16 +248,15 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 5: DYNAMIC REVIEWS ===== */}
+      {/* ===== DYNAMIC REVIEWS ===== */}
       <ReviewsSection />
 
-      {/* ===== SECTION 6: FAQ ===== */}
+      {/* ===== FAQ ===== */}
       <section className="faq-section">
         <div className="container">
           <div className="section-header">
             <h2 className="section-title">Frequently Asked Questions</h2>
           </div>
-
           <div className="faq-grid">
             {faqs.map((faq) => (
               <div key={faq.id} className="faq-item">
@@ -326,14 +265,10 @@ function Home() {
                   onClick={() => toggleFaq(faq.id)}
                 >
                   <span>{faq.question}</span>
-                  <i
-                    className={`fas fa-chevron-${openFaq === faq.id ? "up" : "down"}`}
-                  ></i>
+                  <i className={`fas fa-chevron-${openFaq === faq.id ? "up" : "down"}`} />
                 </button>
                 {openFaq === faq.id && (
-                  <div className="faq-answer">
-                    <p>{faq.answer}</p>
-                  </div>
+                  <div className="faq-answer"><p>{faq.answer}</p></div>
                 )}
               </div>
             ))}
@@ -341,7 +276,7 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 7: BOOKING RULES ===== */}
+      {/* ===== BOOKING RULES ===== */}
       <section className="rules-section">
         <div className="container">
           <h2 className="rules-title">Booking Information</h2>
@@ -357,17 +292,12 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 8: CALL TO ACTION ===== */}
+      {/* ===== CTA ===== */}
       <section className="cta-section">
         <div className="container">
           <h2 className="cta-title">Ready to Book Your Stay?</h2>
-          <p className="cta-text">
-            Choose your preferred oasis and package, then complete your
-            reservation
-          </p>
-          <Link to="/oasis-1" className="cta-btn">
-            View Packages
-          </Link>
+          <p className="cta-text">Choose your preferred oasis and package, then complete your reservation</p>
+          <Link to="/oasis-1" className="cta-btn">View Packages</Link>
         </div>
       </section>
 
