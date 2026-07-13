@@ -33,7 +33,7 @@
 }
 
 .reviews-summary__avg {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   font-weight: 700;
   color: #0284c7;
   line-height: 1;
@@ -192,13 +192,15 @@
 
 .carousel-track {
   display: flex;
-  gap: 20px;
   transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  width: 100%;
 }
 
 .carousel-slide {
-  flex: 0 0 calc((100% - 40px) / 3); /* 3 cards, 2 gaps of 20px */
+  flex: 0 0 33.333%;
   min-width: 0;
+  padding: 0 10px;
+  box-sizing: border-box;
 }
 
 .carousel-arrow {
@@ -494,13 +496,14 @@
 /* ----------------------------------------- */
 @media (max-width: 1024px) {
   .carousel-slide {
-    flex: 0 0 calc((100% - 20px) / 2);
+    flex: 0 0 50%;
   }
 }
 
 @media (max-width: 640px) {
   .carousel-slide {
     flex: 0 0 100%;
+    padding: 0 4px;
   }
 
   .reviews-summary {

@@ -151,7 +151,16 @@ export default function ReviewsSection() {
 
   // Carousel
   const [currentSlide, setCurrentSlide] = useState(0);
-  const CARDS_PER_VIEW = 3;
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const CARDS_PER_VIEW = windowWidth <= 640 ? 1 : windowWidth <= 1024 ? 2 : 3;
+  const SLIDE_WIDTH_PCT = 100 / CARDS_PER_VIEW;
 
   const packageOptions =
     filterOasis !== 'All'
@@ -315,7 +324,7 @@ export default function ReviewsSection() {
             <div className="carousel-viewport">
               <div
                 className="carousel-track"
-                style={{ transform: `translateX(-${(currentSlide / CARDS_PER_VIEW) * 100}%)` }}
+                style={{ transform: `translateX(-${currentSlide * SLIDE_WIDTH_PCT}%)` }}
               >
                 {reviews.map((review) => (
                   <div key={review._id} className="carousel-slide">
