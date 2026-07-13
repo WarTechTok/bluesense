@@ -3,11 +3,14 @@
 // REVIEW CONTROLLER
 // ============================================
 
-const Review = require('../models/Review');
-const Booking = require('../models/Booking');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
+const Review = require("../models/Review");
+const Booking = require("../models/Booking");
+const {
+  uploadToCloudinary,
+  deleteFromCloudinary,
+} = require("../utils/cloudinary");
 
-const REVIEW_FOLDER = 'bluesense/reviews';
+const REVIEW_FOLDER = "bluesense/reviews";
 
 // ============================================
 // SUBMIT REVIEW (customer)
@@ -20,56 +23,98 @@ const submitReview = async (req, res) => {
     const { bookingId, rating, text, isAnonymous } = req.body;
 
     if (!bookingId || !rating || !text) {
-      return res.status(400).json({ success: false, message: 'bookingId, rating, and text are required.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "bookingId, rating, and text are required.",
+        });
     }
 
     // Validate booking exists and belongs to this customer
     const booking = await Booking.findById(bookingId);
     if (!booking) {
-      return res.status(404).json({ success: false, message: 'Booking not found.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Booking not found." });
     }
 
     // Only the customer who made the booking can review it
     if (booking.customerEmail !== req.user.email) {
-      return res.status(403).json({ success: false, message: 'You can only review your own bookings.' });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "You can only review your own bookings.",
+        });
     }
 
     // Only Completed bookings
-    if (booking.status !== 'Completed') {
-      return res.status(400).json({ success: false, message: 'Only completed bookings can be reviewed.' });
+    if (booking.status !== "Completed") {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Only completed bookings can be reviewed.",
+        });
     }
 
     // One review per booking
     const existing = await Review.findOne({ booking: bookingId });
     if (existing) {
-      return res.status(400).json({ success: false, message: 'You have already reviewed this booking.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "You have already reviewed this booking.",
+        });
     }
 
     // Validate rating
     const ratingNum = parseInt(rating);
     if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5) {
-      return res.status(400).json({ success: false, message: 'Rating must be 1–5.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Rating must be 1–5." });
     }
 
     // Validate text length
     if (text.trim().length < 10) {
-      return res.status(400).json({ success: false, message: 'Review text must be at least 10 characters.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Review text must be at least 10 characters.",
+        });
     }
     if (text.trim().length > 500) {
-      return res.status(400).json({ success: false, message: 'Review text must not exceed 500 characters.' });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Review text must not exceed 500 characters.",
+        });
     }
 
     // Upload photos (field name: "photos", max 5)
     const photoFiles = req.files?.photos || [];
     if (photoFiles.length > 5) {
-      return res.status(400).json({ success: false, message: 'Maximum 5 photos allowed.' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Maximum 5 photos allowed." });
     }
 
     const uploadedPhotos = [];
     for (const file of photoFiles) {
-      const result = await uploadToCloudinary(file.buffer, `${REVIEW_FOLDER}/photos`, {
-        transformation: [{ width: 1600, height: 1200, crop: 'limit', quality: 'auto:good' }],
-      });
+      const result = await uploadToCloudinary(
+        file.buffer,
+        `${REVIEW_FOLDER}/photos`,
+        {
+          transformation: [
+            { width: 1600, height: 1200, crop: "limit", quality: "auto:good" },
+          ],
+        },
+      );
       uploadedPhotos.push({ url: result.url, publicId: result.publicId });
     }
 
@@ -77,9 +122,28 @@ const submitReview = async (req, res) => {
     let uploadedVideo = { url: null, publicId: null };
     const videoFile = req.files?.video?.[0];
     if (videoFile) {
-      const result = await uploadToCloudinary(videoFile.buffer, `${REVIEW_FOLDER}/videos`, {
-        resource_type: 'video',
-      });
+      const result = await uploadToCloudinary(
+        videoFile.buffer,
+        `${REVIEW_FOLDER}/videos`,
+        {
+          resource_type: "video",
+          transformation: [
+            {
+              quality: "auto:low", // aggressive compression
+              fetch_format: "mp4", // normalize everything to mp4
+              video_codec: "h264", // most efficient codec
+            },
+          ],
+          eager: [
+            {
+              quality: "auto:low",
+              fetch_format: "mp4",
+              video_codec: "h264",
+            },
+          ],
+          eager_async: false,
+        },
+      );
       uploadedVideo = { url: result.url, publicId: result.publicId };
     }
 
@@ -93,13 +157,13 @@ const submitReview = async (req, res) => {
       text: text.trim(),
       photos: uploadedPhotos,
       video: uploadedVideo,
-      isAnonymous: isAnonymous === 'true' || isAnonymous === true,
+      isAnonymous: isAnonymous === "true" || isAnonymous === true,
     });
 
     console.log(`✅ Review submitted for booking ${booking.bookingReference}`);
     res.status(201).json({ success: true, review });
   } catch (error) {
-    console.error('❌ Submit review error:', error);
+    console.error("❌ Submit review error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -113,26 +177,29 @@ const getPublicReviews = async (req, res) => {
   try {
     const { rating, oasis, package: pkg, media } = req.query;
 
-    const filter = { status: 'approved' };
+    const filter = { status: "approved" };
 
     if (rating) filter.rating = parseInt(rating);
     if (oasis) filter.oasis = oasis;
     if (pkg) filter.package = pkg;
-    if (media === 'true') {
+    if (media === "true") {
       filter.$or = [
-        { 'photos.0': { $exists: true } },
-        { 'video.url': { $ne: null } },
+        { "photos.0": { $exists: true } },
+        { "video.url": { $ne: null } },
       ];
     }
 
     const reviews = await Review.find(filter).sort({ createdAt: -1 });
 
     // Calculate average rating from all approved reviews (not filtered)
-    const allApproved = await Review.find({ status: 'approved' });
+    const allApproved = await Review.find({ status: "approved" });
     const avgRating =
       allApproved.length > 0
-        ? (allApproved.reduce((sum, r) => sum + r.rating, 0) / allApproved.length).toFixed(1)
-        : '0.0';
+        ? (
+            allApproved.reduce((sum, r) => sum + r.rating, 0) /
+            allApproved.length
+          ).toFixed(1)
+        : "0.0";
 
     // Build rating distribution
     const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -147,7 +214,7 @@ const getPublicReviews = async (req, res) => {
       distribution,
     });
   } catch (error) {
-    console.error('❌ Get reviews error:', error);
+    console.error("❌ Get reviews error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -174,7 +241,7 @@ const checkReviewed = async (req, res) => {
 const getAllReviewsAdmin = async (req, res) => {
   try {
     const reviews = await Review.find()
-      .populate('booking', 'bookingReference bookingNumber')
+      .populate("booking", "bookingReference bookingNumber")
       .sort({ createdAt: -1 });
 
     res.json({ success: true, reviews, total: reviews.length });
@@ -192,16 +259,24 @@ const getAllReviewsAdmin = async (req, res) => {
 const updateReviewStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['approved', 'hidden'].includes(status)) {
-      return res.status(400).json({ success: false, message: "Status must be 'approved' or 'hidden'." });
+    if (!["approved", "hidden"].includes(status)) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Status must be 'approved' or 'hidden'.",
+        });
     }
 
     const review = await Review.findByIdAndUpdate(
       req.params.id,
       { status },
-      { new: true }
+      { new: true },
     );
-    if (!review) return res.status(404).json({ success: false, message: 'Review not found.' });
+    if (!review)
+      return res
+        .status(404)
+        .json({ success: false, message: "Review not found." });
 
     res.json({ success: true, review });
   } catch (error) {
@@ -217,7 +292,10 @@ const updateReviewStatus = async (req, res) => {
 const deleteReview = async (req, res) => {
   try {
     const review = await Review.findById(req.params.id);
-    if (!review) return res.status(404).json({ success: false, message: 'Review not found.' });
+    if (!review)
+      return res
+        .status(404)
+        .json({ success: false, message: "Review not found." });
 
     // Cleanup Cloudinary assets
     for (const photo of review.photos) {
@@ -229,7 +307,7 @@ const deleteReview = async (req, res) => {
 
     await review.deleteOne();
     console.log(`🗑️ Review ${review._id} deleted by admin`);
-    res.json({ success: true, message: 'Review deleted.' });
+    res.json({ success: true, message: "Review deleted." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
