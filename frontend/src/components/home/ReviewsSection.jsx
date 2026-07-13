@@ -1,205 +1,146 @@
 // frontend/src/components/home/ReviewsSection.jsx
-// ============================================
-// DYNAMIC REVIEWS SECTION
-// Carousel slider + filters + average rating display
-// ============================================
-
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getPublicReviews } from '../../services/reviews';
 import './ReviewsSection.css';
 
-// ============================================
-// HELPERS
-// ============================================
 const OASIS_OPTIONS = ['All', 'Oasis 1', 'Oasis 2'];
-
-// Packages per oasis (static fallback — mirrors DB structure)
 const PACKAGES_BY_OASIS = {
   'Oasis 1': ['All', 'Package 1', 'Package 2', 'Package 3', 'Package 4', 'Package 5', 'Package 5+'],
   'Oasis 2': ['All', 'Package A', 'Package B', 'Package C'],
 };
 
-function StarDisplay({ rating, size = 'sm' }) {
+function Stars({ rating, size = 'sm' }) {
   return (
-    <span className={`star-display star-display--${size}`} aria-label={`${rating} out of 5 stars`}>
-      {[1, 2, 3, 4, 5].map((s) => (
-        <span key={s} className={s <= rating ? 'star filled' : 'star empty'}>★</span>
+    <span className={`stars stars--${size}`} aria-label={`${rating} out of 5`}>
+      {[1,2,3,4,5].map(s => (
+        <span key={s} className={s <= rating ? 'star star--on' : 'star star--off'}>★</span>
       ))}
     </span>
   );
 }
 
-function MediaLightbox({ items, startIndex, onClose }) {
-  const [current, setCurrent] = useState(startIndex);
-
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight') setCurrent((c) => Math.min(c + 1, items.length - 1));
-      if (e.key === 'ArrowLeft')  setCurrent((c) => Math.max(c - 1, 0));
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [items.length, onClose]);
-
-  const item = items[current];
-
-  return (
-    <div className="lightbox-overlay" onClick={onClose}>
-      <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
-        <button className="lightbox-close" onClick={onClose}>✕</button>
-        {item.type === 'video' ? (
-          <video src={item.url} controls autoPlay className="lightbox-media" />
-        ) : (
-          <img src={item.url} alt="" className="lightbox-media" />
-        )}
-        {items.length > 1 && (
-          <>
-            <button className="lightbox-nav lightbox-nav--prev" onClick={() => setCurrent((c) => Math.max(c - 1, 0))} disabled={current === 0}>‹</button>
-            <button className="lightbox-nav lightbox-nav--next" onClick={() => setCurrent((c) => Math.min(c + 1, items.length - 1))} disabled={current === items.length - 1}>›</button>
-            <div className="lightbox-counter">{current + 1} / {items.length}</div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function ReviewCard({ review }) {
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [lightbox, setLightbox] = useState(null); // null | index
 
-  const mediaItems = [
-    ...(review.photos || []).map((p) => ({ type: 'image', url: p.url })),
+  const media = [
+    ...(review.photos || []).map(p => ({ type: 'image', url: p.url })),
     ...(review.video?.url ? [{ type: 'video', url: review.video.url }] : []),
   ];
 
-  const openLightbox = (idx) => {
-    setLightboxIndex(idx);
-    setLightboxOpen(true);
-  };
-
-  const displayName = review.isAnonymous ? 'Anonymous Guest' : review.customerName;
-  const dateStr = new Date(review.createdAt).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
+  const name = review.isAnonymous ? 'Anonymous Guest' : review.customerName;
+  const initials = name.charAt(0).toUpperCase();
+  const date = new Date(review.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric',
   });
 
+  useEffect(() => {
+    if (lightbox === null) return;
+    const handler = e => {
+      if (e.key === 'Escape') setLightbox(null);
+      if (e.key === 'ArrowRight') setLightbox(i => Math.min(i + 1, media.length - 1));
+      if (e.key === 'ArrowLeft')  setLightbox(i => Math.max(i - 1, 0));
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [lightbox, media.length]);
+
   return (
-    <div className="review-card">
-      <div className="review-card__header">
-        <div className="review-card__avatar">{displayName.charAt(0).toUpperCase()}</div>
-        <div className="review-card__meta">
-          <span className="review-card__name">{displayName}</span>
-          <span className="review-card__date">{dateStr}</span>
+    <div className="rc">
+      <div className="rc__top">
+        <div className="rc__avatar">{initials}</div>
+        <div className="rc__info">
+          <span className="rc__name">{name}</span>
+          <span className="rc__date">{date}</span>
         </div>
-        <div className="review-card__badge">{review.oasis}</div>
+        <span className="rc__oasis">{review.oasis}</span>
       </div>
 
-      <div className="review-card__stars">
-        <StarDisplay rating={review.rating} size="md" />
-      </div>
+      <Stars rating={review.rating} size="md" />
 
-      <p className="review-card__text">"{review.text}"</p>
+      <p className="rc__text">"{review.text}"</p>
 
-      {mediaItems.length > 0 && (
-        <div className="review-card__media">
-          {mediaItems.map((item, idx) => (
-            <button
-              key={idx}
-              className="review-media-thumb"
-              onClick={() => openLightbox(idx)}
-              aria-label={item.type === 'video' ? 'Play video' : 'View photo'}
-            >
-              {item.type === 'video' ? (
-                <div className="review-media-thumb__video">
-                  <span className="play-icon">▶</span>
-                </div>
-              ) : (
-                <img src={item.url} alt={`Review photo ${idx + 1}`} />
-              )}
+      {media.length > 0 && (
+        <div className="rc__media">
+          {media.map((item, i) => (
+            <button key={i} className="rc__thumb" onClick={() => setLightbox(i)}>
+              {item.type === 'video'
+                ? <div className="rc__thumb-video"><span>▶</span></div>
+                : <img src={item.url} alt="" />}
             </button>
           ))}
         </div>
       )}
 
-      <div className="review-card__footer">
-        <span className="review-card__package">{review.package}</span>
+      <div className="rc__footer">
+        <span className="rc__package">{review.package}</span>
       </div>
 
-      {lightboxOpen && (
-        <MediaLightbox items={mediaItems} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
+      {lightbox !== null && (
+        <div className="lb" onClick={() => setLightbox(null)}>
+          <div className="lb__box" onClick={e => e.stopPropagation()}>
+            <button className="lb__close" onClick={() => setLightbox(null)}>✕</button>
+            {media[lightbox].type === 'video'
+              ? <video src={media[lightbox].url} controls autoPlay className="lb__media" />
+              : <img src={media[lightbox].url} alt="" className="lb__media" />}
+            {media.length > 1 && <>
+              <button className="lb__nav lb__nav--l" onClick={() => setLightbox(i => Math.max(i-1,0))} disabled={lightbox===0}>‹</button>
+              <button className="lb__nav lb__nav--r" onClick={() => setLightbox(i => Math.min(i+1,media.length-1))} disabled={lightbox===media.length-1}>›</button>
+              <div className="lb__counter">{lightbox+1} / {media.length}</div>
+            </>}
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
 export default function ReviewsSection() {
-  const [reviews, setReviews] = useState([]);
-  const [averageRating, setAverageRating] = useState(0);
+  const [reviews,      setReviews]      = useState([]);
+  const [avgRating,    setAvgRating]    = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
-  const [distribution, setDistribution] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
-  const [loading, setLoading] = useState(true);
+  const [distribution, setDistribution] = useState({ 5:0,4:0,3:0,2:0,1:0 });
+  const [loading,      setLoading]      = useState(true);
 
-  // Filters
-  const [filterMedia, setFilterMedia] = useState(false);
-  const [filterRating, setFilterRating] = useState('');
-  const [filterOasis, setFilterOasis] = useState('All');
+  const [filterMedia,   setFilterMedia]   = useState(false);
+  const [filterRating,  setFilterRating]  = useState('');
+  const [filterOasis,   setFilterOasis]   = useState('All');
   const [filterPackage, setFilterPackage] = useState('All');
 
-  // Carousel
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [page, setPage] = useState(0);
+  const PER_PAGE = 3;
 
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  const CARDS_PER_VIEW = windowWidth <= 640 ? 1 : windowWidth <= 1024 ? 2 : 3;
-  const SLIDE_WIDTH_PCT = 100 / CARDS_PER_VIEW;
-
-  const packageOptions =
-    filterOasis !== 'All'
-      ? PACKAGES_BY_OASIS[filterOasis] || ['All']
-      : ['All'];
+  const packageOptions = filterOasis !== 'All' ? PACKAGES_BY_OASIS[filterOasis] || ['All'] : ['All'];
+  const hasFilters = filterMedia || filterRating || filterOasis !== 'All' || filterPackage !== 'All';
 
   const fetchReviews = useCallback(async () => {
     setLoading(true);
+    setPage(0);
     try {
-      const filters = {};
-      if (filterMedia) filters.media = true;
-      if (filterRating) filters.rating = filterRating;
-      if (filterOasis !== 'All') filters.oasis = filterOasis;
-      if (filterPackage !== 'All') filters.package = filterPackage;
+      const f = {};
+      if (filterMedia)              f.media   = true;
+      if (filterRating)             f.rating  = filterRating;
+      if (filterOasis   !== 'All')  f.oasis   = filterOasis;
+      if (filterPackage !== 'All')  f.package = filterPackage;
 
-      const data = await getPublicReviews(filters);
+      const data = await getPublicReviews(f);
       if (data.success) {
         setReviews(data.reviews || []);
-        setAverageRating(data.averageRating || 0);
+        setAvgRating(data.averageRating || 0);
         setTotalReviews(data.totalReviews || 0);
-        setDistribution(data.distribution || { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+        setDistribution(data.distribution || { 5:0,4:0,3:0,2:0,1:0 });
       }
-    } catch (err) {
-      console.error('Failed to load reviews:', err);
+    } catch (e) {
+      console.error('Reviews fetch failed:', e);
     } finally {
       setLoading(false);
-      setCurrentSlide(0);
     }
   }, [filterMedia, filterRating, filterOasis, filterPackage]);
 
   useEffect(() => { fetchReviews(); }, [fetchReviews]);
-
-  // Reset package filter when oasis changes
   useEffect(() => { setFilterPackage('All'); }, [filterOasis]);
 
-  const maxSlide = Math.max(0, reviews.length - CARDS_PER_VIEW);
-
-  const prev = () => setCurrentSlide((s) => Math.max(s - 1, 0));
-  const next = () => setCurrentSlide((s) => Math.min(s + 1, maxSlide));
+  const totalPages = Math.ceil(reviews.length / PER_PAGE);
+  const pageReviews = reviews.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
 
   const clearFilters = () => {
     setFilterMedia(false);
@@ -208,38 +149,39 @@ export default function ReviewsSection() {
     setFilterPackage('All');
   };
 
-  const hasActiveFilters = filterMedia || filterRating || filterOasis !== 'All' || filterPackage !== 'All';
-
   return (
-    <section className="reviews-section">
-      <div className="container">
-        {/* Header - simple like Login page */}
-        <div className="section-header">
-          <h2 className="section-title">What Our Guests Say</h2>
+    <section className="rs">
+      <div className="rs__inner">
+
+        {/* Header */}
+        <div className="rs__head">
+          <div>
+            <p className="rs__label">WHAT OUR GUESTS SAY</p>
+            <div className="rs__underline" />
+          </div>
         </div>
 
-        {/* Summary bar */}
+        {/* Summary */}
         {totalReviews > 0 && (
-          <div className="reviews-summary">
-            <div className="reviews-summary__score">
-              <span className="reviews-summary__avg">{averageRating.toFixed(1)}</span>
-              <div className="reviews-summary__right">
-                <StarDisplay rating={Math.round(averageRating)} size="lg" />
-                <span className="reviews-summary__count">{totalReviews} review{totalReviews !== 1 ? 's' : ''}</span>
+          <div className="rs__summary">
+            <div className="rs__score">
+              <span className="rs__avg">{avgRating.toFixed(1)}</span>
+              <div>
+                <Stars rating={Math.round(avgRating)} size="lg" />
+                <p className="rs__count">{totalReviews} review{totalReviews !== 1 ? 's' : ''}</p>
               </div>
             </div>
-
-            <div className="reviews-summary__bars">
-              {[5, 4, 3, 2, 1].map((star) => {
+            <div className="rs__bars">
+              {[5,4,3,2,1].map(star => {
                 const count = distribution[star] || 0;
                 const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
                 return (
-                  <div key={star} className="rating-bar-row">
-                    <span className="rating-bar-label">{star}★</span>
-                    <div className="rating-bar-track">
-                      <div className="rating-bar-fill" style={{ width: `${pct}%` }} />
+                  <div key={star} className="rs__bar-row">
+                    <span className="rs__bar-label">{star}★</span>
+                    <div className="rs__bar-track">
+                      <div className="rs__bar-fill" style={{ width: `${pct}%` }} />
                     </div>
-                    <span className="rating-bar-count">{count}</span>
+                    <span className="rs__bar-count">{count}</span>
                   </div>
                 );
               })}
@@ -247,116 +189,63 @@ export default function ReviewsSection() {
           </div>
         )}
 
-        {/* Filters - simple icons like Login page */}
-        <div className="reviews-filters">
-          <button
-            className={`filter-chip ${filterMedia ? 'active' : ''}`}
-            onClick={() => setFilterMedia((v) => !v)}
-          >
-            <i className="fas fa-image"></i> With Media
+        {/* Filters */}
+        <div className="rs__filters">
+          <button className={`rs__chip ${filterMedia ? 'rs__chip--on' : ''}`} onClick={() => setFilterMedia(v => !v)}>
+            📷 With Media
           </button>
-
-          <select
-            className="filter-select"
-            value={filterRating}
-            onChange={(e) => setFilterRating(e.target.value)}
-          >
-            <option value=""><i className="fas fa-star"></i> All Stars</option>
-            {[5, 4, 3, 2, 1].map((s) => (
-              <option key={s} value={s}>{s} Star{s !== 1 ? 's' : ''}</option>
-            ))}
+          <select className="rs__select" value={filterRating} onChange={e => setFilterRating(e.target.value)}>
+            <option value="">All Stars</option>
+            {[5,4,3,2,1].map(s => <option key={s} value={s}>{s} Star{s!==1?'s':''}</option>)}
           </select>
-
-          <select
-            className="filter-select"
-            value={filterOasis}
-            onChange={(e) => setFilterOasis(e.target.value)}
-          >
-            {OASIS_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o === 'All' ? 'All Oasis' : o}</option>
-            ))}
+          <select className="rs__select" value={filterOasis} onChange={e => setFilterOasis(e.target.value)}>
+            {OASIS_OPTIONS.map(o => <option key={o} value={o}>{o === 'All' ? 'All Oasis' : o}</option>)}
           </select>
-
           {filterOasis !== 'All' && (
-            <select
-              className="filter-select"
-              value={filterPackage}
-              onChange={(e) => setFilterPackage(e.target.value)}
-            >
-              {packageOptions.map((p) => (
-                <option key={p} value={p}>{p === 'All' ? 'All Packages' : p}</option>
-              ))}
+            <select className="rs__select" value={filterPackage} onChange={e => setFilterPackage(e.target.value)}>
+              {packageOptions.map(p => <option key={p} value={p}>{p === 'All' ? 'All Packages' : p}</option>)}
             </select>
           )}
-
-          {hasActiveFilters && (
-            <button className="filter-chip filter-chip--clear" onClick={clearFilters}>
-              <i className="fas fa-times"></i> Clear
-            </button>
+          {hasFilters && (
+            <button className="rs__chip rs__chip--clear" onClick={clearFilters}>✕ Clear</button>
           )}
         </div>
 
-        {/* Carousel */}
+        {/* Cards */}
         {loading ? (
-          <div className="reviews-loading">
-            <div className="loading-spinner" />
-            <p>Loading reviews...</p>
+          <div className="rs__state">
+            <div className="rs__spinner" />
+            <p>Loading reviews…</p>
           </div>
         ) : reviews.length === 0 ? (
-          <div className="reviews-empty">
-            <p>No reviews found{hasActiveFilters ? ' for the selected filters' : ''}.</p>
-            {hasActiveFilters && (
-              <button className="filter-chip" onClick={clearFilters}>Clear Filters</button>
-            )}
+          <div className="rs__state">
+            <p>No reviews found{hasFilters ? ' for selected filters' : ''}.</p>
+            {hasFilters && <button className="rs__chip" onClick={clearFilters}>Clear Filters</button>}
           </div>
         ) : (
-          <div className="reviews-carousel">
-            <button
-              className="carousel-arrow carousel-arrow--left"
-              onClick={prev}
-              disabled={currentSlide === 0}
-              aria-label="Previous reviews"
-            >
-              ‹
-            </button>
-
-            <div className="carousel-viewport">
-              <div
-                className="carousel-track"
-                style={{ transform: `translateX(-${currentSlide * SLIDE_WIDTH_PCT}%)` }}
-              >
-                {reviews.map((review) => (
-                  <div key={review._id} className="carousel-slide">
-                    <ReviewCard review={review} />
-                  </div>
-                ))}
-              </div>
+          <>
+            <div className="rs__grid">
+              {pageReviews.map(review => (
+                <ReviewCard key={review._id} review={review} />
+              ))}
             </div>
 
-            <button
-              className="carousel-arrow carousel-arrow--right"
-              onClick={next}
-              disabled={currentSlide >= maxSlide}
-              aria-label="Next reviews"
-            >
-              ›
-            </button>
-          </div>
+            {totalPages > 1 && (
+              <div className="rs__pagination">
+                <button className="rs__pg-btn" onClick={() => setPage(p => p-1)} disabled={page === 0}>‹</button>
+                {Array.from({ length: totalPages }).map((_, i) => (
+                  <button
+                    key={i}
+                    className={`rs__pg-dot ${page === i ? 'rs__pg-dot--on' : ''}`}
+                    onClick={() => setPage(i)}
+                  />
+                ))}
+                <button className="rs__pg-btn" onClick={() => setPage(p => p+1)} disabled={page === totalPages-1}>›</button>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Dot indicators */}
-        {reviews.length > CARDS_PER_VIEW && (
-          <div className="carousel-dots">
-            {Array.from({ length: maxSlide + 1 }).map((_, i) => (
-              <button
-                key={i}
-                className={`carousel-dot ${currentSlide === i ? 'active' : ''}`}
-                onClick={() => setCurrentSlide(i)}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );
