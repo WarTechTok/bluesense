@@ -135,13 +135,13 @@
 }
 
 /* ============================================ */
-/* SIDEBAR - LIGHT BLUE */
+/* SIDEBAR — white, matches customer design     */
 /* ============================================ */
 
 .staff-layout .staff-sidebar {
   width: 250px;
   height: 100vh;
-  background: linear-gradient(135deg, #286bc2 0%, #3f99f8 100%);
+  background: white;
   position: fixed;
   left: 0;
   top: 0;
@@ -151,8 +151,7 @@
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.05);
-  border-right: 1px solid #dbeafe;
+  border-right: 1px solid #e2e8f0;
 }
 
 .staff-layout .staff-sidebar.closed {
@@ -169,51 +168,46 @@
 
 .staff-layout .staff-sidebar .sidebar-header {
   padding: 20px 16px;
-  border-bottom: 1px solid #0284c7;
+  border-bottom: 1px solid #e2e8f0;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  min-height: 100px;
-  background: #0284c7;
+  justify-content: space-between;
+  min-height: 72px;
+  background: white;
 }
 
 .staff-layout .staff-sidebar .logo-area {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .staff-layout .staff-sidebar .sidebar-logo {
-  width: 70px;
-  height: 70px;
+  width: 38px;
+  height: 38px;
   object-fit: contain;
-  background: linear-gradient(135deg, #ffffff 0%, #eef7ff 100%);
-  border: 1px solid #dbeafe;
-  border-radius: 12px;
-  padding: 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
 }
 
 .staff-layout .staff-sidebar .logo-text {
-  font-size: 14px;
-  font-weight: 600;
-  color: #0f172a;
-  letter-spacing: 0.5px;
-  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   transition: all 0.3s ease;
   opacity: 1;
 }
 
 /* When sidebar is closed - hide text and shrink logo */
 .staff-layout .staff-sidebar.closed .sidebar-logo {
-  width: 45px;
-  height: 45px;
-  padding: 4px;
+  width: 38px;
+  height: 38px;
 }
 
 .staff-layout .staff-sidebar.closed .logo-text {
@@ -233,20 +227,25 @@
 /* ============================================ */
 
 .staff-layout .staff-sidebar .sidebar-toggle {
-  background: none;
-  border: none;
-  color: #475569;
-  font-size: 14px;
-  cursor: pointer;
-  padding: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
-  transition: all 0.3s ease;
-  display: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
 }
 
 .staff-layout .staff-sidebar .sidebar-toggle:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #0f172a;
+  background: #f1f5f9;
+  color: #1e293b;
+  border-color: #cbd5e1;
 }
 
 .staff-layout .staff-sidebar.open .sidebar-toggle {
@@ -263,39 +262,43 @@
 
 .staff-layout .staff-sidebar .sidebar-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 12px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  background: transparent;
+  gap: 2px;
+  background: white;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
+.staff-layout .staff-sidebar .sidebar-nav::-webkit-scrollbar { display: none; }
 
 .staff-layout .staff-sidebar .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 11px;
+  padding: 10px 14px;
   background: none;
   border: none;
   border-radius: 10px;
-  color: #475569;
-  font-size: 14px;
+  color: #64748b;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.15s, color 0.15s;
   width: 100%;
   text-align: left;
   position: relative;
 }
 
 .staff-layout .staff-sidebar .nav-item:hover {
-  background: rgba(255, 255, 255, 0.6);
-  color: #0f172a;
+  background: #f1f5f9;
+  color: #1e293b;
 }
 
 .staff-layout .staff-sidebar .nav-item.active {
-  background: rgba(255, 255, 255, 0.8);
+  background: #f0f9ff;
   color: #0284c7;
+  font-weight: 600;
 }
 
 .staff-layout .staff-sidebar .nav-item.active::before {
@@ -305,15 +308,16 @@
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 24px;
+  height: 22px;
   background: #0284c7;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 3px 3px 0;
 }
 
 .staff-layout .staff-sidebar .nav-icon {
-  font-size: 18px;
-  min-width: 24px;
+  font-size: 1rem;
+  min-width: 20px;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .staff-layout .staff-sidebar .nav-label {
@@ -334,7 +338,7 @@
 @media (max-width: 768px) {
   .staff-layout .staff-sidebar {
     transform: translateX(-100%);
-    width: 280px !important;
+    width: 260px !important;
   }
 
   .staff-layout .staff-sidebar.open {
@@ -343,13 +347,7 @@
 
   .staff-layout .staff-sidebar.closed {
     transform: translateX(-100%);
-    width: 280px !important;
-  }
-
-  .staff-layout .staff-sidebar.closed .sidebar-logo {
-    width: 60px !important;
-    height: 60px !important;
-    padding: 6px !important;
+    width: 260px !important;
   }
 
   .staff-layout .staff-sidebar.closed .logo-text {
@@ -362,34 +360,25 @@
     width: auto !important;
   }
 
-  .staff-layout .staff-sidebar.open .sidebar-toggle {
-    display: block !important;
-  }
-
   .staff-layout .staff-sidebar .sidebar-header {
     padding: 16px !important;
-    min-height: 90px !important;
+    min-height: 68px !important;
   }
 
   .staff-layout .staff-sidebar .logo-area {
-    flex-direction: column !important;
+    flex-direction: row !important;
     align-items: center !important;
   }
 
   .staff-layout .staff-sidebar .sidebar-logo {
-    width: 60px !important;
-    height: 60px !important;
-    padding: 6px !important;
-  }
-
-  .staff-layout .staff-sidebar .logo-text {
-    font-size: 14px !important;
+    width: 36px !important;
+    height: 36px !important;
   }
 
   .staff-layout .mobile-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.45);
     z-index: 999;
     opacity: 0;
     pointer-events: none;
@@ -460,29 +449,40 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: 0 24px;
+  height: 64px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   gap: 16px;
-  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 98;
+}
+
+@media (max-width: 768px) {
+  .staff-header { padding: 0 16px; }
 }
 
 .staff-header .header-title {
   flex: 1;
-  min-width: 150px;
+  min-width: 0;
 }
 
 .staff-header .header-title h1 {
   margin: 0;
-  font-size: 1.3rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
   color: #1e293b;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .staff-header .header-title p {
-  margin: 4px 0 0 0;
-  font-size: 0.85rem;
-  color: #64748b;
+  margin: 2px 0 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
 }
 
 /* ============================================ */
@@ -496,17 +496,18 @@
 .staff-profile .profile-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: none;
-  border: none;
+  border: 1px solid #e2e8f0;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background 0.3s ease;
+  padding: 6px 12px 6px 8px;
+  border-radius: 40px;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .staff-profile .profile-btn:hover {
-  background: #f1f5f9;
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 .staff-profile .staff-name {
@@ -516,17 +517,17 @@
 }
 
 .staff-profile .staff-avatar {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  background: #0284c7;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 600;
-  font-size: 0.9rem;
-  position: relative;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
 }
 
 .staff-profile .staff-avatar img {
