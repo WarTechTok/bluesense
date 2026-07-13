@@ -83,14 +83,15 @@ function ResetPassword() {
           <form onSubmit={handleSubmit} className="reset-form">
             {/* Password Field */}
             <div className="form-group">
-              <div className="password-wrapper">
+              <div className="password-wrapper input-icon-wrapper">
+                <i className="fa-solid fa-lock input-icon" />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="New password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="reset-input password-input"
+                  className="reset-input"
                 />
                 <button
                   type="button"
@@ -114,14 +115,15 @@ function ResetPassword() {
 
             {/* Confirm Password Field */}
             <div className="form-group">
-              <div className="password-wrapper">
+              <div className="password-wrapper input-icon-wrapper">
+                <i className="fa-solid fa-lock input-icon" />
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm new password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  className="reset-input password-input"
+                  className="reset-input"
                 />
                 <button
                   type="button"
@@ -161,7 +163,8 @@ function ResetPassword() {
         {/* Back to Login */}
         <div className="reset-footer">
           <p>
-            <Link to="/login">← Back to login</Link>
+            Remember your password?{' '}
+            <Link to="/login">Back to login</Link>
           </p>
         </div>
       </div>
