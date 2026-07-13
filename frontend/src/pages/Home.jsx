@@ -9,6 +9,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay, EffectFade } from "swiper/modules";
 import Navbar from "../components/navbar/Navbar";
 import Footer from "../components/footer/Footer";
+import ReviewsSection from "../components/home/ReviewsSection";
 import { BOOKING_RULES } from "../constants/packages";
 
 // Import Swiper styles
@@ -307,31 +308,8 @@ function Home() {
         </div>
       </section>
 
-      {/* ===== SECTION 5: TESTIMONIALS ===== */}
-      <section className="testimonials-section">
-        <div className="container">
-          <div className="section-header">
-            <h2 className="section-title">What Our Guests Say</h2>
-          </div>
-
-          <div className="testimonials-grid">
-            {testimonials.map((testimonial) => (
-              <div key={testimonial.id} className="testimonial-card">
-                <div className="testimonial-rating">
-                  {"★".repeat(testimonial.rating)}
-                  {"☆".repeat(5 - testimonial.rating)}
-                </div>
-                <p className="testimonial-text">"{testimonial.text}"</p>
-                <div className="testimonial-author">
-                  <strong>{testimonial.name}</strong>
-                  <span>{testimonial.location}</span>
-                  <small>{testimonial.date}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ===== SECTION 5: DYNAMIC REVIEWS ===== */}
+      <ReviewsSection />
 
       {/* ===== SECTION 6: FAQ ===== */}
       <section className="faq-section">

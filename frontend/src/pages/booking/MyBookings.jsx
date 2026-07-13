@@ -7,6 +7,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
+import LeaveReviewModal from "../../components/modals/LeaveReviewModal";
+import { checkReviewed } from "../../services/reviews";
 import "./MyBookings.css";
 
 // Get API URL from environment variable
@@ -18,6 +20,10 @@ const MyBookings = () => {
   const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  // Review
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewTarget, setReviewTarget]       = useState(null);
+  const [reviewedIds, setReviewedIds]         = useState({});  // bookingId → true/false
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,6 +78,17 @@ const MyBookings = () => {
       });
       
       setBookings(processedBookings);
+
+      // Check which completed bookings already have a review
+      const completedBookings = processedBookings.filter(
+        (b) => b.displayStatus === 'Completed'
+      );
+      const reviewChecks = await Promise.all(
+        completedBookings.map((b) =>
+          checkReviewed(b._id).then((r) => [b._id, r.reviewed]).catch(() => [b._id, false])
+        )
+      );
+      setReviewedIds(Object.fromEntries(reviewChecks));
 
       if (processedBookings.length === 0) {
         setError("No bookings found for your account");
@@ -221,6 +238,21 @@ const MyBookings = () => {
                       >
                         View Details
                       </button>
+                      {booking.displayStatus === 'Completed' && (
+                        reviewedIds[booking._id] ? (
+                          <span className="btn-reviewed">✓ Reviewed</span>
+                        ) : (
+                          <button
+                            className="btn-leave-review"
+                            onClick={() => {
+                              setReviewTarget(booking);
+                              setShowReviewModal(true);
+                            }}
+                          >
+                            ⭐ Leave a Review
+                          </button>
+                        )
+                      )}
                     </div>
                   </div>
                 ))}
@@ -390,6 +422,22 @@ const MyBookings = () => {
             </div>
 
             <div className="modal-footer">
+              {selectedBooking && (selectedBooking.displayStatus === 'Completed') && (
+                reviewedIds[selectedBooking._id] ? (
+                  <span className="btn-reviewed">✓ Reviewed</span>
+                ) : (
+                  <button
+                    className="btn-leave-review"
+                    onClick={() => {
+                      setReviewTarget(selectedBooking);
+                      handleCloseModal();
+                      setShowReviewModal(true);
+                    }}
+                  >
+                    ⭐ Leave a Review
+                  </button>
+                )
+              )}
               <button className="btn-close-modal" onClick={handleCloseModal}>
                 Close
               </button>
@@ -397,6 +445,20 @@ const MyBookings = () => {
           </div>
         </div>
       )}
+
+      {/* Leave Review Modal */}
+      {showReviewModal && reviewTarget && (
+        <LeaveReviewModal
+          booking={reviewTarget}
+          onClose={() => { setShowReviewModal(false); setReviewTarget(null); }}
+          onSuccess={() => {
+            setReviewedIds((prev) => ({ ...prev, [reviewTarget._id]: true }));
+            setShowReviewModal(false);
+            setReviewTarget(null);
+          }}
+        />
+      )}
+
       <Footer />
     </>
   );
