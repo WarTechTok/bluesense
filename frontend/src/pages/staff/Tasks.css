@@ -249,18 +249,18 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 24px;
 }
 
 .modal-content {
   background: #ffffff;
   border-radius: 24px;
-  padding: 32px;
-  max-width: 700px;
-  width: min(95vw, 700px);
+  padding: 36px;
+  max-width: 720px;
+  width: min(98vw, 720px);
   max-height: 86vh;
   overflow-y: auto;
-  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 32px 72px rgba(15, 23, 42, 0.16);
   position: relative;
 }
 
@@ -273,8 +273,8 @@
   font-size: 1.1rem;
   color: #475569;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,8 +289,8 @@
 }
 
 .modal-content h2 {
-  margin: 0 0 24px 0;
-  font-size: 1.6rem;
+  margin: 0 0 28px 0;
+  font-size: 1.65rem;
   color: #0f172a;
   font-weight: 700;
   padding-bottom: 18px;
@@ -300,23 +300,24 @@
 .modal-details {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 26px;
 }
 
 .details-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20px;
+  gap: 22px;
 }
 
 .detail-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
+  gap: 14px;
+  padding: 22px;
+  background: #f6f8fb;
+  border: 1px solid #e8edf3;
+  border-radius: 20px;
+  min-height: 100px;
 }
 
 .detail-card.full-width {
@@ -324,19 +325,25 @@
 }
 
 .detail-label {
-  font-size: 0.75rem;
-  color: #64748b;
+  font-size: 0.72rem;
+  color: #6b7280;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
   font-weight: 700;
 }
 
 .detail-value {
   font-size: 1rem;
   color: #111827;
-  line-height: 1.7;
-  font-weight: 700;
+  line-height: 1.75;
+  font-weight: 600;
   word-break: break-word;
+}
+
+@media (max-width: 760px) {
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .modal-details p {
