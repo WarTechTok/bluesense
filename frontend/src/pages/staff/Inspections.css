@@ -347,14 +347,16 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .modal-content {
   background: white;
   border-radius: 12px;
-  padding: 30px;
-  max-width: 600px;
-  max-height: 80vh;
+  padding: 32px;
+  max-width: 840px;
+  width: min(94vw, 840px);
+  max-height: 86vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
   position: relative;
@@ -413,12 +415,7 @@
   margin: 0 0 12px 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #0f172a;
-  font-weight: 600;
-  color: #1f2937;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  display: flex;
+
   align-items: center;
   gap: 6px;
 }
@@ -467,6 +464,10 @@
 
   .form-actions {
     flex-direction: column;
+  }
+
+  .modal-content {
+    padding: 16px;
   }
 
   .btn,
