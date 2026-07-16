@@ -1,6 +1,6 @@
 import React from 'react';
 
-function TaskCard({ task, onViewDetails, onStatusChange, getStatusColor, getPriorityColor }) {
+function TaskCard({ task, onViewDetails, onStatusChange, onDelete, getStatusColor, getPriorityColor }) {
   return (
     <div className="task-card">
       <div className="task-card-header">
