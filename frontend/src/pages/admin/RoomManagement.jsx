@@ -110,6 +110,18 @@ const RoomManagement = () => {
 
   const handleSubmit = async () => {
     try {
+      // Guard: block submission if a selected image exceeds 100 MB
+      if (formData.imageFile && formData.imageFile.size > 100 * 1024 * 1024) {
+        setFormData(prev => ({ ...prev, imageFile: null }));
+        showConfirmationModal(
+          'Validation Error',
+          'Image size must be less than 100MB. Please compress your image.',
+          null,
+          'OK'
+        );
+        return;
+      }
+
       // Remove price from validation
       const validation = validateRoom({ ...formData, price: 0 });
       if (!validation.isValid) {
@@ -137,8 +149,8 @@ const RoomManagement = () => {
           roomData.image = uploadRes.imagePath;
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
-          showConfirmationModal('Error', 'Failed to upload image. Saving room without image.', null, 'OK');
-          roomData.image = formData.image; // Keep existing image path if upload fails
+          showConfirmationModal('Error', 'Failed to upload image. Please try again.', null, 'OK');
+          return; // Block submission — do not save the room without its intended image
         }
       } else {
         // Keep existing image if no new file selected
