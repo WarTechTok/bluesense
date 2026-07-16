@@ -255,9 +255,9 @@
 .modal-content {
   background: #ffffff;
   border-radius: 24px;
-  padding: 36px;
-  max-width: 720px;
-  width: min(98vw, 720px);
+  padding: 40px;
+  max-width: 980px;
+  width: min(96vw, 980px);
   max-height: 86vh;
   overflow-y: auto;
   box-shadow: 0 32px 72px rgba(15, 23, 42, 0.16);
@@ -305,8 +305,8 @@
 
 .details-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 28px;
 }
 
 .detail-card {
