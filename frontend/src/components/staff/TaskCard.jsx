@@ -82,6 +82,12 @@ function TaskCard({ task, onViewDetails, onStatusChange, getStatusColor, getPrio
         >
           <i className="fas fa-eye"></i> View Details
         </button>
+        <button
+          className="btn btn-danger"
+          onClick={() => onDelete(task._id)}
+        >
+          <i className="fas fa-trash-alt"></i> Delete
+        </button>
       </div>
     </div>
   );

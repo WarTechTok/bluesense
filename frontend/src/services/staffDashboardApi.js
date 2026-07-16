@@ -160,6 +160,19 @@ export const updateTaskStatus = async (taskId, updateData) => {
   }
 };
 
+/**
+ * Delete a task assignment
+ */
+export const deleteTask = async (taskId) => {
+  try {
+    const res = await apiClient.delete(`/tasks/${taskId}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    throw error;
+  }
+};
+
 // ============================================
 // DASHBOARD STATS API
 // ============================================

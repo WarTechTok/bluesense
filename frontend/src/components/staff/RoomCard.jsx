@@ -19,8 +19,8 @@ function RoomCard({ room, onViewDetails, getRoomStatusColor, getRatingColor }) {
         <div className="detail-item">
           <i className="fas fa-tag"></i>
           <div>
-            <label>Room Number:</label>
-            <span>{room.roomNumber || '—'}</span>
+            <label>Room Name:</label>
+            <span>{room.name || '—'}</span>
           </div>
         </div>
 

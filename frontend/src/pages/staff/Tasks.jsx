@@ -186,6 +186,19 @@ const Tasks = () => {
     }
   };
 
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await staffApi.deleteTask(taskId);
+      showConfirmationModal('Deleted', '✅ Task deleted successfully!', () => {
+        fetchTasks(filter);
+        setSelectedTask(null);
+      }, 'OK');
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      showConfirmationModal('Error', '❌ Error deleting task', null, 'OK');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Pending':
@@ -365,6 +378,7 @@ const Tasks = () => {
               key={task._id}
               task={task}
               onViewDetails={setSelectedTask}
+              onDelete={handleDeleteTask}
               onStatusChange={handleStatusChange}
               getStatusColor={getStatusColor}
               getPriorityColor={getPriorityColor}
