@@ -329,7 +329,7 @@ const Tasks = () => {
           </div>
         </div>
         
-        <div className="admin-content">
+        <div className="admin-content tasks-page">
       <div className="page-header">
         <h1>My Tasks</h1>
         <p>View and manage your assigned cleaning tasks</p>

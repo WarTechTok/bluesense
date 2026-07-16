@@ -267,7 +267,7 @@ const Rooms = () => {
           </div>
         </div>
         
-        <div className="admin-content">
+        <div className="admin-content rooms-page">
       <div className="page-header">
         <h1>My Assigned Rooms</h1>
         <p>View all rooms assigned to you for cleaning and maintenance</p>
