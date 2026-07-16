@@ -5,6 +5,8 @@ import { BASE_API } from '../../utils/apiBase';
 import * as staffApi from '../../services/staffDashboardApi';
 import NotificationBell from '../../components/staff/NotificationBell';
 import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
+import RoomCard from '../../components/staff/RoomCard';
+import RoomDetailsModal from '../../components/staff/RoomDetailsModal';
 import './Rooms.css';
 
 /**
@@ -283,158 +285,25 @@ const Rooms = () => {
           </div>
         ) : (
           rooms.map((room) => (
-            <div key={room._id} className="room-card">
-              <div className="room-card-header">
-                <div className="room-title-section">
-                  <h3>{room.name}</h3>
-                  <span 
-                    className="room-status-badge"
-                    style={{ backgroundColor: getRoomStatusColor(room.status) }}
-                  >
-                    {room.status}
-                  </span>
-                </div>
-              </div>
-
-              <div className="room-details">
-                <div className="detail-item">
-                  <i className="fas fa-tag"></i>
-                  <div>
-                    <label>Room Number:</label>
-                    <span>{room.roomNumber}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-bed"></i>
-                  <div>
-                    <label>Type:</label>
-                    <span>{room.roomType || 'Standard'}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-star"></i>
-                  <div>
-                    <label>Cleanliness Rating:</label>
-                    <span style={{ color: getRatingColor(room.rating) }}>
-                      {room.rating}/5 <i className="fas fa-star"></i>
-                    </span>
-                  </div>
-                </div>
-
-                {room.floor && (
-                  <div className="detail-item">
-                    <i className="fas fa-layer-group"></i>
-                    <div>
-                      <label>Floor:</label>
-                      <span>{room.floor}</span>
-                    </div>
-                  </div>
-                )}
-
-                {room.lastCleaned && (
-                  <div className="detail-item">
-                    <i className="fas fa-calendar"></i>
-                    <div>
-                      <label>Last Cleaned:</label>
-                      <span>{new Date(room.lastCleaned).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                )}
-
-                {room.notes && (
-                  <div className="detail-item full-width">
-                    <i className="fas fa-sticky-note"></i>
-                    <div>
-                      <label>Notes:</label>
-                      <span>{room.notes}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="room-actions">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedRoom(room)}
-                >
-                  <i className="fas fa-eye"></i> View Details
-                </button>
-              </div>
-            </div>
+            <RoomCard
+              key={room._id}
+              room={room}
+              onViewDetails={setSelectedRoom}
+              getRoomStatusColor={getRoomStatusColor}
+              getRatingColor={getRatingColor}
+            />
           ))
         )}
       </div>
 
       {/* Room Details Modal */}
       {selectedRoom && (
-        <div className="modal-overlay" onClick={() => setSelectedRoom(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedRoom(null)}
-            >
-              ✕
-            </button>
-            <h2><i className="fas fa-door-open" style={{ marginRight: '8px', color: '#0284c7' }}></i>{selectedRoom.name}</h2>
-            <div className="modal-details">
-              {/* Primary Details Grid */}
-              <div className="details-grid">
-                <div className="detail-card">
-                  <label className="detail-label">Room Number</label>
-                  <span className="detail-value">{selectedRoom.roomNumber || '—'}</span>
-                </div>
-                <div className="detail-card">
-                  <label className="detail-label">Status</label>
-                  <span 
-                    className="detail-value status-badge"
-                    style={{ 
-                      color: getRoomStatusColor(selectedRoom.status),
-                      backgroundColor: getRoomStatusColor(selectedRoom.status) + '20',
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      display: 'inline-block'
-                    }}>
-                    {selectedRoom.status}
-                  </span>
-                </div>
-                <div className="detail-card">
-                  <label className="detail-label">Type</label>
-                  <span className="detail-value">{selectedRoom.roomType || 'Standard'}</span>
-                </div>
-                <div className="detail-card">
-                  <label className="detail-label">Cleanliness Rating</label>
-                  <span className="detail-value rating-badge" style={{ color: getRatingColor(selectedRoom.rating) }}>
-                    {selectedRoom.rating}/5 <i className="fas fa-star" style={{ marginLeft: '4px' }}></i>
-                  </span>
-                </div>
-              </div>
-
-              {/* Secondary Details */}
-              {selectedRoom.floor && (
-                <div className="detail-section">
-                  <label className="section-label">Floor</label>
-                  <span className="section-value">{selectedRoom.floor}</span>
-                </div>
-              )}
-              
-              {selectedRoom.lastCleaned && (
-                <div className="detail-section">
-                  <label className="section-label">Last Cleaned</label>
-                  <span className="section-value">{new Date(selectedRoom.lastCleaned).toLocaleDateString()}</span>
-                </div>
-              )}
-              
-              {selectedRoom.notes && (
-                <div className="detail-section full-width">
-                  <label className="section-label">Notes</label>
-                  <span className="section-value">{selectedRoom.notes}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <RoomDetailsModal
+          room={selectedRoom}
+          onClose={() => setSelectedRoom(null)}
+          getRoomStatusColor={getRoomStatusColor}
+          getRatingColor={getRatingColor}
+        />
       )}
         </div>
       </main>

@@ -6,6 +6,8 @@ import ConfirmationModal from '../../components/admin/ConfirmationModal';
 import * as staffApi from '../../services/staffDashboardApi';
 import NotificationBell from '../../components/staff/NotificationBell';
 import LogoutConfirmModal from '../../components/modals/LogoutConfirmModal';
+import TaskCard from '../../components/staff/TaskCard';
+import TaskDetailsModal from '../../components/staff/TaskDetailsModal';
 import './Tasks.css';
 
 /**
@@ -359,144 +361,26 @@ const Tasks = () => {
           </div>
         ) : (
           tasks.map((task) => (
-            <div key={task._id} className="task-card">
-              <div className="task-card-header">
-                <div className="task-title-badge">
-                  <h3>{task.title}</h3>
-                  <div className="badges">
-                    <span
-                      className="badge status-badge"
-                      style={{ backgroundColor: getStatusColor(task.status) }}
-                    >
-                      {task.status}
-                    </span>
-                    <span
-                      className="badge priority-badge"
-                      style={{ backgroundColor: getPriorityColor(task.priority) }}
-                    >
-                      {task.priority}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="task-details">
-                <div className="detail-item">
-                  <i className="fas fa-door-open"></i>
-                  <div>
-                    <label>Room:</label>
-                    <span>{task.roomId?.name || 'Unknown Room'}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-calendar"></i>
-                  <div>
-                    <label>Due Date:</label>
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                  </div>
-                </div>
-
-                <div className="detail-item">
-                  <i className="fas fa-tag"></i>
-                  <div>
-                    <label>Task Type:</label>
-                    <span>{task.taskType}</span>
-                  </div>
-                </div>
-
-                {task.description && (
-                  <div className="detail-item full-width">
-                    <i className="fas fa-file-alt"></i>
-                    <div>
-                      <label>Description:</label>
-                      <span>{task.description}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="task-actions">
-                {task.status === 'Pending' && (
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleStatusChange(task._id, 'In Progress')}
-                  >
-                    <i className="fas fa-play"></i> Start Work
-                  </button>
-                )}
-                {task.status === 'In Progress' && (
-                  <button
-                    className="btn btn-success"
-                    onClick={() => handleStatusChange(task._id, 'Completed')}
-                  >
-                    <i className="fas fa-check"></i> Mark Complete
-                  </button>
-                )}
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setSelectedTask(task)}
-                >
-                  <i className="fas fa-eye"></i> View Details
-                </button>
-              </div>
-            </div>
+            <TaskCard
+              key={task._id}
+              task={task}
+              onViewDetails={setSelectedTask}
+              onStatusChange={handleStatusChange}
+              getStatusColor={getStatusColor}
+              getPriorityColor={getPriorityColor}
+            />
           ))
         )}
       </div>
 
       {/* Task Details Modal */}
       {selectedTask && (
-        <div className="modal-overlay" onClick={() => setSelectedTask(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="modal-close"
-              onClick={() => setSelectedTask(null)}
-            >
-              ✕
-            </button>
-            <h2><i className="fas fa-tasks" style={{ marginRight: '8px', color: '#0284c7' }}></i>{selectedTask.title}</h2>
-            <div className="modal-details">
-              <p>
-                <strong>Room:</strong> {selectedTask.roomId?.name}
-              </p>
-              <p>
-                <strong>Type:</strong> {selectedTask.taskType}
-              </p>
-              <p>
-                <strong>Status:</strong>{' '}
-                <span
-                  style={{
-                    color: getStatusColor(selectedTask.status),
-                    fontWeight: '600',
-                  }}
-                >
-                  {selectedTask.status}
-                </span>
-              </p>
-              <p>
-                <strong>Priority:</strong>{' '}
-                <span
-                  style={{
-                    color: getPriorityColor(selectedTask.priority),
-                    fontWeight: '600',
-                  }}
-                >
-                  {selectedTask.priority}
-                </span>
-              </p>
-              <p>
-                <strong>Due Date:</strong>{' '}
-                {new Date(selectedTask.dueDate).toLocaleDateString()}
-              </p>
-              {selectedTask.description && (
-                <p>
-                  <strong>Description:</strong> {selectedTask.description}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <TaskDetailsModal
+          task={selectedTask}
+          onClose={() => setSelectedTask(null)}
+          getStatusColor={getStatusColor}
+          getPriorityColor={getPriorityColor}
+        />
       )}
         </div>
       </main>
