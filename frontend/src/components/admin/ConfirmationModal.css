@@ -1,4 +1,13 @@
 /* frontend/src/components/admin/ConfirmationModal.css */
+
+/*
+ * Must be higher than Modal.css (.modal-overlay z-index: 1000)
+ * so ConfirmationModal renders on top when both are open at once.
+ */
+.confirmation-modal-overlay {
+  z-index: 1100 !important;
+}
+
 .confirm-modal {
   max-width: 400px;
 }

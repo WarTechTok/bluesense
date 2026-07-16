@@ -234,15 +234,22 @@ const RoomManagement = () => {
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    console.log('[handleImageChange] File selected:', file ? `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB, ${file.type})` : 'none');
+
     if (file) {
       if (!file.type.startsWith('image/')) {
+        console.log('[handleImageChange] Rejected: not an image type');
+        e.target.value = '';
         showConfirmationModal('Validation Error', 'Please select a valid image file', null, 'OK');
         return;
       }
       if (file.size > 100 * 1024 * 1024) {
+        console.log('[handleImageChange] Rejected: file too large:', file.size, 'bytes');
+        e.target.value = '';
         showConfirmationModal('Validation Error', 'Image size must be less than 100MB', null, 'OK');
         return;
       }
+      console.log('[handleImageChange] Accepted file');
       setFormData({ ...formData, imageFile: file });
     }
   };

@@ -25,7 +25,7 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay confirmation-modal-overlay" onClick={onClose}>
       <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{title}</h3>
