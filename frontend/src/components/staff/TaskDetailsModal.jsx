@@ -40,15 +40,15 @@ function TaskDetailsModal({ task, onClose, getStatusColor, getPriorityColor }) {
             </div>
           </div>
 
-          <div className="detail-section">
-            <label className="section-label">Due Date</label>
-            <span className="section-value">{new Date(task.dueDate).toLocaleDateString()}</span>
+          <div className="detail-card full-width">
+            <label className="detail-label">Due Date</label>
+            <span className="detail-value">{new Date(task.dueDate).toLocaleDateString()}</span>
           </div>
 
           {task.description && (
-            <div className="detail-section full-width">
-              <label className="section-label">Description</label>
-              <span className="section-value">{task.description}</span>
+            <div className="detail-card full-width">
+              <label className="detail-label">Description</label>
+              <span className="detail-value">{task.description}</span>
             </div>
           )}
         </div>

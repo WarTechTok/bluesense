@@ -44,24 +44,20 @@ function RoomDetailsModal({ room, onClose, getRoomStatusColor, getRatingColor })
             </div>
           </div>
 
-          {room.floor && (
-            <div className="detail-section">
-              <label className="section-label">Floor</label>
-              <span className="section-value">{room.floor}</span>
-            </div>
-          )}
+          <div className="detail-card full-width">
+            <label className="detail-label">Floor</label>
+            <span className="detail-value">{room.floor}</span>
+          </div>
 
-          {room.lastCleaned && (
-            <div className="detail-section">
-              <label className="section-label">Last Cleaned</label>
-              <span className="section-value">{new Date(room.lastCleaned).toLocaleDateString()}</span>
-            </div>
-          )}
+          <div className="detail-card full-width">
+            <label className="detail-label">Last Cleaned</label>
+            <span className="detail-value">{new Date(room.lastCleaned).toLocaleDateString()}</span>
+          </div>
 
           {room.notes && (
-            <div className="detail-section full-width">
-              <label className="section-label">Notes</label>
-              <span className="section-value">{room.notes}</span>
+            <div className="detail-card full-width">
+              <label className="detail-label">Notes</label>
+              <span className="detail-value">{room.notes}</span>
             </div>
           )}
         </div>
