@@ -239,8 +239,8 @@ const RoomManagement = () => {
         showConfirmationModal('Validation Error', 'Please select a valid image file', null, 'OK');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        showConfirmationModal('Validation Error', 'Image size must be less than 5MB', null, 'OK');
+      if (file.size > 100 * 1024 * 1024) {
+        showConfirmationModal('Validation Error', 'Image size must be less than 100MB', null, 'OK');
         return;
       }
       setFormData({ ...formData, imageFile: file });
@@ -469,7 +469,7 @@ const RoomManagement = () => {
                   style={{ marginTop: (formData.image || formData.imageFile) ? '10px' : '0' }}
                 />
                 <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>
-                  Supported: JPG, PNG, WebP · Max 5 MB · Uploaded to Cloudinary
+                  Supported: JPG, PNG, WebP · Max 100 MB · Uploaded to Cloudinary
                 </p>
               </div>
               <div className="form-group">
