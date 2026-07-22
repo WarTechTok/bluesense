@@ -78,6 +78,8 @@ function Register() {
     
     if (!form.name.trim()) {
       errors.push("Full name is required");
+    } else if (/[0-9]/.test(form.name)) {
+      errors.push("Full name must not contain numbers");
     }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -193,7 +195,30 @@ function Register() {
                 type="text"
                 placeholder="Full name"
                 value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
+                onKeyDown={(e) => {
+                  // Allow control keys
+                  const ctrl = [
+                    "Backspace", "Delete", "Tab", "Enter",
+                    "ArrowLeft", "ArrowRight", "Home", "End",
+                  ];
+                  if (ctrl.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                  // Block digits
+                  if (/[0-9]/.test(e.key)) { e.preventDefault(); return; }
+                  // Block special characters except space, hyphen, apostrophe
+                  if (!/^[\p{L}\s\-']$/u.test(e.key)) e.preventDefault();
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text");
+                  // Strip digits and disallowed characters, then trim
+                  const cleaned = pasted.replace(/[^\p{L}\s\-']/gu, "").trimStart();
+                  if (cleaned) setForm({ ...form, name: cleaned });
+                }}
+                onChange={(e) => {
+                  // Strip any characters that slipped through
+                  const cleaned = e.target.value.replace(/[^\p{L}\s\-']/gu, "");
+                  setForm({ ...form, name: cleaned });
+                }}
                 required
                 className="register-input input-with-icon"
               />

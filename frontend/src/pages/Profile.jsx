@@ -79,6 +79,10 @@ function Profile() {
     if (name === 'phone') {
       const formatted = formatPhoneNumber(value);
       setFormData(prev => ({ ...prev, [name]: formatted }));
+    } else if (name === 'fullName') {
+      // Strip digits and disallowed characters; allow letters, spaces, hyphens, apostrophes
+      const cleaned = value.replace(/[^\p{L}\s\-']/gu, '');
+      setFormData(prev => ({ ...prev, [name]: cleaned }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -93,6 +97,8 @@ function Profile() {
 
     if (!formData.fullName || formData.fullName.trim() === '') {
       newErrors.fullName = 'Full name is required';
+    } else if (/[0-9]/.test(formData.fullName)) {
+      newErrors.fullName = 'Full name must not contain numbers';
     }
 
     if (!formData.email || formData.email.trim() === '') {
@@ -277,6 +283,21 @@ function Profile() {
                     type="text"
                     name="fullName"
                     value={formData.fullName}
+                    onKeyDown={(e) => {
+                      const ctrl = [
+                        "Backspace", "Delete", "Tab", "Enter",
+                        "ArrowLeft", "ArrowRight", "Home", "End",
+                      ];
+                      if (ctrl.includes(e.key) || e.ctrlKey || e.metaKey) return;
+                      if (/[0-9]/.test(e.key)) { e.preventDefault(); return; }
+                      if (!/^[\p{L}\s\-']$/u.test(e.key)) e.preventDefault();
+                    }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pasted = e.clipboardData.getData("text");
+                      const cleaned = pasted.replace(/[^\p{L}\s\-']/gu, "").trimStart();
+                      if (cleaned) setFormData(prev => ({ ...prev, fullName: cleaned }));
+                    }}
                     onChange={handleChange}
                     placeholder="Enter your full name"
                     className={errors.fullName ? 'error' : ''}
