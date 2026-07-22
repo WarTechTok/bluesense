@@ -68,6 +68,12 @@ router.get('/tasks/:taskId', authenticate, authorize('staff'), staffDashboardCon
  */
 router.put('/tasks/:taskId/status', authenticate, authorize('staff'), staffDashboardController.updateTaskStatus);
 
+/**
+ * DELETE /api/staff/dashboard/tasks/:taskId
+ * Delete a staff task assignment
+ */
+router.delete('/tasks/:taskId', authenticate, authorize('staff'), staffDashboardController.deleteTask);
+
 // ============================================
 // ROOMS ENDPOINTS
 // ============================================

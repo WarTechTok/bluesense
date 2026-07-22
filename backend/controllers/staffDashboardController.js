@@ -398,6 +398,39 @@ exports.updateTaskStatus = async (req, res) => {
 };
 
 /**
+ * DELETE /api/staff/dashboard/tasks/:taskId
+ * Delete a task assignment assigned to the authenticated staff member
+ */
+exports.deleteTask = async (req, res) => {
+  try {
+    const { taskId } = req.params;
+
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const staffMongoId = staff._id;
+
+    const task = await TaskAssignment.findById(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (task.staffId.toString() !== staffMongoId.toString()) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    await TaskAssignment.findByIdAndDelete(taskId);
+
+    res.json({ message: 'Task deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * GET /api/staff/dashboard/stats
  * Get dashboard statistics for staff
  */
