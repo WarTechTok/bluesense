@@ -3,7 +3,7 @@
 // EDIT PROFILE MODAL - Popup modal for editing user profile
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './EditProfileModal.css';
 
 function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
@@ -16,6 +16,9 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [phoneError, setPhoneError] = useState(''); // ← Add specific phone error
+  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Format phone number to Philippine format: +63 (XXX) XXX-XXXX
   const formatPhoneNumber = (value) => {
@@ -90,6 +93,7 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
       setError('');
       setSuccess('');
       setPhoneError('');
+      setAvatarPreview(null);
       setLoading(false);
     }
   }, [isOpen, userData]);
@@ -101,6 +105,54 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
     setEditForm({ ...editForm, phone: formatted });
     // Clear phone error when user types
     if (phoneError) setPhoneError('');
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Photo must be smaller than 5 MB.');
+      return;
+    }
+
+    // Show instant local preview
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarUploading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+      const fd = new FormData();
+      fd.append('avatar', file);
+
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Upload failed');
+
+      // Persist new avatar and propagate to navbar immediately
+      const stored = JSON.parse(localStorage.getItem('user') || '{}');
+      const updatedUser = { ...stored, avatar: data.user.avatar, googleAvatar: null };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updatedUser }));
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      setAvatarPreview(null);
+      setError(err.message || 'Failed to upload photo. Please try again.');
+    } finally {
+      setAvatarUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -166,13 +218,31 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
 
         <div className="edit-avatar-container">
           <div className="edit-avatar">
-            {getAvatarSrc() ? (
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="preview" />
+            ) : getAvatarSrc() ? (
               <img src={getAvatarSrc()} alt={userData?.name} />
             ) : (
               <span>{userData?.name?.charAt(0).toUpperCase()}</span>
             )}
           </div>
-          <button type="button" className="edit-avatar-btn">Change Photo</button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleAvatarChange}
+          />
+
+          <button
+            type="button"
+            className="edit-avatar-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarUploading}
+          >
+            {avatarUploading ? 'Uploading...' : 'Change Photo'}
+          </button>
         </div>
 
         <div className="edit-field">
