@@ -43,6 +43,16 @@ const bookingSchema = new mongoose.Schema({
     required: true
   },
   
+  // Special requests & add-ons
+  specialRequests: {
+    type: String,
+    default: ""
+  },
+  addons: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
+
   // Payment
   downpayment: {
     type: Number,

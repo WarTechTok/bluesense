@@ -208,11 +208,11 @@ const MyBookings = () => {
                           :
                         </span>
                         <span className="value">
-                          ₱
-                          {(booking.paymentType === "fullpayment"
-                            ? booking.totalAmount
-                            : booking.downpayment
-                          )?.toLocaleString()}
+                          {formatCurrency(
+                            booking.paymentType === "fullpayment"
+                              ? booking.totalAmount
+                              : booking.downpayment
+                          )}
                         </span>
                       </div>
                       <div className="info-row">
@@ -303,7 +303,7 @@ const MyBookings = () => {
                   <div className="detail-item">
                     <span className="label">Contact Number</span>
                     <span className="value">
-                      {selectedBooking.customerContact}
+                      {selectedBooking.customerContact || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -354,19 +354,19 @@ const MyBookings = () => {
                 <h4>Payment Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
-                    <span className="label">
-                      {selectedBooking.paymentType === "fullpayment"
-                        ? "Total Amount"
-                        : "Down Payment"}
-                    </span>
+                    <span className="label">Total Amount</span>
                     <span className="value">
-                      ₱
-                      {(selectedBooking.paymentType === "fullpayment"
-                        ? selectedBooking.totalAmount
-                        : selectedBooking.downpayment
-                      )?.toLocaleString()}
+                      {formatCurrency(selectedBooking.totalAmount)}
                     </span>
                   </div>
+                  {selectedBooking.paymentType !== "fullpayment" && (
+                    <div className="detail-item">
+                      <span className="label">Down Payment</span>
+                      <span className="value">
+                        {formatCurrency(selectedBooking.downpayment)}
+                      </span>
+                    </div>
+                  )}
                   <div className="detail-item">
                     <span className="label">Payment Method</span>
                     <span className="value">
@@ -377,8 +377,8 @@ const MyBookings = () => {
                     <span className="label">Payment Type</span>
                     <span className="value">
                       {selectedBooking.paymentType === "fullpayment"
-                        ? "✓ Full Payment"
-                        : "Downpayment"}
+                        ? "Full Payment"
+                        : "Down Payment"}
                     </span>
                   </div>
                   <div className="detail-item">
@@ -411,14 +411,14 @@ const MyBookings = () => {
               </div>
 
               {/* Special Requests */}
-              {selectedBooking.specialRequests && (
-                <div className="detail-section">
-                  <h4>Special Requests</h4>
-                  <p className="special-request">
-                    {selectedBooking.specialRequests}
-                  </p>
-                </div>
-              )}
+              <div className="detail-section">
+                <h4>Special Requests</h4>
+                <p className="special-request">
+                  {selectedBooking.specialRequests && selectedBooking.specialRequests.trim()
+                    ? selectedBooking.specialRequests
+                    : "None"}
+                </p>
+              </div>
             </div>
 
             <div className="modal-footer">
