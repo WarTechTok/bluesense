@@ -273,7 +273,7 @@ const MyBookings = () => {
       </div>
 
       {/* Booking Details Modal */}
-      {showModal && selectedBooking && (
+      {showModal && selectedBooking && selectedBooking._id && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
