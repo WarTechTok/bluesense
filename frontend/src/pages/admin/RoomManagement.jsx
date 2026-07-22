@@ -58,6 +58,12 @@ const RoomManagement = () => {
   useEffect(() => {
     fetchRooms();
     fetchStaff();
+
+    const refreshInterval = window.setInterval(() => {
+      fetchRooms();
+    }, 5000);
+
+    return () => window.clearInterval(refreshInterval);
   }, [fetchRooms, fetchStaff]);
 
   const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {

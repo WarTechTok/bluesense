@@ -512,10 +512,20 @@ exports.getAssignedRooms = async (req, res) => {
 
     const staffMongoId = staff._id;
 
-    // Get all rooms assigned to this staff
-    const rooms = await Room.find({
-      'assignedStaff.staffId': staffMongoId
-    }).select('_id name capacity price status description');
+    // Show rooms in the staff Assigned Rooms tab only after the task has
+    // actually been started. The room assignment is created on admin-side
+    // assignment, but the staff-side room list should be driven by the task's
+    // active workflow state.
+    const taskAssignments = await TaskAssignment.find({
+      staffId: staffMongoId,
+      status: 'In Progress'
+    })
+      .populate('roomId', '_id name capacity price status description')
+      .sort({ startedAt: -1 });
+
+    const rooms = taskAssignments
+      .map((task) => task.roomId)
+      .filter(Boolean);
 
     res.json({
       rooms: rooms || [],
