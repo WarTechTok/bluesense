@@ -55,6 +55,8 @@ const Inspections = () => {
     notes: '',
     rating: 5,
   });
+  const [inspectionImage, setInspectionImage] = useState(null);
+  const [inspectionImagePreview, setInspectionImagePreview] = useState('');
 
   // Load user data
   useEffect(() => {
@@ -173,6 +175,18 @@ const Inspections = () => {
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      setInspectionImage(null);
+      setInspectionImagePreview('');
+      return;
+    }
+
+    setInspectionImage(file);
+    setInspectionImagePreview(URL.createObjectURL(file));
+  };
+
   const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
     setConfirmationModal({
       isOpen: true,
@@ -198,17 +212,24 @@ const Inspections = () => {
       return;
     }
 
+    if (!inspectionImage) {
+      showConfirmationModal('Validation Error', 'Please upload a proof image for the room inspection', null, 'OK');
+      return;
+    }
+
     try {
-      const response = await staffApi.createInspectionRecord({
-        roomId: formData.roomId,
-        condition: formData.condition,
-        cleaningNeeded: formData.cleaningNeeded,
-        damageFound: formData.damageFound,
-        damageDescription: formData.damageDescription,
-        itemsNeeded: formData.itemsNeeded,
-        notes: formData.notes,
-        rating: parseInt(formData.rating),
-      });
+      const inspectionPayload = new FormData();
+      inspectionPayload.append('roomId', formData.roomId);
+      inspectionPayload.append('condition', formData.condition);
+      inspectionPayload.append('cleaningNeeded', formData.cleaningNeeded);
+      inspectionPayload.append('damageFound', formData.damageFound);
+      inspectionPayload.append('damageDescription', formData.damageDescription);
+      inspectionPayload.append('itemsNeeded', formData.itemsNeeded);
+      inspectionPayload.append('notes', formData.notes);
+      inspectionPayload.append('rating', String(parseInt(formData.rating || 5)));
+      inspectionPayload.append('inspectionImage', inspectionImage);
+
+      const response = await staffApi.createInspectionRecord(inspectionPayload);
 
       // Show appropriate success message
       if (formData.damageFound === 'Yes') {
@@ -498,6 +519,30 @@ const Inspections = () => {
           )}
 
           <div className="form-section">
+            <h3>Proof Image</h3>
+            <div className="form-group">
+              <label>Upload Room Inspection Proof Image *</label>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageChange}
+                className="form-input"
+                required
+              />
+              {inspectionImagePreview && (
+                <div className="image-preview-wrapper" style={{ marginTop: '12px' }}>
+                  <img
+                    src={inspectionImagePreview}
+                    alt="Inspection proof preview"
+                    style={{ maxWidth: '100%', maxHeight: '260px', borderRadius: '12px', border: '1px solid #dbeafe' }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="form-section">
             <h3>Items & Resources</h3>
             <div className="form-group">
               <label>Items Needed for Repair/Replacement</label>
@@ -554,11 +599,13 @@ const Inspections = () => {
           </div>
         ) : (
           <div className="inspections-grid">
-            {inspections.map((inspection) => (
+            {inspections.map((inspection) => {
+              const inspectionRoom = inspection.room || inspection.roomId;
+              return (
               <div key={inspection._id} className="inspection-card">
                 <div className="inspection-header">
                   <div>
-                    <h3>{inspection.roomId?.name || 'Unknown Room'}</h3>
+                    <h3>{inspectionRoom?.name || 'Unknown Room'}</h3>
                     <p className="inspection-date">
                       {new Date(inspection.createdAt).toLocaleDateString()}
                     </p>
@@ -606,7 +653,8 @@ const Inspections = () => {
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -621,7 +669,7 @@ const Inspections = () => {
             >
               ✕
             </button>
-            <h2><i className="fas fa-clipboard-check" style={{ marginRight: '8px', color: '#0284c7' }}></i>Inspection for {selectedInspection.roomId?.name}</h2>
+            <h2><i className="fas fa-clipboard-check" style={{ marginRight: '8px', color: '#0284c7' }}></i>Inspection for {(selectedInspection.room || selectedInspection.roomId)?.name}</h2>
             <div className="modal-details">
               <div className="detail-section">
                 <h4>Room Condition</h4>
@@ -665,6 +713,17 @@ const Inspections = () => {
                 <div className="detail-section">
                   <h4>Notes</h4>
                   <p>{selectedInspection.notes}</p>
+                </div>
+              )}
+
+              {(selectedInspection.photosPath?.length || selectedInspection.photoUrl) && (
+                <div className="detail-section">
+                  <h4>Proof Image</h4>
+                  <img
+                    src={selectedInspection.photosPath?.[0] || selectedInspection.photoUrl}
+                    alt="Inspection proof"
+                    style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #dbeafe' }}
+                  />
                 </div>
               )}
 

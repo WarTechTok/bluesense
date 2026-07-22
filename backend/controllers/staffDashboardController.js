@@ -12,6 +12,7 @@ const Room = require('../models/Room');
 const InspectionRecord = require('../models/InspectionRecord');
 const Maintenance = require('../models/Maintenance');
 const User = require('../models/User');
+const { uploadInspectionProof: uploadToCloud } = require('../utils/cloudinary');
 
 /**
  * Helper: Get staff MongoDB _id from various possible formats in token
@@ -346,30 +347,11 @@ exports.updateTaskStatus = async (req, res) => {
     await task.save();
 
     // ============================================
-    // AUTO-REMOVE STAFF FROM ROOM WHEN TASK ACCEPTED
+    // KEEP ROOM ASSIGNMENT VISIBLE THROUGH TASK EXECUTION
     // ============================================
-    // When staff accepts task (status changes to 'In Progress'), 
-    // automatically remove them from room's assignedStaff list
-    if (status === 'In Progress' && task.roomId) {
-      try {
-        const staffObjectId = new mongoose.Types.ObjectId(staffMongoId);
-        
-        const updatedRoom = await Room.findByIdAndUpdate(
-          task.roomId,
-          {
-            $pull: {
-              assignedStaff: { staffId: staffObjectId }
-            }
-          },
-          { new: true }
-        ).populate('assignedStaff.staffId', 'name email');
-
-        console.log(`✅ Staff ${staff.name} automatically removed from room assignment after accepting task`);
-      } catch (error) {
-        console.error('⚠️ Error removing staff from room after task acceptance:', error);
-        // Don't fail the entire operation if this fails
-      }
-    }
+    // Staff must still see the room as assigned while they start work and
+    // complete the follow-up inspection. The room assignment is therefore
+    // not cleared here; it is cleared when the inspection proof is submitted.
 
     // Create notification for admin when task is completed
     if (status === 'Completed') {
@@ -605,6 +587,17 @@ exports.createInspectionRecord = async (req, res) => {
       rating
     } = req.body;
 
+    let uploadedPhotoUrl = null;
+    if (req.file) {
+      try {
+        const uploadResult = await uploadToCloud(req.file.buffer);
+        uploadedPhotoUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Error uploading inspection proof image:', uploadError);
+        return res.status(400).json({ error: 'Failed to upload inspection proof image' });
+      }
+    }
+
     // Validation
     if (!roomId) {
       return res.status(400).json({ error: 'Room ID is required' });
@@ -642,11 +635,29 @@ exports.createInspectionRecord = async (req, res) => {
       damageDescription: damageDescription || '',
       itemsNeeded: itemsNeeded || '',
       notes: notes || '',
+      photosPath: uploadedPhotoUrl ? [uploadedPhotoUrl] : [],
       rating: parseInt(rating) || 5,
       status: 'Submitted'
     });
 
     await inspection.save();
+
+    // Once the inspection proof is filed, clear the room assignment so the
+    // admin/receptionist view reflects that the staff member has completed the
+    // inspection cycle for that room.
+    try {
+      await Room.findByIdAndUpdate(
+        roomId,
+        {
+          $pull: {
+            assignedStaff: { staffId: staffMongoId }
+          }
+        },
+        { new: true }
+      );
+    } catch (cleanupError) {
+      console.error('⚠️ Error clearing room assignment after inspection submission:', cleanupError);
+    }
 
     let maintenanceRecord = null;
 

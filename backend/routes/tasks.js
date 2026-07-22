@@ -93,30 +93,11 @@ router.put('/:taskId', authenticate, async (req, res) => {
     }
 
     // ============================================
-    // AUTO-REMOVE STAFF FROM ROOM WHEN TASK ACCEPTED
+    // KEEP ROOM ASSIGNMENT VISIBLE DURING TASK EXECUTION
     // ============================================
-    // When staff accepts task (status changes to 'In Progress'), 
-    // automatically remove them from room's assignedStaff list
-    if (status === 'In Progress' && updatedTask.roomId) {
-      try {
-        const staffObjectId = new mongoose.Types.ObjectId(updatedTask.staffId);
-        
-        await Room.findByIdAndUpdate(
-          updatedTask.roomId,
-          {
-            $pull: {
-              assignedStaff: { staffId: staffObjectId }
-            }
-          },
-          { new: true }
-        );
-
-        console.log(`✅ Staff automatically removed from room assignment after accepting task`);
-      } catch (error) {
-        console.error('⚠️ Error removing staff from room after task acceptance:', error);
-        // Don't fail the entire operation if this fails
-      }
-    }
+    // The staff member should remain linked to the room until the inspection
+    // proof is submitted. Assignment cleanup therefore happens on the
+    // inspection completion path rather than on task start/finish.
 
     return res.status(200).json({
       success: true,

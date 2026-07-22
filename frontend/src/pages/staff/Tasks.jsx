@@ -189,6 +189,10 @@ const Tasks = () => {
         if (newStatus === 'In Progress') {
           navigate('/staff/rooms');
         }
+
+        if (newStatus === 'Completed') {
+          navigate('/staff/inspections');
+        }
       }, 'OK');
     } catch (error) {
       console.error('Error updating task:', error);

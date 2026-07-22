@@ -42,6 +42,12 @@ const uploadAvatar = multer({
   storage: memoryStorage, limits: { fileSize: 2 * 1024 * 1024 }, fileFilter: imageFilter,
 }).single('avatar');
 
+const uploadInspectionProof = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: imageFilter,
+}).single('inspectionImage');
+
 // Single package image (kept for backward compat)
 const uploadPackageImage = multer({
   storage: memoryStorage, limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: imageFilter,
@@ -65,6 +71,7 @@ module.exports = {
   uploadPaymentProof,
   uploadRefundProof,
   uploadAvatar,
+  uploadInspectionProof,
   uploadPackageImage,
   uploadPackageImages,   // ← new
 };

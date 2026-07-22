@@ -218,7 +218,11 @@ export const getMyInspections = async (options = {}) => {
  */
 export const createInspectionRecord = async (inspectionData) => {
   try {
-    const res = await apiClient.post('/inspections', inspectionData);
+    const config = inspectionData instanceof FormData
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {};
+
+    const res = await apiClient.post('/inspections', inspectionData, config);
     return res.data;
   } catch (error) {
     console.error('Error creating inspection record:', error);

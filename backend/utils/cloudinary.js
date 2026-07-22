@@ -21,11 +21,12 @@ cloudinary.config({
 // UPLOAD FOLDERS (organized by type)
 // ============================================
 const FOLDERS = {
-  PACKAGE_IMAGES: 'bluesense/package-images',
-  PAYMENT_PROOFS: 'bluesense/payment-proofs',
-  REFUND_PROOFS:  'bluesense/refund-proofs',
-  AVATARS:        'bluesense/avatars',
-  ROOM_IMAGES:    'bluesense/room-images',
+  PACKAGE_IMAGES:   'bluesense/package-images',
+  PAYMENT_PROOFS:   'bluesense/payment-proofs',
+  REFUND_PROOFS:    'bluesense/refund-proofs',
+  AVATARS:          'bluesense/avatars',
+  ROOM_IMAGES:      'bluesense/room-images',
+  INSPECTION_PROOFS:'bluesense/inspection-proofs',
 };
 
 // ============================================
@@ -117,6 +118,11 @@ const uploadAvatar = (buffer, userId) =>
     transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face', quality: 'auto' }],
   });
 
+const uploadInspectionProof = (buffer) =>
+  uploadToCloudinary(buffer, FOLDERS.INSPECTION_PROOFS, {
+    transformation: [{ width: 1600, height: 1200, crop: 'limit', quality: 'auto' }],
+  });
+
 module.exports = {
   uploadToCloudinary,      // ← ADDED THIS LINE
   uploadPackageImage,
@@ -124,6 +130,7 @@ module.exports = {
   uploadPaymentProof,
   uploadRefundProof,
   uploadAvatar,
+  uploadInspectionProof,
   deleteFromCloudinary,
   FOLDERS,
 };

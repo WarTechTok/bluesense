@@ -8,6 +8,7 @@ const express = require('express');
 const router = express.Router();
 const staffDashboardController = require('../controllers/staffDashboardController');
 const { authenticate, authorize } = require('../middleware/role');
+const { uploadInspectionProof } = require('../middleware/upload');
 
 // ============================================
 // NOTIFICATION ENDPOINTS
@@ -100,7 +101,7 @@ router.get('/inspections', authenticate, authorize('staff'), staffDashboardContr
  * Create a new inspection record
  * Body: { roomId, condition, cleaningNeeded, damageFound, damageDescription, itemsNeeded, notes, rating }
  */
-router.post('/inspections', authenticate, authorize('staff'), staffDashboardController.createInspectionRecord);
+router.post('/inspections', authenticate, authorize('staff'), uploadInspectionProof, staffDashboardController.createInspectionRecord);
 
 // ============================================
 // DASHBOARD STATS
