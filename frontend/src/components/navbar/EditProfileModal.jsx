@@ -250,7 +250,21 @@ function EditProfileModal({ isOpen, onClose, userData, getAvatarSrc, onSave }) {
           <input
             type="text"
             value={editForm.name}
-            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+            onKeyDown={(e) => {
+              const ctrl = ['Backspace','Delete','Tab','Enter','ArrowLeft','ArrowRight','Home','End'];
+              if (ctrl.includes(e.key) || e.ctrlKey || e.metaKey) return;
+              if (/[0-9]/.test(e.key)) { e.preventDefault(); return; }
+              if (!/^[\p{L}\s\-']$/u.test(e.key)) e.preventDefault();
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const cleaned = e.clipboardData.getData('text').replace(/[^\p{L}\s\-']/gu, '').trimStart();
+              if (cleaned) setEditForm({ ...editForm, name: cleaned });
+            }}
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[^\p{L}\s\-']/gu, '');
+              setEditForm({ ...editForm, name: cleaned });
+            }}
             required
           />
         </div>
