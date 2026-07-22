@@ -151,12 +151,32 @@ const GuestInfoStep = ({
               </div>
             ) : (
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
                 name="guestCount"
                 value={formData.guestCount}
-                onChange={handleChange}
-                min={minCapacity > 0 ? minCapacity : 1}
-                max="100"
+                onKeyDown={(e) => {
+                  // Allow: Backspace, Delete, Tab, arrows, Home, End
+                  const allowed = [
+                    "Backspace", "Delete", "Tab",
+                    "ArrowLeft", "ArrowRight", "Home", "End",
+                  ];
+                  if (allowed.includes(e.key)) return;
+                  // Block anything that is not a digit 0-9
+                  if (!/^\d$/.test(e.key)) e.preventDefault();
+                }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text");
+                  const digitsOnly = pasted.replace(/\D/g, "");
+                  if (digitsOnly) {
+                    handleChange({ target: { name: "guestCount", value: digitsOnly } });
+                  }
+                }}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "");
+                  handleChange({ target: { name: "guestCount", value: digitsOnly } });
+                }}
                 className={errors?.guestCount ? "error" : ""}
               />
             )}
