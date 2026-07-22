@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import ReceptionistDashboard from "./pages/receptionist/ReceptionistDashboard";
 import StaffDashboard from "./pages/StaffDashboard";
 import Tasks from "./pages/staff/Tasks";
+import Notifications from "./pages/staff/Notifications";
 import Inspections from "./pages/staff/Inspections";
 import Rooms from "./pages/staff/Rooms";
 import RoomManagement from "./pages/admin/RoomManagement";
@@ -137,6 +138,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["staff"]}>
               <Tasks />
+            </ProtectedRoute>
+          }
+        />
+        {/* Staff Notifications - Staff ONLY (With Sidebar) */}
+        <Route
+          path="/staff/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["staff"]}>
+              <Notifications />
             </ProtectedRoute>
           }
         />
