@@ -176,9 +176,19 @@ const Tasks = () => {
   const handleStatusChange = async (taskId, newStatus) => {
     try {
       await staffApi.updateTaskStatus(taskId, { status: newStatus });
+
+      setTasks(prev => prev.map(task =>
+        task._id === taskId
+          ? { ...task, status: newStatus }
+          : task
+      ));
+
+      setSelectedTask(null);
+
       showConfirmationModal('Success', '✅ Task status updated successfully!', () => {
-        fetchTasks(filter);
-        setSelectedTask(null);
+        if (newStatus === 'In Progress') {
+          navigate('/staff/rooms');
+        }
       }, 'OK');
     } catch (error) {
       console.error('Error updating task:', error);
@@ -189,10 +199,11 @@ const Tasks = () => {
   const handleDeleteTask = async (taskId) => {
     try {
       await staffApi.deleteTask(taskId);
-      showConfirmationModal('Deleted', '✅ Task deleted successfully!', () => {
-        fetchTasks(filter);
-        setSelectedTask(null);
-      }, 'OK');
+
+      setTasks(prev => prev.filter(task => task._id !== taskId));
+      setSelectedTask(null);
+
+      showConfirmationModal('Deleted', '✅ Task deleted successfully!', () => {}, 'OK');
     } catch (error) {
       console.error('Error deleting task:', error);
       showConfirmationModal('Error', '❌ Error deleting task', null, 'OK');

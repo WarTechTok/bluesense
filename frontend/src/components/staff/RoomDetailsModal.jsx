@@ -13,8 +13,8 @@ function RoomDetailsModal({ room, onClose, getRoomStatusColor, getRatingColor })
         <div className="modal-details">
           <div className="details-grid">
             <div className="detail-card">
-              <label className="detail-label">Room Number</label>
-              <span className="detail-value">{room.roomNumber || '—'}</span>
+              <label className="detail-label">Room Name</label>
+              <span className="detail-value">{room.name || '—'}</span>
             </div>
             <div className="detail-card">
               <label className="detail-label">Status</label>
