@@ -11,7 +11,6 @@ import LeaveReviewModal from "../../components/modals/LeaveReviewModal";
 import { checkReviewed } from "../../services/reviews";
 import "./MyBookings.css";
 
-// Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const MyBookings = () => {
@@ -20,10 +19,9 @@ const MyBookings = () => {
   const [error, setError] = useState("");
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  // Review
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [reviewTarget, setReviewTarget]       = useState(null);
-  const [reviewedIds, setReviewedIds]         = useState({});  // bookingId → true/false
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewedIds, setReviewedIds] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,40 +50,44 @@ const MyBookings = () => {
       const response = await fetch(
         `${API_BASE_URL}/api/bookings/customer/${customerEmail}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+          headers: { Authorization: `Bearer ${token}` },
+        }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch bookings");
-      }
+      if (!response.ok) throw new Error("Failed to fetch bookings");
 
-      const data = await response.json();
-      
-      // Process bookings to auto-complete past dates
-      const processedBookings = data.map(booking => {
+      // FIX: Force plain JS objects by going through JSON text.
+      // If the response ever contains Mongoose document proxies (e.g. from
+      // SSR or a non-standard fetch polyfill), spreading them loses all
+      // schema fields. response.json() normally produces plain objects, but
+      // the explicit round-trip guarantees it.
+      const raw = await response.json();
+      const data = JSON.parse(JSON.stringify(raw));
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const processedBookings = data.map((booking) => {
         const bookingDate = new Date(booking.bookingDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        // If booking date is in the past and status is Confirmed or Pending, show as Completed
-        if (bookingDate < today && (booking.status === 'Confirmed' || booking.status === 'Pending')) {
-          return { ...booking, displayStatus: 'Completed' };
+        if (
+          bookingDate < today &&
+          (booking.status === "Confirmed" || booking.status === "Pending")
+        ) {
+          return { ...booking, displayStatus: "Completed" };
         }
         return { ...booking, displayStatus: booking.status };
       });
-      
+
       setBookings(processedBookings);
 
-      // Check which completed bookings already have a review
       const completedBookings = processedBookings.filter(
-        (b) => b.displayStatus === 'Completed'
+        (b) => b.displayStatus === "Completed"
       );
       const reviewChecks = await Promise.all(
         completedBookings.map((b) =>
-          checkReviewed(b._id).then((r) => [b._id, r.reviewed]).catch(() => [b._id, false])
+          checkReviewed(b._id)
+            .then((r) => [b._id, r.reviewed])
+            .catch(() => [b._id, false])
         )
       );
       setReviewedIds(Object.fromEntries(reviewChecks));
@@ -102,16 +104,22 @@ const MyBookings = () => {
   };
 
   const handleViewDetails = (booking) => {
-    setSelectedBooking(booking);
+    // FIX: Deep-clone to a guaranteed plain object before storing in state.
+    // This eliminates any risk of Mongoose proxy fields being inaccessible,
+    // and normalises _id to a plain string.
+    const plain = JSON.parse(JSON.stringify(booking));
+    console.log("[MyBookings] selectedBooking set to:", plain); // debug — remove when confirmed
+    setSelectedBooking(plain);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setSelectedBooking(null);
+    setTimeout(() => setSelectedBooking(null), 300);
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -135,18 +143,15 @@ const MyBookings = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "Pending":
-        return "#f59e0b";
-      case "Confirmed":
-        return "#10b981";
-      case "Cancelled":
-        return "#ef4444";
-      case "Completed":
-        return "#0284c7";
-      default:
-        return "#64748b";
+      case "Pending":   return "#f59e0b";
+      case "Confirmed": return "#10b981";
+      case "Cancelled": return "#ef4444";
+      case "Completed": return "#0284c7";
+      default:          return "#64748b";
     }
   };
+
+  // ─── Render ──────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -181,9 +186,7 @@ const MyBookings = () => {
                       </div>
                       <span
                         className="status-badge"
-                        style={{
-                          backgroundColor: getStatusColor(booking.displayStatus),
-                        }}
+                        style={{ backgroundColor: getStatusColor(booking.displayStatus) }}
                       >
                         {booking.displayStatus}
                       </span>
@@ -192,9 +195,7 @@ const MyBookings = () => {
                     <div className="booking-card-body">
                       <div className="info-row">
                         <span className="label">Date:</span>
-                        <span className="value">
-                          {formatDate(booking.bookingDate)}
-                        </span>
+                        <span className="value">{formatDate(booking.bookingDate)}</span>
                       </div>
                       <div className="info-row">
                         <span className="label">Guests:</span>
@@ -202,10 +203,7 @@ const MyBookings = () => {
                       </div>
                       <div className="info-row">
                         <span className="label">
-                          {booking.paymentType === "fullpayment"
-                            ? "Total Amount"
-                            : "Down Payment"}
-                          :
+                          {booking.paymentType === "fullpayment" ? "Total Amount" : "Down Payment"}:
                         </span>
                         <span className="value">
                           {formatCurrency(
@@ -217,9 +215,7 @@ const MyBookings = () => {
                       </div>
                       <div className="info-row">
                         <span className="label">Payment Status:</span>
-                        <span className="value">
-                          {booking.paymentStatus || "Pending"}
-                        </span>
+                        <span className="value">{booking.paymentStatus || "Pending"}</span>
                       </div>
                       {getBalance(booking) > 0 && (
                         <div className="info-row balance-row">
@@ -232,14 +228,11 @@ const MyBookings = () => {
                     </div>
 
                     <div className="booking-card-footer">
-                      <button
-                        className="btn-view"
-                        onClick={() => handleViewDetails(booking)}
-                      >
+                      <button className="btn-view" onClick={() => handleViewDetails(booking)}>
                         View Details
                       </button>
-                      {booking.displayStatus === 'Completed' && (
-                        reviewedIds[booking._id] ? (
+                      {booking.displayStatus === "Completed" &&
+                        (reviewedIds[booking._id] ? (
                           <span className="btn-reviewed">✓ Reviewed</span>
                         ) : (
                           <button
@@ -251,8 +244,7 @@ const MyBookings = () => {
                           >
                             Leave a Review
                           </button>
-                        )
-                      )}
+                        ))}
                     </div>
                   </div>
                 ))}
@@ -272,39 +264,50 @@ const MyBookings = () => {
         </div>
       </div>
 
-      {/* Booking Details Modal */}
-      {showModal && selectedBooking && selectedBooking._id && (
+      {/* ── Booking Details Modal ─────────────────────────────────────── */}
+      {showModal && selectedBooking && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+
+            {/* Header */}
             <div className="modal-header">
               <h3>Booking Details</h3>
-              <button className="modal-close" onClick={handleCloseModal}>
-                ✕
-              </button>
+              <button className="modal-close" onClick={handleCloseModal}>✕</button>
             </div>
 
+            {/* ── DEBUG PANEL (development only) ── remove once confirmed working */}
+            {process.env.NODE_ENV === "development" && (
+              <details style={{
+                background: "#0f172a", color: "#94a3b8", fontSize: "11px",
+                padding: "8px 16px", borderBottom: "1px solid #1e293b", fontFamily: "monospace",
+              }}>
+                <summary style={{ cursor: "pointer", color: "#38bdf8", userSelect: "none" }}>
+                  🐛 selectedBooking snapshot (dev only)
+                </summary>
+                <pre style={{ margin: "8px 0 0", overflow: "auto", maxHeight: "180px" }}>
+                  {JSON.stringify(selectedBooking, null, 2)}
+                </pre>
+              </details>
+            )}
+
+            {/* Body */}
             <div className="modal-body">
+
               {/* Customer Information */}
               <div className="detail-section">
                 <h4>Customer Information</h4>
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="label">Full Name</span>
-                    <span className="value">
-                      {selectedBooking.customerName}
-                    </span>
+                    <span className="value">{selectedBooking.customerName || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Email Address</span>
-                    <span className="value">
-                      {selectedBooking.customerEmail}
-                    </span>
+                    <span className="value">{selectedBooking.customerEmail || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Contact Number</span>
-                    <span className="value">
-                      {selectedBooking.customerContact || "N/A"}
-                    </span>
+                    <span className="value">{selectedBooking.customerContact || "N/A"}</span>
                   </div>
                 </div>
               </div>
@@ -315,36 +318,30 @@ const MyBookings = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="label">Booking Reference</span>
-                    <span
-                      className="value"
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "1.1em",
-                        color: "#00a8e8",
-                      }}
-                    >
+                    <span className="value" style={{ fontWeight: "bold", fontSize: "1.1em", color: "#00a8e8" }}>
                       {selectedBooking.bookingReference ||
-                        selectedBooking._id?.slice(-6).toUpperCase() ||
-                        "N/A"}
+                        (selectedBooking._id
+                          ? String(selectedBooking._id).slice(-6).toUpperCase()
+                          : "N/A")}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Venue</span>
-                    <span className="value">{selectedBooking.oasis}</span>
+                    <span className="value">{selectedBooking.oasis || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Package</span>
-                    <span className="value">{selectedBooking.package}</span>
+                    <span className="value">{selectedBooking.package || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Date</span>
-                    <span className="value">
-                      {formatDate(selectedBooking.bookingDate)}
-                    </span>
+                    <span className="value">{formatDate(selectedBooking.bookingDate)}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Number of Guests</span>
-                    <span className="value">{selectedBooking.pax} persons</span>
+                    <span className="value">
+                      {selectedBooking.pax != null ? `${selectedBooking.pax} persons` : "N/A"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -355,37 +352,27 @@ const MyBookings = () => {
                 <div className="detail-grid">
                   <div className="detail-item">
                     <span className="label">Total Amount</span>
-                    <span className="value">
-                      {formatCurrency(selectedBooking.totalAmount)}
-                    </span>
+                    <span className="value">{formatCurrency(selectedBooking.totalAmount)}</span>
                   </div>
                   {selectedBooking.paymentType !== "fullpayment" && (
                     <div className="detail-item">
                       <span className="label">Down Payment</span>
-                      <span className="value">
-                        {formatCurrency(selectedBooking.downpayment)}
-                      </span>
+                      <span className="value">{formatCurrency(selectedBooking.downpayment)}</span>
                     </div>
                   )}
                   <div className="detail-item">
                     <span className="label">Payment Method</span>
-                    <span className="value">
-                      {selectedBooking.paymentMethod || "Cash"}
-                    </span>
+                    <span className="value">{selectedBooking.paymentMethod || "N/A"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Type</span>
                     <span className="value">
-                      {selectedBooking.paymentType === "fullpayment"
-                        ? "Full Payment"
-                        : "Down Payment"}
+                      {selectedBooking.paymentType === "fullpayment" ? "Full Payment" : "Down Payment"}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Status</span>
-                    <span className="value">
-                      {selectedBooking.paymentStatus || "Pending"}
-                    </span>
+                    <span className="value">{selectedBooking.paymentStatus || "Pending"}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Status</span>
@@ -393,16 +380,13 @@ const MyBookings = () => {
                       className="value"
                       style={{ color: getStatusColor(selectedBooking.displayStatus || selectedBooking.status) }}
                     >
-                      {selectedBooking.displayStatus || selectedBooking.status}
+                      {selectedBooking.displayStatus || selectedBooking.status || "N/A"}
                     </span>
                   </div>
                   {getBalance(selectedBooking) > 0 && (
                     <div className="detail-item">
                       <span className="label">Balance Due</span>
-                      <span
-                        className="value"
-                        style={{ fontWeight: "bold", color: "#f59e0b" }}
-                      >
+                      <span className="value" style={{ fontWeight: "bold", color: "#f59e0b" }}>
                         {formatCurrency(getBalance(selectedBooking))}
                       </span>
                     </div>
@@ -414,16 +398,17 @@ const MyBookings = () => {
               <div className="detail-section">
                 <h4>Special Requests</h4>
                 <p className="special-request">
-                  {selectedBooking.specialRequests && selectedBooking.specialRequests.trim()
+                  {selectedBooking.specialRequests?.trim()
                     ? selectedBooking.specialRequests
                     : "None"}
                 </p>
               </div>
             </div>
 
+            {/* Footer */}
             <div className="modal-footer">
-              {selectedBooking && (selectedBooking.displayStatus === 'Completed') && (
-                reviewedIds[selectedBooking._id] ? (
+              {selectedBooking.displayStatus === "Completed" &&
+                (reviewedIds[selectedBooking._id] ? (
                   <span className="btn-reviewed">✓ Reviewed</span>
                 ) : (
                   <button
@@ -436,8 +421,7 @@ const MyBookings = () => {
                   >
                     Leave a Review
                   </button>
-                )
-              )}
+                ))}
               <button className="btn-close-modal" onClick={handleCloseModal}>
                 Close
               </button>
