@@ -204,10 +204,35 @@ const createBooking = async (req, res) => {
     console.log(`   downpayment: ${downpayment}`);
     console.log(`   paymentMethod: ${paymentMethod}`);
 
-    if (!customerName || !customerEmail) {
+    const trimmedCustomerName = customerName?.trim();
+    const trimmedCustomerContact = customerContact?.trim();
+    const trimmedCustomerEmail = customerEmail?.trim();
+
+    if (!trimmedCustomerName || !trimmedCustomerEmail) {
       return res.status(400).json({
         success: false,
         message: "Customer name and email are required",
+      });
+    }
+
+    if (!trimmedCustomerContact) {
+      return res.status(400).json({
+        success: false,
+        message: "Contact number is required",
+      });
+    }
+
+    if (!/^\d{10,15}$/.test(trimmedCustomerContact.replace(/[\s+-]/g, ""))) {
+      return res.status(400).json({
+        success: false,
+        message: "Contact number must be 10 to 15 digits",
+      });
+    }
+
+    if (!/^[^\s@]+@gmail\.com$/i.test(trimmedCustomerEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Email must be a valid Gmail address ending with @gmail.com",
       });
     }
 
@@ -374,9 +399,9 @@ const createBooking = async (req, res) => {
     const nextBookingNumber = (lastBooking?.bookingNumber || 0) + 1;
 
     const newBooking = new Booking({
-      customerName,
-      customerContact,
-      customerEmail,
+      customerName: trimmedCustomerName,
+      customerContact: trimmedCustomerContact,
+      customerEmail: trimmedCustomerEmail,
       oasis,
       package: packageName,
       session,

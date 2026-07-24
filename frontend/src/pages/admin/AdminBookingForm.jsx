@@ -17,6 +17,8 @@ import "./AdminBookingForm.css";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
+const isValidGmailAddress = (value) => /^[^\s@]+@gmail\.com$/i.test((value || "").trim());
+
 function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState([]);
@@ -281,9 +283,28 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     const newErrors = {};
 
     if (stepNum === 1) {
-      if (!formData.customerName?.trim()) newErrors.customerName = "Customer name is required";
-      if (!formData.customerContact?.trim()) newErrors.customerContact = "Contact number is required";
-      if (!formData.customerEmail?.trim()) newErrors.customerEmail = "Email is required";
+      const trimmedName = formData.customerName?.trim();
+      const trimmedContact = formData.customerContact?.trim();
+      const trimmedEmail = formData.customerEmail?.trim();
+
+      if (!trimmedName) {
+        newErrors.customerName = "Customer name is required";
+      } else if (trimmedName.length < 2) {
+        newErrors.customerName = "Customer name must be at least 2 characters";
+      }
+
+      if (!trimmedContact) {
+        newErrors.customerContact = "Contact number is required";
+      } else if (!/^\d{10,15}$/.test(trimmedContact.replace(/[\s+-]/g, ""))) {
+        newErrors.customerContact = "Contact number must be 10 to 15 digits";
+      }
+
+      if (!trimmedEmail) {
+        newErrors.customerEmail = "Email is required";
+      } else if (!isValidGmailAddress(trimmedEmail)) {
+        newErrors.customerEmail = "Email must be a valid Gmail address ending with @gmail.com";
+      }
+
       if (!selectedOasis) newErrors.oasis = "Location is required";
       if (!selectedPackage) newErrors.package = "Package is required";
     }
