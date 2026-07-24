@@ -222,10 +222,10 @@ const createBooking = async (req, res) => {
       });
     }
 
-    if (!/^\d{10,15}$/.test(trimmedCustomerContact.replace(/[\s+-]/g, ""))) {
+    if (!/^\+63\d{10}$/.test(trimmedCustomerContact)) {
       return res.status(400).json({
         success: false,
-        message: "Contact number must be 10 to 15 digits",
+        message: "Contact number must start with +63 and include 10 digits",
       });
     }
 

@@ -295,8 +295,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
       if (!trimmedContact) {
         newErrors.customerContact = "Contact number is required";
-      } else if (!/^\d{10,15}$/.test(trimmedContact.replace(/[\s+-]/g, ""))) {
-        newErrors.customerContact = "Contact number must be 10 to 15 digits";
+      } else if (!/^\+63\d{10}$/.test(trimmedContact)) {
+        newErrors.customerContact = "Contact number must start with +63 and include 10 digits";
       }
 
       if (!trimmedEmail) {
@@ -329,9 +329,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       }
       
       if (formData.guestCount < 1) newErrors.guestCount = "Guest count must be at least 1";
+
       const minCap = getMinCapacityForPackage();
+      const maxCap = getMaxCapacityForPackage();
       if (minCap > 0 && formData.guestCount < minCap) {
         newErrors.guestCount = `Minimum ${minCap} guests required for this package`;
+      }
+      if (maxCap > 0 && formData.guestCount > maxCap) {
+        newErrors.guestCount = `Guest count cannot exceed ${maxCap} for this package`;
       }
     }
 

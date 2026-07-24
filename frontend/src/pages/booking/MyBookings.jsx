@@ -106,6 +106,11 @@ const MyBookings = () => {
     setShowModal(true);
   };
 
+  const getBookingReference = (booking) => {
+    if (!booking) return "N/A";
+    return booking.bookingReference || booking.referenceNumber || booking._id?.slice(-6).toUpperCase() || booking.id?.slice(-6).toUpperCase() || "N/A";
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedBooking(null);
@@ -197,6 +202,10 @@ const MyBookings = () => {
                         </span>
                       </div>
                       <div className="info-row">
+                        <span className="label">Booking Ref:</span>
+                        <span className="value">{getBookingReference(booking)}</span>
+                      </div>
+                      <div className="info-row">
                         <span className="label">Guests:</span>
                         <span className="value">{booking.pax} persons</span>
                       </div>
@@ -273,7 +282,7 @@ const MyBookings = () => {
       </div>
 
       {/* Booking Details Modal */}
-      {showModal && selectedBooking && selectedBooking._id && (
+      {showModal && selectedBooking && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -323,9 +332,7 @@ const MyBookings = () => {
                         color: "#00a8e8",
                       }}
                     >
-                      {selectedBooking.bookingReference ||
-                        selectedBooking._id?.slice(-6).toUpperCase() ||
-                        "N/A"}
+                      {getBookingReference(selectedBooking)}
                     </span>
                   </div>
                   <div className="detail-item">

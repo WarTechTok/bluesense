@@ -73,6 +73,16 @@ export const getExtraGuestCharge = (packageObj, guestCount) => {
   return (guestCount - included) * 150;
 };
 
+export const getCapacityFeeInfo = (packageObj, guestCount) => {
+  const included = packageObj?.maxCapacity || 0;
+  const extraGuestCount = Math.max(0, (guestCount || 0) - included);
+  return {
+    extraGuestCount,
+    extraGuestCharge: extraGuestCount * 150,
+    isOverCapacity: extraGuestCount > 0,
+  };
+};
+
 /**
  * Get downpayment for a session.
  * Prefers admin-configured value from sessionData; falls back to standard rules.

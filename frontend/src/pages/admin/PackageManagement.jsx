@@ -17,6 +17,7 @@ const PackageManagement = () => {
   const [selectedOasis, setSelectedOasis] = useState("Oasis 1");
   const [editingPackage, setEditingPackage] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: "", message: "", type: "info" });
 
   // ── Delete confirmation state ─────────────────────────────
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { pkg } | null
@@ -56,6 +57,14 @@ const PackageManagement = () => {
   };
 
   const isPackageC = () => formData.name === "Package C";
+
+  const showFeedbackModal = (title, message, type = "info") => {
+    setFeedbackModal({ isOpen: true, title, message, type });
+  };
+
+  const closeFeedbackModal = () => {
+    setFeedbackModal({ isOpen: false, title: "", message: "", type: "info" });
+  };
 
   // ── Images handler ───────────────────────────────────────
   const handleImagesChange = (newImages) => {
@@ -108,8 +117,8 @@ const PackageManagement = () => {
 
   // ── Submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!formData.name) {
-      alert("Package name is required");
+    if (!formData.name?.trim()) {
+      showFeedbackModal("Validation Error", "Package name is required.");
       return;
     }
 
@@ -129,10 +138,10 @@ const PackageManagement = () => {
       setShowModal(false);
       fetchPackages();
       resetForm();
-      alert(`Package ${editingPackage ? "updated" : "created"} successfully!`);
+      showFeedbackModal("Success", `Package ${editingPackage ? "updated" : "created"} successfully!`);
     } catch (error) {
       console.error("Error saving package:", error);
-      alert("Error saving package: " + error.message);
+      showFeedbackModal("Error", `Error saving package: ${error.message || "Please try again."}`);
     }
   };
 
@@ -532,6 +541,24 @@ const PackageManagement = () => {
                   <><i className="fas fa-trash"></i> Yes, Delete</>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Feedback Modal ── */}
+      {feedbackModal.isOpen && (
+        <div className="modal-overlay" onClick={closeFeedbackModal}>
+          <div className="modal-container" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{feedbackModal.title}</h3>
+              <button className="modal-close" onClick={closeFeedbackModal}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: "24px" }}>
+              <p style={{ margin: 0, color: "#1e293b", lineHeight: 1.6 }}>{feedbackModal.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={closeFeedbackModal}>OK</button>
             </div>
           </div>
         </div>

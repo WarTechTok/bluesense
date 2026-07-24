@@ -42,7 +42,7 @@ const RoomManagement = () => {
       setRooms(data);
     } catch (error) {
       console.error('Error fetching rooms:', error);
-      showConfirmationModal('Error', 'Failed to fetch rooms', null, 'OK');
+      showFrontModalError('Error', 'Failed to fetch rooms');
     }
   }, []);
 
@@ -83,6 +83,17 @@ const RoomManagement = () => {
     });
   };
 
+  const showFrontModalError = (title, message) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: null,
+      confirmText: 'OK',
+      cancelText: 'Close'
+    });
+  };
+
   const handleOpenModal = (room = null) => {
     if (room) {
       setEditingRoom(room);
@@ -119,11 +130,9 @@ const RoomManagement = () => {
       // Guard: block submission if a selected image exceeds 100 MB
       if (formData.imageFile && formData.imageFile.size > 100 * 1024 * 1024) {
         setFormData(prev => ({ ...prev, imageFile: null }));
-        showConfirmationModal(
+        showFrontModalError(
           'Validation Error',
-          'Image size must be less than 100MB. Please compress your image.',
-          null,
-          'OK'
+          'Image size must be less than 100MB. Please compress your image.'
         );
         return;
       }
@@ -131,7 +140,7 @@ const RoomManagement = () => {
       // Remove price from validation
       const validation = validateRoom({ ...formData, price: 0 });
       if (!validation.isValid) {
-        showConfirmationModal('Validation Error', validation.error, null, 'OK');
+        showFrontModalError('Validation Error', validation.error);
         return;
       }
 
@@ -155,7 +164,7 @@ const RoomManagement = () => {
           roomData.image = uploadRes.imagePath;
         } catch (uploadError) {
           console.error('Error uploading image:', uploadError);
-          showConfirmationModal('Error', 'Failed to upload image. Please try again.', null, 'OK');
+          showFrontModalError('Error', 'Failed to upload image. Please try again.');
           return; // Block submission — do not save the room without its intended image
         }
       } else {
@@ -170,11 +179,11 @@ const RoomManagement = () => {
       }
       setIsModalOpen(false);
       fetchRooms();
-      showConfirmationModal('Success', 'Room saved successfully!', null, 'OK');
+      showFrontModalError('Success', 'Room saved successfully!');
     } catch (error) {
       console.error('Error saving room:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error saving room';
-      showConfirmationModal('Error', errorMsg, null, 'OK');
+      showFrontModalError('Error', errorMsg);
     }
   };
 
@@ -190,7 +199,7 @@ const RoomManagement = () => {
         } catch (error) {
           console.error('Error deleting room:', error);
           const errorMsg = error.response?.data?.error || error.message || 'Error deleting room';
-          showConfirmationModal('Error', errorMsg, null, 'OK');
+          showFrontModalError('Error', errorMsg);
         }
       },
       'Yes, Delete',
@@ -208,7 +217,7 @@ const RoomManagement = () => {
 
   const handleAssignStaff = async () => {
     if (!selectedStaffId) {
-      showConfirmationModal('Validation Error', 'Please select a staff member', null, 'OK');
+      showFrontModalError('Validation Error', 'Please select a staff member');
       return;
     }
 
@@ -222,11 +231,11 @@ const RoomManagement = () => {
       });
       setIsStaffModalOpen(false);
       fetchRooms();
-      showConfirmationModal('Success', 'Staff assigned successfully!', null, 'OK');
+      showFrontModalError('Success', 'Staff assigned successfully!');
     } catch (error) {
       console.error('Error assigning staff:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Error assigning staff';
-      showConfirmationModal('Error', errorMsg, null, 'OK');
+      showFrontModalError('Error', errorMsg);
     }
   };
 
@@ -242,7 +251,7 @@ const RoomManagement = () => {
         } catch (error) {
           console.error('Error removing staff:', error);
           const errorMsg = error.response?.data?.error || error.message || 'Error removing staff';
-          showConfirmationModal('Error', errorMsg, null, 'OK');
+          showFrontModalError('Error', errorMsg);
         }
       },
       'Yes, Remove',
@@ -258,13 +267,13 @@ const RoomManagement = () => {
       if (!file.type.startsWith('image/')) {
         console.log('[handleImageChange] Rejected: not an image type');
         e.target.value = '';
-        showConfirmationModal('Validation Error', 'Please select a valid image file', null, 'OK');
+        showFrontModalError('Validation Error', 'Please select a valid image file');
         return;
       }
       if (file.size > 100 * 1024 * 1024) {
         console.log('[handleImageChange] Rejected: file too large:', file.size, 'bytes');
         e.target.value = '';
-        showConfirmationModal('Validation Error', 'Image size must be less than 100MB', null, 'OK');
+        showFrontModalError('Validation Error', 'Image size must be less than 100MB');
         return;
       }
       console.log('[handleImageChange] Accepted file');
