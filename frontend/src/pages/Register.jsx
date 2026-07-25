@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import SignupSuccessModal from '../components/modals/SignupSuccessModal';
 import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import './Register.css';
 
@@ -23,9 +22,7 @@ function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
-  const [registeredName, setRegisteredName] = useState('');
+
 
   // Philippine phone number validation
   const validatePhoneNumber = (phone) => {
@@ -129,30 +126,18 @@ function Register() {
         phone: cleanPhone
       });
       
-      console.log('Registration response (success):', response.data);
-      
-      // Success - show modal
-      setRegisteredEmail(form.email);
-      setRegisteredName(form.name);
-      setShowSuccessModal(true);
-      // Do NOT set loading false - modal will handle
-      
+      // Auto-login: backend now returns a token immediately on signup
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // Redirect straight to home — no verification step needed
+      window.location.href = '/';
+
     } catch (err) {
       console.error('Registration error:', err);
-      console.error('Error response data:', err.response?.data);
-      
-      // IMPORTANT: Check for needsVerification (account exists but not verified)
-      if (err.response?.data?.needsVerification === true) {
-        // Account exists but not verified - show modal anyway (email resent)
-        console.log('Account needs verification - showing modal');
-        setRegisteredEmail(form.email);
-        setRegisteredName(form.name);
-        setShowSuccessModal(true);
-        // Do NOT set loading false - modal will handle
-        return;
-      }
-      
-      // Handle other errors
+
+      // Handle errors (e.g. "User already exists", password rules)
       if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
@@ -355,15 +340,7 @@ function Register() {
         </div>
       </div>
 
-      <SignupSuccessModal 
-        isOpen={showSuccessModal}
-        onClose={() => {
-          setShowSuccessModal(false);
-          setLoading(false);
-        }}
-        email={registeredEmail}
-        name={registeredName}
-      />
+
     </div> 
   );
 }

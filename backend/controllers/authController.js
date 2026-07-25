@@ -135,32 +135,12 @@ const register = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      if (!existingUser.isEmailVerified) {
-        const verificationToken = crypto.randomBytes(32).toString("hex");
-        const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-        existingUser.emailVerificationToken = verificationToken;
-        existingUser.emailVerificationExpires = verificationExpires;
-        await existingUser.save();
-
-        // ✅ Fire-and-forget — don't await, respond instantly
-        sendVerificationEmailFunc(email, existingUser.name, verificationToken)
-          .then(result => {
-            if (!result.success) console.error(`❌ Re-verification email failed for ${email}:`, result.error);
-          })
-          .catch(err => console.error(`❌ Re-verification email exception for ${email}:`, err.message));
-
-        return res.status(400).json({
-          message: "Email not verified. A new verification link has been sent.",
-          needsVerification: true,
-        });
-      }
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
+    // Auto-verify on signup — no email verification step needed.
+    // Google OAuth users are already verified, so manual signup should
+    // be equally frictionless. Both paths now give instant access.
     const newUser = new User({
       name,
       email,
@@ -168,35 +148,31 @@ const register = async (req, res) => {
       role: role || "customer",
       phone,
       address,
-      isEmailVerified: false,
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires,
+      isEmailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
     });
 
     await newUser.save();
-    console.log(`✅ User created: ${email} (awaiting verification)`);
+    console.log(`✅ User created and auto-verified: ${email}`);
 
-    // ✅ Fire-and-forget — respond to the user instantly, email sends in background
-    // This cuts response time from 120s → <1s
-    sendVerificationEmailFunc(email, name, verificationToken)
-      .then(result => {
-        if (result.success) {
-          console.log(`✅ Verification email delivered to ${email}`);
-        } else {
-          console.error(`❌ Verification email failed for ${email}:`, result.error);
-        }
-      })
-      .catch(err => console.error(`❌ Verification email exception for ${email}:`, err.message));
+    // Issue a JWT so the user is logged in immediately after signup
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.email, role: newUser.role },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "7d" }
+    );
 
     res.status(201).json({
-      message: "Registration successful! Please check your email to verify your account.",
+      message: "Registration successful! Welcome to Catherine's Oasis.",
+      token,
       user: {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        avatar: newUser.avatar || null,
       },
-      needsVerification: true,
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -334,14 +310,7 @@ const login = async (req, res) => {
     let user = await User.findOne({ email: emailLower });
     
     if (user) {
-      // Check if email is verified (skip for Google OAuth users and admins)
-      if (!user.googleId && !user.isEmailVerified && user.role !== "admin") {
-        return res.status(401).json({
-          message: "Please verify your email first. Check your inbox.",
-          needsVerification: true,
-          email: user.email,
-        });
-      }
+      // Email verification gate removed — all manual signups are now auto-verified.
 
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
