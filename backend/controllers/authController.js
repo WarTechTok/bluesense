@@ -509,52 +509,65 @@ const resetPassword = async (req, res) => {
 const googleLogin = async (req, res) => {
   try {
     const { id, email, name, picture } = req.user;
+    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
 
     let user = await User.findOne({ email });
 
-    if (!user) {
-      const tempPassword = crypto.randomBytes(20).toString("hex");
-      const hashedPassword = await bcrypt.hash(tempPassword, 10);
-
-      user = new User({
-        name,
-        email,
-        googleId: id,
-        googleAvatar: picture,
-        role: "customer",
-        isEmailVerified: true,
-        password: hashedPassword,
-      });
-      await user.save();
-      console.log(`✅ New Google user created: ${email}`);
-    } else {
+    // ── EXISTING USER → log them in immediately (already verified) ──
+    if (user) {
       if (!user.googleId) user.googleId = id;
       if (!user.avatar) user.googleAvatar = picture;
-      user.isEmailVerified = true;
       await user.save();
-      console.log(`✅ Existing user updated with Google: ${email}`);
+      console.log(`✅ Existing Google user logged in: ${email}`);
+
+      const token = jwt.sign(
+        { id: user._id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || "your_jwt_secret_key",
+        { expiresIn: "7d" }
+      );
+
+      const userData = {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+        avatar: user.avatar || user.googleAvatar,
+      };
+
+      return res.redirect(
+        `${frontendURL}/oauth-redirect?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`
+      );
     }
 
-    const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-      { expiresIn: "7d" }
+    // ── NEW USER → create unverified, send verification email, redirect to login ──
+    const tempPassword = crypto.randomBytes(20).toString("hex");
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    user = new User({
+      name,
+      email,
+      googleId: id,
+      googleAvatar: picture,
+      role: "customer",
+      password: hashedPassword,
+      isEmailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
+    });
+    await user.save();
+    console.log(`✅ New Google user created (pending verification): ${email}`);
+
+    // Fire-and-forget — don't block the redirect
+    sendVerificationEmailFunc(email, name, verificationToken)
+      .catch(err => console.error(`❌ Google verification email failed for ${email}:`, err.message));
+
+    return res.redirect(
+      `${frontendURL}/login?message=${encodeURIComponent("Please verify your email to continue. Check your inbox.")}`
     );
-
-    const userData = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      address: user.address,
-      avatar: user.avatar || user.googleAvatar,
-    };
-
-    const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
-    const redirectUrl = `${frontendURL}/oauth-redirect?token=${token}&user=${encodeURIComponent(JSON.stringify(userData))}`;
-
-    res.redirect(redirectUrl);
   } catch (error) {
     console.error("❌ Google login error:", error);
     const frontendURL = process.env.FRONTEND_URL || "http://localhost:3000";
