@@ -15,6 +15,7 @@ function Login() {
   const [cooldown, setCooldown] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(null);
   const [urlMessage, setUrlMessage] = useState("");
+  const [showVerifyModal, setShowVerifyModal] = useState(false); // ← NEW
 
   // Add no-navbar class when on login page
   useEffect(() => {
@@ -24,7 +25,7 @@ function Login() {
     };
   }, []);
 
-  // Read ?message= or ?verified= from URL (set by Google OAuth redirect or Register page)
+  // Read ?message= or ?verified= from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const msg = params.get("message");
@@ -90,7 +91,13 @@ function Login() {
           navigate("/");
         }
       } else {
-        setError(data.message || "Login failed");
+        // ── NEW: show modal if account is not yet verified ──
+        const msg = data.message || "Login failed";
+        if (msg.toLowerCase().includes("verif")) {
+          setShowVerifyModal(true);
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
       if (err.response?.status === 429 && err.response.data?.waitTime) {
@@ -110,6 +117,27 @@ function Login() {
 
   return (
     <div className="login-container">
+
+      {/* ── NEW: Email Verification Warning Modal ── */}
+      {showVerifyModal && (
+        <div className="verify-modal-overlay">
+          <div className="verify-modal">
+            <div className="verify-modal-icon">✉️</div>
+            <h2 className="verify-modal-title">Email not verified</h2>
+            <p className="verify-modal-body">
+              Please check your inbox and spam folder for the verification
+              email we sent when you registered, then try signing in again.
+            </p>
+            <button
+              className="verify-modal-btn"
+              onClick={() => setShowVerifyModal(false)}
+            >
+              OK, got it
+            </button>
+          </div>
+        </div>
+      )}
+
       <Link to="/" className="login-logo-link">
         <img
           src="/images/logo/Logo-NoBackground.png"
@@ -153,7 +181,6 @@ function Login() {
             <h1 className="form-title">Welcome back</h1>
             <p className="form-subtitle">Sign in to continue</p>
 
-            {/* URL message banner (from Google OAuth new-user redirect or email verification) */}
             {urlMessage && (
               <div className="login-url-message">
                 <span className="login-url-message-icon">✉️</span>

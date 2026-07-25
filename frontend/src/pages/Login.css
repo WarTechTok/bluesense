@@ -496,3 +496,37 @@
     min-width: auto;
   }
 }
+/* ── Verification warning modal (same pattern as Register.css) ── */
+.verify-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.verify-modal {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 32px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+.verify-modal-icon { font-size: 48px; margin-bottom: 16px; }
+.verify-modal-title { color: #0c4a6e; font-size: 20px; margin: 0 0 12px; }
+.verify-modal-body { color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 28px; }
+.verify-modal-btn {
+  background: #0284c7;
+  color: white;
+  border: none;
+  border-radius: 40px;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.verify-modal-btn:hover { background: #0369a1; }
