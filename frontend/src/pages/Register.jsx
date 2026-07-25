@@ -5,7 +5,6 @@ import axios from 'axios';
 import GoogleLoginButton from '../components/auth/GoogleLoginButton';
 import './Register.css';
 
-// Get API URL from environment variable
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 function Register() {
@@ -22,23 +21,15 @@ function Register() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
-
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
 
   // Philippine phone number validation
   const validatePhoneNumber = (phone) => {
     if (!phone) return true;
-    
     const cleaned = phone.replace(/\D/g, '');
-    
-    if (cleaned.length === 11 && cleaned.startsWith('09')) {
-      return true;
-    }
-    if (cleaned.length === 13 && cleaned.startsWith('639')) {
-      return true;
-    }
-    if (cleaned.length === 10 && cleaned.startsWith('9')) {
-      return true;
-    }
+    if (cleaned.length === 11 && cleaned.startsWith('09')) return true;
+    if (cleaned.length === 13 && cleaned.startsWith('639')) return true;
+    if (cleaned.length === 10 && cleaned.startsWith('9')) return true;
     return false;
   };
 
@@ -48,66 +39,44 @@ function Register() {
     if (cleaned.length >= 11) {
       if (cleaned.startsWith('63')) {
         const match = cleaned.match(/^(\d{2})(\d{3})(\d{3})(\d{4})$/);
-        if (match) {
-          return `+${match[1]} ${match[2]} ${match[3]} ${match[4]}`;
-        }
+        if (match) return `+${match[1]} ${match[2]} ${match[3]} ${match[4]}`;
       }
       if (cleaned.startsWith('09')) {
         const match = cleaned.match(/^(\d{4})(\d{3})(\d{4})$/);
-        if (match) {
-          return `${match[1]} ${match[2]} ${match[3]}`;
-        }
+        if (match) return `${match[1]} ${match[2]} ${match[3]}`;
       }
     }
     return value;
   };
 
   const handlePhoneChange = (e) => {
-    const rawValue = e.target.value;
-    const formatted = formatPhoneNumber(rawValue);
-    setForm({...form, phone: formatted});
+    const formatted = formatPhoneNumber(e.target.value);
+    setForm({ ...form, phone: formatted });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const errors = [];
-    
+
     if (!form.name.trim()) {
       errors.push("Full name is required");
     } else if (/[0-9]/.test(form.name)) {
       errors.push("Full name must not contain numbers");
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(form.email)) {
-      errors.push("Valid email is required");
-    }
-    
-    if (form.password.length < 8) {
-      errors.push("Password must be at least 8 characters");
-    }
-    if (!/[A-Z]/.test(form.password)) {
-      errors.push("Password needs an uppercase letter");
-    }
-    if (!/[a-z]/.test(form.password)) {
-      errors.push("Password needs a lowercase letter");
-    }
-    if (!/[0-9]/.test(form.password)) {
-      errors.push("Password needs a number");
-    }
-    if (!/[!@#$%^&*]/.test(form.password)) {
-      errors.push("Password needs a special character (!@#$%^&*)");
-    }
-    
-    if (form.password !== form.confirmPassword) {
-      errors.push("Passwords don't match");
-    }
-    
+    if (!emailRegex.test(form.email)) errors.push("Valid email is required");
+    if (form.password.length < 8) errors.push("Password must be at least 8 characters");
+    if (!/[A-Z]/.test(form.password)) errors.push("Password needs an uppercase letter");
+    if (!/[a-z]/.test(form.password)) errors.push("Password needs a lowercase letter");
+    if (!/[0-9]/.test(form.password)) errors.push("Password needs a number");
+    if (!/[!@#$%^&*]/.test(form.password)) errors.push("Password needs a special character (!@#$%^&*)");
+    if (form.password !== form.confirmPassword) errors.push("Passwords don't match");
     if (form.phone && !validatePhoneNumber(form.phone)) {
       errors.push("Please enter a valid Philippine mobile number (e.g., 09123456789 or 639123456789)");
     }
-    
+
     if (errors.length > 0) {
       setValidationErrors(errors);
       return;
@@ -116,39 +85,54 @@ function Register() {
     setValidationErrors([]);
     setLoading(true);
     setError('');
-    
+
     try {
       const cleanPhone = form.phone ? form.phone.replace(/\s/g, '') : '';
       const { confirmPassword, ...submitData } = form;
-      
-      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
+
+      await axios.post(`${API_BASE_URL}/api/auth/register`, {
         ...submitData,
         phone: cleanPhone
       });
-      
-      // Auto-login: backend now returns a token immediately on signup
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
 
-      // Redirect straight to home — no verification step needed
-      window.location.href = '/';
+      // Show verification modal instead of auto-logging in
+      setShowVerifyModal(true);
 
     } catch (err) {
       console.error('Registration error:', err);
-
-      // Handle errors (e.g. "User already exists", password rules)
       if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError('Registration failed. Please try again.');
       }
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="register-page">
+
+      {/* ── Email Verification Modal ── */}
+      {showVerifyModal && (
+        <div className="verify-modal-overlay">
+          <div className="verify-modal">
+            <div className="verify-modal-icon">✉️</div>
+            <h2 className="verify-modal-title">Check your email</h2>
+            <p className="verify-modal-body">
+              Verification email sent! Please check your inbox and spam folder
+              to verify your account before signing in.
+            </p>
+            <button
+              className="verify-modal-btn"
+              onClick={() => { window.location.href = '/login'; }}
+            >
+              OK, go to login
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="register-card">
         <Link to="/" className="register-logo-link">
           <img src="/images/logo/Logo-NoBackground.png" alt="Catherine's Oasis" className="register-logo" />
@@ -181,26 +165,21 @@ function Register() {
                 placeholder="Full name"
                 value={form.name}
                 onKeyDown={(e) => {
-                  // Allow control keys
                   const ctrl = [
                     "Backspace", "Delete", "Tab", "Enter",
                     "ArrowLeft", "ArrowRight", "Home", "End",
                   ];
                   if (ctrl.includes(e.key) || e.ctrlKey || e.metaKey) return;
-                  // Block digits
                   if (/[0-9]/.test(e.key)) { e.preventDefault(); return; }
-                  // Block special characters except space, hyphen, apostrophe
                   if (!/^[\p{L}\s\-']$/u.test(e.key)) e.preventDefault();
                 }}
                 onPaste={(e) => {
                   e.preventDefault();
                   const pasted = e.clipboardData.getData("text");
-                  // Strip digits and disallowed characters, then trim
                   const cleaned = pasted.replace(/[^\p{L}\s\-']/gu, "").trimStart();
                   if (cleaned) setForm({ ...form, name: cleaned });
                 }}
                 onChange={(e) => {
-                  // Strip any characters that slipped through
                   const cleaned = e.target.value.replace(/[^\p{L}\s\-']/gu, "");
                   setForm({ ...form, name: cleaned });
                 }}
@@ -217,7 +196,7 @@ function Register() {
                 type="email"
                 placeholder="Email address"
                 value={form.email}
-                onChange={(e) => setForm({...form, email: e.target.value})}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
                 className="register-input input-with-icon"
               />
@@ -231,7 +210,7 @@ function Register() {
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={form.password}
-                onChange={(e) => setForm({...form, password: e.target.value})}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
                 required
                 className="register-input input-with-icon password-input"
               />
@@ -262,7 +241,7 @@ function Register() {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
                 value={form.confirmPassword}
-                onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
+                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                 required
                 className="register-input input-with-icon password-input"
               />
@@ -309,15 +288,15 @@ function Register() {
               <textarea
                 placeholder="Address (optional)"
                 value={form.address}
-                onChange={(e) => setForm({...form, address: e.target.value})}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
                 rows="2"
                 className="register-textarea input-with-icon"
               />
             </div>
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading}
             className={`register-submit-btn ${loading ? 'disabled' : ''}`}
           >
@@ -340,8 +319,7 @@ function Register() {
         </div>
       </div>
 
-
-    </div> 
+    </div>
   );
 }
 

@@ -14,6 +14,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(null);
+  const [urlMessage, setUrlMessage] = useState("");
 
   // Add no-navbar class when on login page
   useEffect(() => {
@@ -22,6 +23,18 @@ function Login() {
       document.body.classList.remove("no-navbar");
     };
   }, []);
+
+  // Read ?message= or ?verified= from URL (set by Google OAuth redirect or Register page)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const msg = params.get("message");
+    const verified = params.get("verified");
+    if (msg) {
+      setUrlMessage(decodeURIComponent(msg));
+    } else if (verified === "true") {
+      setUrlMessage("Email verified successfully! You can now sign in.");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     let timer;
@@ -68,14 +81,12 @@ function Login() {
         } else if (userRole === "admin") {
           navigate("/admin/dashboard");
         } else if (userRole === "staff") {
-          // Route staff based on their position
           if (userPosition === "Receptionist") {
             navigate("/receptionist/dashboard");
           } else {
             navigate("/staff/dashboard");
           }
         } else {
-          // Customer
           navigate("/");
         }
       } else {
@@ -141,6 +152,14 @@ function Login() {
           <div className="login-form-card">
             <h1 className="form-title">Welcome back</h1>
             <p className="form-subtitle">Sign in to continue</p>
+
+            {/* URL message banner (from Google OAuth new-user redirect or email verification) */}
+            {urlMessage && (
+              <div className="login-url-message">
+                <span className="login-url-message-icon">✉️</span>
+                {urlMessage}
+              </div>
+            )}
 
             {error && (
               <div className="login-error">

@@ -122,7 +122,7 @@ const sendWelcomeEmailFunc = async (email, name) => {
 };
 
 // ============================================
-// REGISTER - with WORKING email verification
+// REGISTER - sends verification email, does NOT auto-login
 // ============================================
 const register = async (req, res) => {
   try {
@@ -138,9 +138,9 @@ const register = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Auto-verify on signup — no email verification step needed.
-    // Google OAuth users are already verified, so manual signup should
-    // be equally frictionless. Both paths now give instant access.
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     const newUser = new User({
       name,
       email,
@@ -148,31 +148,20 @@ const register = async (req, res) => {
       role: role || "customer",
       phone,
       address,
-      isEmailVerified: true,
-      emailVerificationToken: null,
-      emailVerificationExpires: null,
+      isEmailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationExpires: verificationExpires,
     });
 
     await newUser.save();
-    console.log(`✅ User created and auto-verified: ${email}`);
+    console.log(`✅ User created (pending verification): ${email}`);
 
-    // Issue a JWT so the user is logged in immediately after signup
-    const token = jwt.sign(
-      { id: newUser._id, email: newUser.email, role: newUser.role },
-      process.env.JWT_SECRET || "your_jwt_secret_key",
-      { expiresIn: "7d" }
-    );
+    // Fire-and-forget — don't block the response
+    sendVerificationEmailFunc(email, name, verificationToken)
+      .catch(err => console.error(`❌ Verification email failed for ${email}:`, err.message));
 
     res.status(201).json({
-      message: "Registration successful! Welcome to Catherine's Oasis.",
-      token,
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        avatar: newUser.avatar || null,
-      },
+      message: "Registration successful! Please check your email to verify your account.",
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -271,7 +260,7 @@ const login = async (req, res) => {
 
     // STEP 1: Check STAFF model
     const staff = await Staff.findOne({ email: emailLower });
-    
+
     if (staff) {
       if (staff.status === "Disabled") {
         return res.status(403).json({
@@ -308,10 +297,8 @@ const login = async (req, res) => {
 
     // STEP 2: Check CUSTOMER model
     let user = await User.findOne({ email: emailLower });
-    
-    if (user) {
-      // Email verification gate removed — all manual signups are now auto-verified.
 
+    if (user) {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         user.failedAttempts += 1;
@@ -513,7 +500,7 @@ const googleLogin = async (req, res) => {
 
     let user = await User.findOne({ email });
 
-    // ── EXISTING USER → log them in immediately (already verified) ──
+    // ── EXISTING USER → log them in immediately ──
     if (user) {
       if (!user.googleId) user.googleId = id;
       if (!user.avatar) user.googleAvatar = picture;
@@ -566,7 +553,7 @@ const googleLogin = async (req, res) => {
       .catch(err => console.error(`❌ Google verification email failed for ${email}:`, err.message));
 
     return res.redirect(
-      `${frontendURL}/login?message=${encodeURIComponent("Please verify your email to continue. Check your inbox.")}`
+      `${frontendURL}/login?message=${encodeURIComponent("Verification email sent! Please check your inbox and spam folder to verify your account before signing in.")}`
     );
   } catch (error) {
     console.error("❌ Google login error:", error);
