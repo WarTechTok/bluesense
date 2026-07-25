@@ -331,7 +331,7 @@ function Register() {
           <span className="divider-line"></span>
         </div>
 
-        <GoogleLoginButton buttonText="Sign up with Google" />
+        <GoogleLoginButton buttonText="Continue with Google" />
 
         <div className="register-footer">
           <p>

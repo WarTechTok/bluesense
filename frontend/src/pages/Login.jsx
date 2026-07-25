@@ -247,7 +247,7 @@ function Login() {
               <span className="divider-line"></span>
             </div>
 
-            <GoogleLoginButton buttonText="Sign in with Google" />
+            <GoogleLoginButton buttonText="Continue with Google" />
 
             <div className="login-footer">
               <p>
