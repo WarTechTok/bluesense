@@ -311,6 +311,14 @@ const login = async (req, res) => {
       user.lastFailedAttempt = null;
       await user.save();
 
+      // Block login for unverified email accounts
+      if (!user.isEmailVerified) {
+        return res.status(403).json({
+          message: "Please verify your email before logging in.",
+          requiresVerification: true,
+        });
+      }
+
       const token = jwt.sign(
         { id: user._id, email: user.email, role: user.role },
         process.env.JWT_SECRET || "your_jwt_secret_key",

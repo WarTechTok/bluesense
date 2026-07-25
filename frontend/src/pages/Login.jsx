@@ -104,7 +104,10 @@ function Login() {
         }
       }
     } catch (err) {
-      if (err.response?.status === 429 && err.response.data?.waitTime) {
+      if (err.response?.status === 403 && err.response.data?.requiresVerification) {
+        // Unverified email — show modal, do NOT store token or redirect
+        setShowVerifyModal(true);
+      } else if (err.response?.status === 429 && err.response.data?.waitTime) {
         setCooldown(err.response.data.waitTime);
         setError(err.response.data.message);
         setAttemptsLeft(null);
