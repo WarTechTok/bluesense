@@ -102,24 +102,6 @@ const MyBookings = () => {
   };
 
   const handleViewDetails = (booking) => {
-    // ── DEBUG: log the full booking object so you can inspect every field ──
-    console.log("=== handleViewDetails called ===");
-    console.log("booking object:", booking);
-    console.log("customerName:", booking?.customerName);
-    console.log("customerEmail:", booking?.customerEmail);
-    console.log("customerContact:", booking?.customerContact);
-    console.log("oasis:", booking?.oasis);
-    console.log("package:", booking?.package);
-    console.log("bookingDate:", booking?.bookingDate);
-    console.log("pax:", booking?.pax);
-    console.log("totalAmount:", booking?.totalAmount);
-    console.log("downpayment:", booking?.downpayment);
-    console.log("paymentMethod:", booking?.paymentMethod);
-    console.log("paymentType:", booking?.paymentType);
-    console.log("paymentStatus:", booking?.paymentStatus);
-    console.log("specialRequests:", booking?.specialRequests);
-    console.log("displayStatus:", booking?.displayStatus);
-    console.log("================================");
     setSelectedBooking(booking);
     setShowModal(true);
   };
@@ -301,7 +283,7 @@ const MyBookings = () => {
 
       {/* Booking Details Modal */}
       {showModal && selectedBooking && (
-        <div className="modal-overlay" onClick={handleCloseModal}>
+        <div className="modal-overlay my-bookings-modal" onClick={handleCloseModal}>
           <div className="modal-container" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Booking Details</h3>
@@ -311,47 +293,6 @@ const MyBookings = () => {
             </div>
 
             <div className="modal-body">
-
-              {/* ── TEMPORARY DEBUG PANEL ─────────────────────────────────────
-                  Shows whether selectedBooking is populated and what fields exist.
-                  Remove this entire block once the modal is confirmed working.
-              ──────────────────────────────────────────────────────────────── */}
-              {process.env.NODE_ENV === "development" && (
-                <div style={{
-                  background: "#fef9c3",
-                  border: "1px solid #ca8a04",
-                  borderRadius: "8px",
-                  padding: "10px 14px",
-                  marginBottom: "16px",
-                  fontSize: "11px",
-                  fontFamily: "monospace",
-                  color: "#713f12",
-                  wordBreak: "break-all",
-                }}>
-                  <strong>🐛 DEBUG — selectedBooking snapshot</strong>
-                  <br />
-                  {selectedBooking ? (
-                    <>
-                      <span>✅ selectedBooking is SET (_id: {selectedBooking?._id})</span>
-                      <br />
-                      <span>customerName: "{selectedBooking?.customerName}"</span><br />
-                      <span>customerEmail: "{selectedBooking?.customerEmail}"</span><br />
-                      <span>oasis: "{selectedBooking?.oasis}"</span><br />
-                      <span>package: "{selectedBooking?.package}"</span><br />
-                      <span>bookingDate: "{String(selectedBooking?.bookingDate)}"</span><br />
-                      <span>pax: "{selectedBooking?.pax}"</span><br />
-                      <span>totalAmount: "{selectedBooking?.totalAmount}"</span><br />
-                      <span>paymentType: "{selectedBooking?.paymentType}"</span><br />
-                      <span>paymentStatus: "{selectedBooking?.paymentStatus}"</span><br />
-                      <span>displayStatus: "{selectedBooking?.displayStatus}"</span><br />
-                    </>
-                  ) : (
-                    <span>❌ selectedBooking is NULL — data was not passed to modal</span>
-                  )}
-                </div>
-              )}
-              {/* ── END DEBUG PANEL ─────────────────────────────────────────── */}
-
               {/* Customer Information */}
               <div className="detail-section">
                 <h4>Customer Information</h4>
@@ -359,19 +300,19 @@ const MyBookings = () => {
                   <div className="detail-item">
                     <span className="label">Full Name</span>
                     <span className="value">
-                      {selectedBooking?.customerName || "N/A"}
+                      {selectedBooking.customerName}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Email Address</span>
                     <span className="value">
-                      {selectedBooking?.customerEmail || "N/A"}
+                      {selectedBooking.customerEmail}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Contact Number</span>
                     <span className="value">
-                      {selectedBooking?.customerContact || "N/A"}
+                      {selectedBooking.customerContact || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -385,32 +326,32 @@ const MyBookings = () => {
                     <span className="label">Booking Reference</span>
                     <span
                       className="value"
-                      style={{ fontWeight: "bold", fontSize: "1.1em", color: "#00a8e8" }}
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "1.1em",
+                        color: "#00a8e8",
+                      }}
                     >
                       {getBookingReference(selectedBooking)}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Venue</span>
-                    <span className="value">{selectedBooking?.oasis || "N/A"}</span>
+                    <span className="value">{selectedBooking.oasis}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Package</span>
-                    <span className="value">{selectedBooking?.package || "N/A"}</span>
+                    <span className="value">{selectedBooking.package}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Date</span>
                     <span className="value">
-                      {selectedBooking?.bookingDate
-                        ? formatDate(selectedBooking.bookingDate)
-                        : "N/A"}
+                      {formatDate(selectedBooking.bookingDate)}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Number of Guests</span>
-                    <span className="value">
-                      {selectedBooking?.pax != null ? `${selectedBooking.pax} persons` : "N/A"}
-                    </span>
+                    <span className="value">{selectedBooking.pax} persons</span>
                   </div>
                 </div>
               </div>
@@ -422,27 +363,27 @@ const MyBookings = () => {
                   <div className="detail-item">
                     <span className="label">Total Amount</span>
                     <span className="value">
-                      {formatCurrency(selectedBooking?.totalAmount)}
+                      {formatCurrency(selectedBooking.totalAmount)}
                     </span>
                   </div>
-                  {selectedBooking?.paymentType !== "fullpayment" && (
+                  {selectedBooking.paymentType !== "fullpayment" && (
                     <div className="detail-item">
                       <span className="label">Down Payment</span>
                       <span className="value">
-                        {formatCurrency(selectedBooking?.downpayment)}
+                        {formatCurrency(selectedBooking.downpayment)}
                       </span>
                     </div>
                   )}
                   <div className="detail-item">
                     <span className="label">Payment Method</span>
                     <span className="value">
-                      {selectedBooking?.paymentMethod || "N/A"}
+                      {selectedBooking.paymentMethod || "Cash"}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Payment Type</span>
                     <span className="value">
-                      {selectedBooking?.paymentType === "fullpayment"
+                      {selectedBooking.paymentType === "fullpayment"
                         ? "Full Payment"
                         : "Down Payment"}
                     </span>
@@ -450,20 +391,16 @@ const MyBookings = () => {
                   <div className="detail-item">
                     <span className="label">Payment Status</span>
                     <span className="value">
-                      {selectedBooking?.paymentStatus || "Pending"}
+                      {selectedBooking.paymentStatus || "Pending"}
                     </span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Booking Status</span>
                     <span
                       className="value"
-                      style={{
-                        color: getStatusColor(
-                          selectedBooking?.displayStatus || selectedBooking?.status
-                        ),
-                      }}
+                      style={{ color: getStatusColor(selectedBooking.displayStatus || selectedBooking.status) }}
                     >
-                      {selectedBooking?.displayStatus || selectedBooking?.status || "N/A"}
+                      {selectedBooking.displayStatus || selectedBooking.status}
                     </span>
                   </div>
                   {getBalance(selectedBooking) > 0 && (
@@ -484,12 +421,11 @@ const MyBookings = () => {
               <div className="detail-section">
                 <h4>Special Requests</h4>
                 <p className="special-request">
-                  {selectedBooking?.specialRequests?.trim()
+                  {selectedBooking.specialRequests && selectedBooking.specialRequests.trim()
                     ? selectedBooking.specialRequests
                     : "None"}
                 </p>
               </div>
-
             </div>
 
             <div className="modal-footer">
