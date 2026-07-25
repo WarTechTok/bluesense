@@ -14,7 +14,6 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [attemptsLeft, setAttemptsLeft] = useState(null);
-  const [urlMessage, setUrlMessage] = useState("");
   const [showVerifyModal, setShowVerifyModal] = useState(false); // ← NEW
 
   // Add no-navbar class when on login page
@@ -25,15 +24,20 @@ function Login() {
     };
   }, []);
 
-  // Read ?message= or ?verified= from URL
+  // ── NEW: show verify modal if Google OAuth redirected with a ?message= about verification
+  // Also handle ?verified=true (email link clicked)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const msg = params.get("message");
     const verified = params.get("verified");
-    if (msg) {
-      setUrlMessage(decodeURIComponent(msg));
+
+    if (msg && msg.toLowerCase().includes("verif")) {
+      setShowVerifyModal(true);
+      // Clean the URL so refreshing doesn't re-trigger the modal
+      window.history.replaceState({}, "", "/login");
     } else if (verified === "true") {
-      setUrlMessage("Email verified successfully! You can now sign in.");
+      // Email link verified — just clean the URL, no modal needed
+      window.history.replaceState({}, "", "/login");
     }
   }, [location.search]);
 
@@ -91,7 +95,7 @@ function Login() {
           navigate("/");
         }
       } else {
-        // ── NEW: show modal if account is not yet verified ──
+        // Show modal if backend says account not verified
         const msg = data.message || "Login failed";
         if (msg.toLowerCase().includes("verif")) {
           setShowVerifyModal(true);
@@ -118,15 +122,15 @@ function Login() {
   return (
     <div className="login-container">
 
-      {/* ── NEW: Email Verification Warning Modal ── */}
+      {/* ── Verification Modal (Google first-time signup OR unverified email login) ── */}
       {showVerifyModal && (
         <div className="verify-modal-overlay">
           <div className="verify-modal">
             <div className="verify-modal-icon">✉️</div>
-            <h2 className="verify-modal-title">Email not verified</h2>
+            <h2 className="verify-modal-title">Check your email</h2>
             <p className="verify-modal-body">
-              Please check your inbox and spam folder for the verification
-              email we sent when you registered, then try signing in again.
+              Verification email sent! Please check your inbox and spam folder
+              to verify your account before signing in.
             </p>
             <button
               className="verify-modal-btn"
@@ -180,13 +184,6 @@ function Login() {
           <div className="login-form-card">
             <h1 className="form-title">Welcome back</h1>
             <p className="form-subtitle">Sign in to continue</p>
-
-            {urlMessage && (
-              <div className="login-url-message">
-                <span className="login-url-message-icon">✉️</span>
-                {urlMessage}
-              </div>
-            )}
 
             {error && (
               <div className="login-error">
