@@ -97,7 +97,7 @@ const StaffDashboard = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  const getInitial = userData?.name?.charAt(0).toUpperCase() || 'S';
+  const getInitial = () => userData?.name?.charAt(0).toUpperCase() || 'S';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -219,12 +219,8 @@ const StaffDashboard = () => {
             />
             {sidebarOpen && <span className="logo-text">Staff</span>}
           </div>
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {isMobile ? (
-              <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
-            ) : (
-              <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
-            )}
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle sidebar">
+            <i className="fas fa-bars"></i>
           </button>
         </div>
 
@@ -245,72 +241,86 @@ const StaffDashboard = () => {
             </button>
           ))}
         </nav>
+
+        {/* Sidebar Footer: Profile → Notification Bell → Logout */}
+        <div className="sidebar-footer">
+          <div className="sidebar-profile">
+            <div className="sidebar-avatar">
+              {userData?.avatar
+                ? <img src={userData.avatar} alt="avatar" />
+                : <span>{getInitial()}</span>
+              }
+            </div>
+            {sidebarOpen && (
+              <div className="sidebar-user-info">
+                <p className="sidebar-user-name">{userData?.name || 'Staff'}</p>
+                <p className="sidebar-user-email">{userData?.email || ''}</p>
+              </div>
+            )}
+          </div>
+
+          {sidebarOpen && (
+            <div className="sidebar-footer-actions">
+              <button
+                className="sidebar-action-btn edit"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+                <span>Edit Profile</span>
+              </button>
+              {/* Notification Bell — expanded label row */}
+              <div className="sidebar-action-btn sidebar-bell-row">
+                <NotificationBell refreshInterval={10000} sidebarMode={true} />
+              </div>
+              <button
+                className="sidebar-action-btn logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+
+          {/* Collapsed: icon-only buttons */}
+          {!sidebarOpen && (
+            <div className="sidebar-footer-actions-collapsed">
+              <button
+                className="sidebar-icon-btn"
+                title="Edit Profile"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+              </button>
+              {/* Notification Bell icon-only */}
+              <div className="sidebar-icon-btn sidebar-bell-collapsed" title="Notifications">
+                <NotificationBell refreshInterval={10000} sidebarMode={true} collapsed={true} />
+              </div>
+              <button
+                className="sidebar-icon-btn logout"
+                title="Logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content — no header, matches Admin layout */}
       <main className="admin-main">
-        <div className="admin-header">
-          {/* Mobile Menu Toggle */}
-          <button 
+        {/* Mobile hamburger — floated top-left inside content */}
+        {isMobile && (
+          <button
             className="mobile-menu-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle menu"
           >
             <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
           </button>
-          
-          <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Staff Dashboard'}</h1>
-            <p>Welcome back, {stats.staffName || userData?.name || 'Staff'}</p>
-          </div>
-          
-          {/* Notification Bell */}
-          <NotificationBell refreshInterval={10000} />
-          
-          {/* Profile Dropdown */}
-          <div className="admin-profile">
-            <button 
-              className="profile-btn"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Staff'}</span>
-              <div className="admin-avatar">
-                {userData?.avatar ? (
-                  <img src={userData.avatar} alt="avatar" />
-                ) : (
-                  <span>{getInitial}</span>
-                )}
-                <span className="avatar-arrow">▼</span>
-              </div>
-            </button>
+        )}
 
-            {showDropdown && (
-              <div className="admin-dropdown">
-                <button 
-                  className="dropdown-item"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowProfileModal(true);
-                  }}
-                >
-                  <i className="fas fa-user"></i>
-                  View Profile
-                </button>
-                <button 
-                  className="dropdown-item logout"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowLogoutConfirm(true);
-                  }}
-                >
-                  <i className="fas fa-sign-out-alt"></i>
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
         <div className="admin-content">
 
       {/* Task Stats - Professional Grid */}
@@ -554,7 +564,7 @@ const StaffDashboard = () => {
                 {userData?.avatar ? (
                   <img src={userData.avatar} alt="avatar" />
                 ) : (
-                  <span>{getInitial}</span>
+                  <span>{getInitial()}</span>
                 )}
               </div>
               <div className="profile-info">

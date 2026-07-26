@@ -1579,3 +1579,102 @@
     break-inside: avoid;
   }
 }
+/* ============================================ */
+/* NOTIFICATION BELL IN SIDEBAR FOOTER         */
+/* ============================================ */
+
+/* Bell row inside expanded sidebar actions */
+.staff-layout .sidebar-bell-row {
+  padding: 0 !important;
+  cursor: default !important;
+  background: transparent !important;
+  position: relative;
+}
+
+/* Make the NotificationBell fill the row like a sidebar button */
+.staff-layout .sidebar-bell-row .notification-bell-container,
+.staff-layout .sidebar-bell-row > div {
+  width: 100%;
+}
+
+/* Collapsed bell wrapper */
+.staff-layout .sidebar-bell-collapsed {
+  cursor: pointer;
+  position: relative;
+}
+.staff-layout .sidebar-bell-collapsed .notification-bell-container,
+.staff-layout .sidebar-bell-collapsed > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Override NotificationBell styles when used inside sidebar */
+.staff-layout .sidebar-footer .notification-bell-btn,
+.staff-layout .sidebar-footer .bell-btn,
+.staff-layout .sidebar-footer [class*="bell-button"],
+.staff-layout .sidebar-footer [class*="notification-btn"] {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+  color: #475569 !important;
+  cursor: pointer !important;
+  transition: background 0.15s !important;
+  text-align: left !important;
+}
+.staff-layout .sidebar-footer .notification-bell-btn:hover,
+.staff-layout .sidebar-footer .bell-btn:hover,
+.staff-layout .sidebar-footer [class*="bell-button"]:hover,
+.staff-layout .sidebar-footer [class*="notification-btn"]:hover {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* Badge in sidebar */
+.staff-layout .sidebar-footer .notification-badge,
+.staff-layout .sidebar-footer [class*="badge"] {
+  background: #ef4444 !important;
+  color: white !important;
+  font-size: 0.65rem !important;
+  font-weight: 700 !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  border-radius: 9px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 4px !important;
+  margin-left: auto !important;
+}
+
+/* Notification dropdown from sidebar should pop to the right/up */
+.staff-layout .sidebar-footer .notification-dropdown,
+.staff-layout .sidebar-footer [class*="notification-list"],
+.staff-layout .sidebar-footer [class*="dropdown"] {
+  position: fixed !important;
+  left: 270px !important;
+  bottom: 80px !important;
+  top: auto !important;
+  right: auto !important;
+  z-index: 1200 !important;
+  max-height: 400px !important;
+  width: 320px !important;
+}
+
+@media (max-width: 768px) {
+  .staff-layout .sidebar-footer .notification-dropdown,
+  .staff-layout .sidebar-footer [class*="notification-list"],
+  .staff-layout .sidebar-footer [class*="dropdown"] {
+    left: 10px !important;
+    right: 10px !important;
+    width: auto !important;
+    bottom: 80px !important;
+  }
+}

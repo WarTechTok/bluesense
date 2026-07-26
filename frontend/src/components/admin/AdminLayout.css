@@ -135,12 +135,12 @@
 .sidebar-toggle {
   background: #f1f5f9;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   cursor: pointer;
   color: #64748b;
-  font-size: 13px;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,6 +150,13 @@
 .sidebar-toggle:hover {
   background: #e2e8f0;
   color: #1e293b;
+}
+
+/* Collapsed sidebar: keep toggle visible and centred */
+@media (min-width: 769px) {
+  .admin-sidebar.closed .sidebar-toggle {
+    margin: 0 auto;
+  }
 }
 
 /* ── Sidebar nav ──────────────────────────── */

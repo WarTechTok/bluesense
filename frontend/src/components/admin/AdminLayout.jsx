@@ -142,11 +142,8 @@ const AdminLayout = ({ children }) => {
             />
             {sidebarOpen && <span className="logo-text">Admin</span>}
           </div>
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {isMobile
-              ? <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
-              : <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
-            }
+          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle sidebar">
+            <i className="fas fa-bars"></i>
           </button>
         </div>
 
