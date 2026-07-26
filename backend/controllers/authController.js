@@ -536,11 +536,9 @@ const googleLogin = async (req, res) => {
       );
     }
 
-    // ── NEW USER → create unverified, send verification email, redirect to login ──
+    // ── NEW USER → Google already verified the email, log in immediately ──
     const tempPassword = crypto.randomBytes(20).toString("hex");
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     user = new User({
       name,
@@ -549,19 +547,35 @@ const googleLogin = async (req, res) => {
       googleAvatar: picture,
       role: "customer",
       password: hashedPassword,
-      isEmailVerified: false,
-      emailVerificationToken: verificationToken,
-      emailVerificationExpires: verificationExpires,
+      isEmailVerified: true,
+      emailVerificationToken: null,
+      emailVerificationExpires: null,
     });
     await user.save();
-    console.log(`✅ New Google user created (pending verification): ${email}`);
+    console.log(`✅ New Google user created and auto-verified: ${email}`);
 
-    // Fire-and-forget — don't block the redirect
-    sendVerificationEmailFunc(email, name, verificationToken)
-      .catch(err => console.error(`❌ Google verification email failed for ${email}:`, err.message));
+    const newUserToken = jwt.sign(
+      { id: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || "your_jwt_secret_key",
+      { expiresIn: "7d" }
+    );
+
+    const newUserData = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      phone: user.phone,
+      address: user.address,
+      avatar: user.avatar || user.googleAvatar,
+    };
+
+    // Fire-and-forget welcome email
+    sendWelcomeEmailFunc(email, name)
+      .catch(err => console.error(`❌ Google welcome email failed for ${email}:`, err.message));
 
     return res.redirect(
-      `${frontendURL}/login?message=${encodeURIComponent("Verification email sent! Please check your inbox and spam folder to verify your account before signing in.")}`
+      `${frontendURL}/oauth-redirect?token=${newUserToken}&user=${encodeURIComponent(JSON.stringify(newUserData))}`
     );
   } catch (error) {
     console.error("❌ Google login error:", error);
