@@ -1,17 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BASE_API } from '../../utils/apiBase';
+import axios from 'axios';
+import { BASE_API } from '../utils/apiBase';
 import * as staffApi from '../services/staffDashboardApi';
+import NotificationBell from '../components/staff/NotificationBell';
 import LogoutConfirmModal from '../components/modals/LogoutConfirmModal';
-import './StaffLayout.css';
+import './StaffDashboard.css';
 
+/**
+ * Staff Dashboard Component - Professional Layout (Admin Style)
+ */
 const StaffDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [editForm, setEditForm] = useState({ name: '', phone: '', address: '' });
+  const [message, setMessage] = useState('');
 
   const [stats, setStats] = useState({
     staffName: '',
@@ -28,28 +37,49 @@ const StaffDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Load user data from localStorage
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // Check if user is a receptionist - redirect to receptionist dashboard
     if (user.position === 'Receptionist') {
       navigate('/receptionist/dashboard', { replace: true });
       return;
     }
+
     setUserData(user);
+    setEditForm({
+      name: user.name || '',
+      phone: user.phone || '',
+      address: user.address || ''
+    });
   }, [navigate]);
 
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth <= 768;
       setIsMobile(newIsMobile);
-      if (!newIsMobile) setSidebarOpen(true);
+      if (!newIsMobile) {
+        setSidebarOpen(true);
+      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Close sidebar on mobile when route changes
   useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
+
+  // Remove navbar class
+  useEffect(() => {
+    document.body.classList.add('no-navbar');
+    return () => document.body.classList.remove('no-navbar');
+  }, []);
 
   const menuItems = [
     { id: 'dashboard',   label: 'Dashboard',        icon: 'fas fa-chart-line',       path: '/staff/dashboard' },
@@ -59,13 +89,34 @@ const StaffDashboard = () => {
   ];
 
   const isActive = (path) => location.pathname === path;
-
   const getInitial = () => userData?.name?.charAt(0).toUpperCase() || 'S';
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/login');
+  };
+
+  const handleUpdateProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `${BASE_API}/api/auth/profile`,
+        { name: editForm.name, phone: editForm.phone, address: editForm.address },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.user) {
+        const updatedUser = { ...userData, ...response.data.user };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUserData(updatedUser);
+        setShowEditModal(false);
+        setMessage('Profile updated successfully!');
+        setTimeout(() => setMessage(''), 3000);
+      }
+    } catch (error) {
+      setMessage('Failed to update profile');
+      setTimeout(() => setMessage(''), 3000);
+    }
   };
 
   const loadDashboard = useCallback(async () => {
@@ -86,19 +137,19 @@ const StaffDashboard = () => {
 
   useEffect(() => {
     loadDashboard();
-    const interval = window.setInterval(loadDashboard, 10000);
+    const interval = window.setInterval(() => { loadDashboard(); }, 10000);
     return () => window.clearInterval(interval);
   }, [loadDashboard]);
 
-  const getStatusColor = (status) => ({
-    'Pending': '#f59e0b', 'In Progress': '#3b82f6',
-    'Completed': '#10b981', 'Cancelled': '#ef4444'
-  }[status] || '#6b7583');
+  const getStatusColor = (status) => {
+    const colors = { 'Pending': '#f59e0b', 'In Progress': '#3b82f6', 'Completed': '#10b981', 'Cancelled': '#ef4444' };
+    return colors[status] || '#6b7583';
+  };
 
-  const getPriorityColor = (priority) => ({
-    'Urgent': '#ef4444', 'High': '#f97316',
-    'Medium': '#f59e0b', 'Low': '#10b981'
-  }[priority] || '#6b7583');
+  const getPriorityColor = (priority) => {
+    const colors = { 'Urgent': '#ef4444', 'High': '#f97316', 'Medium': '#f59e0b', 'Low': '#10b981' };
+    return colors[priority] || '#6b7583';
+  };
 
   if (loading) {
     return (
@@ -123,7 +174,8 @@ const StaffDashboard = () => {
   }
 
   return (
-    <div className="staff-layout">
+    <div className="admin-layout">
+      {/* Mobile Overlay */}
       {isMobile && (
         <div
           className={`mobile-overlay ${sidebarOpen ? 'open' : ''}`}
@@ -131,10 +183,12 @@ const StaffDashboard = () => {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`staff-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+      {/* ═══════════════════════════════════════
+          SIDEBAR
+      ═══════════════════════════════════════ */}
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
 
-        {/* Top: Logo + toggle */}
+        {/* ── Sidebar Header: Logo only (hamburger is top-right corner) ── */}
         <div className="sidebar-header">
           <div className="logo-area">
             <img
@@ -144,15 +198,17 @@ const StaffDashboard = () => {
             />
             {sidebarOpen && <span className="logo-text">Staff</span>}
           </div>
-          <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {isMobile
-              ? <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
-              : <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
-            }
+          {/* Hamburger — top-right corner of sidebar header */}
+          <button
+            className="sidebar-toggle"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle sidebar"
+          >
+            <i className="fas fa-bars"></i>
           </button>
         </div>
 
-        {/* Middle: Nav items */}
+        {/* ── Nav Items ── */}
         <nav className="sidebar-nav">
           {menuItems.map((item) => (
             <button
@@ -169,25 +225,40 @@ const StaffDashboard = () => {
           ))}
         </nav>
 
-        {/* Bottom: Profile section */}
+        {/* ── Sidebar Footer ── */}
         <div className="sidebar-footer">
-          <div className="sidebar-profile">
-            <div className="sidebar-avatar">
-              {userData?.avatar
-                ? <img src={userData.avatar} alt="avatar" />
-                : <span>{getInitial()}</span>
-              }
-            </div>
-            {sidebarOpen && (
-              <div className="sidebar-user-info">
-                <p className="sidebar-user-name">{userData?.name || 'Staff'}</p>
-                <p className="sidebar-user-email">{userData?.email || ''}</p>
-              </div>
-            )}
-          </div>
 
+          {/* ─── EXPANDED state ─── */}
           {sidebarOpen && (
-            <div className="sidebar-footer-actions">
+            <>
+              {/* Row 1: Avatar + Name + Bell (all on same row) */}
+              <div className="sidebar-profile-row">
+                <div className="sidebar-avatar">
+                  {userData?.avatar
+                    ? <img src={userData.avatar} alt="avatar" />
+                    : <span>{getInitial()}</span>
+                  }
+                </div>
+                <span className="sidebar-user-name">{userData?.name || 'Staff'}</span>
+                {/* Bell sits on the right of the name row */}
+                <div className="sidebar-bell-wrapper">
+                  <NotificationBell refreshInterval={10000} />
+                </div>
+              </div>
+
+              {/* Row 2: Email */}
+              <p className="sidebar-user-email">{userData?.email || ''}</p>
+
+              {/* Row 3: Edit Profile */}
+              <button
+                className="sidebar-action-btn edit"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+                <span>Edit Profile</span>
+              </button>
+
+              {/* Row 4: Logout */}
               <button
                 className="sidebar-action-btn logout"
                 onClick={() => setShowLogoutConfirm(true)}
@@ -195,12 +266,29 @@ const StaffDashboard = () => {
                 <i className="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
               </button>
-            </div>
+            </>
           )}
 
-          {/* Collapsed: icon-only buttons */}
+          {/* ─── COLLAPSED state: icon-only stack ─── */}
           {!sidebarOpen && (
             <div className="sidebar-footer-actions-collapsed">
+              <div className="sidebar-avatar sidebar-avatar-collapsed">
+                {userData?.avatar
+                  ? <img src={userData.avatar} alt="avatar" />
+                  : <span>{getInitial()}</span>
+                }
+              </div>
+              {/* Bell icon-only */}
+              <div className="sidebar-bell-collapsed" title="Notifications">
+                <NotificationBell refreshInterval={10000} />
+              </div>
+              <button
+                className="sidebar-icon-btn"
+                title="Edit Profile"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+              </button>
               <button
                 className="sidebar-icon-btn logout"
                 title="Logout"
@@ -210,12 +298,15 @@ const StaffDashboard = () => {
               </button>
             </div>
           )}
+
         </div>
       </aside>
 
-      {/* Main Content — no header */}
-      <main className="staff-main">
-        {/* Mobile hamburger */}
+      {/* ═══════════════════════════════════════
+          MAIN CONTENT — no header
+      ═══════════════════════════════════════ */}
+      <main className="admin-main">
+        {/* Mobile hamburger — top-left inside content area */}
         {isMobile && (
           <button
             className="mobile-menu-toggle"
@@ -226,7 +317,9 @@ const StaffDashboard = () => {
           </button>
         )}
 
-        <div className="staff-content">
+        <div className="admin-content">
+
+          {/* Task Stats */}
           <div className="stats-section">
             <h2 className="section-title">Task Overview</h2>
             <div className="stats-grid">
@@ -269,6 +362,7 @@ const StaffDashboard = () => {
             </div>
           </div>
 
+          {/* Task Summary Table */}
           <div className="stats-section">
             <h2 className="section-title">Task Summary</h2>
             <div className="financial-table">
@@ -333,13 +427,17 @@ const StaffDashboard = () => {
             </div>
           </div>
 
+          {/* Performance Metrics */}
           <div className="stats-section">
             <h2 className="section-title">Performance Metrics</h2>
             <div className="quick-stats">
               <div className="quick-stat-item">
                 <h4><i className="fas fa-door-open"></i> Room Assignments</h4>
                 <ul>
-                  <li><span>Assigned Rooms:</span><strong>{stats.assignedRoomsCount || 0}</strong></li>
+                  <li>
+                    <span>Assigned Rooms:</span>
+                    <strong>{stats.assignedRoomsCount || 0}</strong>
+                  </li>
                 </ul>
               </div>
               <div className="quick-stat-item">
@@ -347,23 +445,35 @@ const StaffDashboard = () => {
                 <ul>
                   <li>
                     <span>Completion Rate:</span>
-                    <strong>{stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0}%</strong>
+                    <strong>
+                      {stats.totalTasks > 0
+                        ? Math.round((stats.completedTasks / stats.totalTasks) * 100)
+                        : 0}%
+                    </strong>
                   </li>
                   <li>
                     <span>Productivity:</span>
-                    <strong>{stats.totalTasks > 0 ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100) : 0}%</strong>
+                    <strong>
+                      {stats.totalTasks > 0
+                        ? Math.round(((stats.completedTasks + stats.inProgressTasks) / stats.totalTasks) * 100)
+                        : 0}%
+                    </strong>
                   </li>
                 </ul>
               </div>
               <div className="quick-stat-item">
                 <h4><i className="fas fa-bell"></i> Notifications</h4>
                 <ul>
-                  <li><span>Unread:</span><strong>{stats.unreadNotifications || 0}</strong></li>
+                  <li>
+                    <span>Unread:</span>
+                    <strong>{stats.unreadNotifications || 0}</strong>
+                  </li>
                 </ul>
               </div>
             </div>
           </div>
 
+          {/* Tasks List */}
           <div className="stats-section">
             <h2 className="section-title">My Tasks</h2>
             {tasks.length === 0 ? (
@@ -409,16 +519,108 @@ const StaffDashboard = () => {
                       )}
                     </div>
                     {task.description && (
-                      <div className="task-description"><p>{task.description}</p></div>
+                      <div className="task-description">
+                        <p>{task.description}</p>
+                      </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
           </div>
+
         </div>
       </main>
 
+      {/* ═══ View Profile Modal ═══ */}
+      {showProfileModal && (
+        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
+          <div className="modal-container profile-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Profile Information</h3>
+              <button className="modal-close" onClick={() => setShowProfileModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="profile-avatar">
+                {userData?.avatar
+                  ? <img src={userData.avatar} alt="avatar" />
+                  : <span>{getInitial()}</span>
+                }
+              </div>
+              <div className="profile-info">
+                <div className="info-row"><label>Name</label><p>{userData?.name}</p></div>
+                <div className="info-row"><label>Email</label><p>{userData?.email}</p></div>
+                <div className="info-row"><label>Phone</label><p>{userData?.phone || 'Not provided'}</p></div>
+                <div className="info-row"><label>Address</label><p>{userData?.address || 'Not provided'}</p></div>
+                <div className="info-row"><label>Role</label><p>{userData?.role}</p></div>
+              </div>
+              <button
+                className="edit-profile-inside-btn"
+                onClick={() => { setShowProfileModal(false); setShowEditModal(true); }}
+              >
+                <i className="fas fa-edit"></i> Edit Profile
+              </button>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowProfileModal(false)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Edit Profile Modal ═══ */}
+      {showEditModal && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-container edit-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Edit Profile</h3>
+              <button className="modal-close" onClick={() => setShowEditModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              {message && <div className="message-banner success">{message}</div>}
+              <div className="form-group">
+                <label>Full Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="edit-input"
+                />
+              </div>
+              <div className="form-group">
+                <label>Email</label>
+                <input type="email" value={userData?.email} disabled className="edit-input disabled" />
+              </div>
+              <div className="form-group">
+                <label>Phone</label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="edit-input"
+                  placeholder="Enter phone number"
+                />
+              </div>
+              <div className="form-group">
+                <label>Address</label>
+                <textarea
+                  value={editForm.address}
+                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                  className="edit-input"
+                  rows="2"
+                  placeholder="Enter address"
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={() => setShowEditModal(false)}>Cancel</button>
+              <button className="btn-primary" onClick={handleUpdateProfile}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Logout Confirm Modal ═══ */}
       <LogoutConfirmModal
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
