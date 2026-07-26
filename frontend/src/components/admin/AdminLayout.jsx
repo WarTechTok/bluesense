@@ -1,6 +1,6 @@
 // frontend/src/components/admin/AdminLayout.jsx
 // ============================================
-// ADMIN LAYOUT - With LogoutConfirmModal component
+// ADMIN LAYOUT - Profile in sidebar footer, no top header
 // ============================================
 
 import React, { useState, useEffect } from 'react';
@@ -13,11 +13,8 @@ import './AdminLayout.css';
 const BASE_API = getApiUrl();
 
 const AdminLayout = ({ children }) => {
-  // On mobile, sidebar starts closed; on desktop, it starts open
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [userData, setUserData] = useState(null);
@@ -26,7 +23,6 @@ const AdminLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Load user data
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setUserData(user);
@@ -37,68 +33,47 @@ const AdminLayout = ({ children }) => {
     });
   }, []);
 
-  // Handle window resize to track mobile state
   useEffect(() => {
     const handleResize = () => {
       const newIsMobile = window.innerWidth <= 768;
       setIsMobile(newIsMobile);
-      // On desktop, keep sidebar open; on mobile, close it
-      if (!newIsMobile) {
-        setSidebarOpen(true);
-      }
+      if (!newIsMobile) setSidebarOpen(true);
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar when navigation changes on mobile
   useEffect(() => {
-    if (isMobile) {
-      setSidebarOpen(false);
-    }
+    if (isMobile) setSidebarOpen(false);
   }, [location.pathname, isMobile]);
 
   useEffect(() => {
     document.body.classList.add('no-navbar');
-    return () => {
-      document.body.classList.remove('no-navbar');
-    };
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.admin-profile')) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    return () => document.body.classList.remove('no-navbar');
   }, []);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/admin/dashboard' },
-    { id: 'bookings', label: 'Bookings', icon: 'fas fa-calendar-alt', path: '/admin/bookings' },
-    { id: 'packages', label: 'Packages', icon: 'fas fa-box', path: '/admin/packages' },
-    { id: 'gallery', label: 'Gallery', icon: 'fas fa-images', path: '/admin/gallery' },
-    { id: 'reviews', label: 'Customer Reviews', icon: 'fas fa-star', path: '/admin/reviews' }, // ← ADDED
-    { id: 'rooms', label: 'Rooms', icon: 'fas fa-bed', path: '/admin/rooms' },
-    { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/admin/inventory' },
-    { id: 'staff', label: 'Staff', icon: 'fas fa-users', path: '/admin/staff' },
-    { id: 'sales', label: 'Sales', icon: 'fas fa-chart-simple', path: '/admin/sales' },
-    { id: 'maintenance', label: 'Maintenance', icon: 'fas fa-wrench', path: '/admin/maintenance' },
-    { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/admin/reports' },
+    { id: 'dashboard',   label: 'Dashboard',        icon: 'fas fa-chart-line',      path: '/admin/dashboard' },
+    { id: 'bookings',    label: 'Bookings',          icon: 'fas fa-calendar-alt',    path: '/admin/bookings' },
+    { id: 'packages',    label: 'Packages',          icon: 'fas fa-box',             path: '/admin/packages' },
+    { id: 'gallery',     label: 'Gallery',           icon: 'fas fa-images',          path: '/admin/gallery' },
+    { id: 'reviews',     label: 'Customer Reviews',  icon: 'fas fa-star',            path: '/admin/reviews' },
+    { id: 'rooms',       label: 'Rooms',             icon: 'fas fa-bed',             path: '/admin/rooms' },
+    { id: 'inventory',   label: 'Inventory',         icon: 'fas fa-boxes',           path: '/admin/inventory' },
+    { id: 'staff',       label: 'Staff',             icon: 'fas fa-users',           path: '/admin/staff' },
+    { id: 'sales',       label: 'Sales',             icon: 'fas fa-chart-simple',    path: '/admin/sales' },
+    { id: 'maintenance', label: 'Maintenance',       icon: 'fas fa-wrench',          path: '/admin/maintenance' },
+    { id: 'reports',     label: 'Reports',           icon: 'fas fa-file-alt',        path: '/admin/reports' },
   ];
 
   const stopESP32 = async () => {
     try {
-      await fetch("https://bluesense.onrender.com/api/readings/stop", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('https://bluesense.onrender.com/api/readings/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
     } catch (err) {
-      console.warn("stopESP32 failed (non-blocking):", err);
+      console.warn('stopESP32 failed (non-blocking):', err);
     }
   };
 
@@ -111,11 +86,7 @@ const AdminLayout = ({ children }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  const getPageLabel = () => {
-    return menuItems.find(item => isActive(item.path))?.label || 'Dashboard';
-  };
-
-  const getInitial = userData?.name?.charAt(0).toUpperCase() || 'A';
+  const getInitial = () => userData?.name?.charAt(0).toUpperCase() || 'A';
 
   const handleUpdateProfile = async () => {
     const token = localStorage.getItem('token');
@@ -124,67 +95,62 @@ const AdminLayout = ({ children }) => {
       setTimeout(() => setMessage(''), 3000);
       return;
     }
-
     try {
-      const profileUrl = `${BASE_API}/api/auth/profile`;
       const response = await axios.put(
-        profileUrl,
+        `${BASE_API}/api/auth/profile`,
         { name: editForm.name, phone: editForm.phone, address: editForm.address },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      if (response.data && response.data.user) {
+      if (response.data?.user) {
         const updatedUser = { ...userData, ...response.data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUserData(updatedUser);
         setShowEditModal(false);
         setMessage('Profile updated successfully!');
-        // notify other parts of app if needed
         window.dispatchEvent(new CustomEvent('profileUpdated', { detail: updatedUser }));
         setTimeout(() => setMessage(''), 3000);
       } else {
-        const text = response.data?.message || 'Failed to update profile';
-        setMessage(text);
+        setMessage(response.data?.message || 'Failed to update profile');
         setTimeout(() => setMessage(''), 3000);
       }
     } catch (error) {
-      console.error('Profile update error:', error);
-      const serverMsg = error?.response?.data?.message || error?.message || 'Failed to update profile';
-      setMessage(serverMsg);
+      setMessage(error?.response?.data?.message || error?.message || 'Failed to update profile');
       setTimeout(() => setMessage(''), 5000);
     }
   };
 
   return (
     <div className="admin-layout">
-      {/* Mobile Overlay - Click to close sidebar */}
+      {/* Mobile Overlay */}
       {isMobile && (
-        <div 
+        <div
           className={`mobile-overlay ${sidebarOpen ? 'open' : ''}`}
           onClick={() => setSidebarOpen(false)}
-        ></div>
+        />
       )}
 
       {/* Sidebar */}
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+
+        {/* Top: Logo + toggle */}
         <div className="sidebar-header">
           <div className="logo-area">
-            <img 
-              src="/images/logo/Logo-NoBackground.png" 
-              alt="Catherine's Oasis" 
+            <img
+              src="/images/logo/Logo-NoBackground.png"
+              alt="Catherine's Oasis"
               className="sidebar-logo"
             />
             {sidebarOpen && <span className="logo-text">Admin</span>}
           </div>
           <button className="sidebar-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            {isMobile ? (
-              <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
-            ) : (
-              <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
-            )}
+            {isMobile
+              ? <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
+              : <i className={`fas fa-chevron-${sidebarOpen ? 'left' : 'right'}`}></i>
+            }
           </button>
         </div>
 
+        {/* Middle: Nav items */}
         <nav className="sidebar-nav">
           {menuItems.map((item) => (
             <button
@@ -192,9 +158,7 @@ const AdminLayout = ({ children }) => {
               className={`nav-item ${isActive(item.path) ? 'active' : ''}`}
               onClick={() => {
                 navigate(item.path);
-                if (isMobile) {
-                  setSidebarOpen(false);
-                }
+                if (isMobile) setSidebarOpen(false);
               }}
             >
               <i className={`${item.icon} nav-icon`}></i>
@@ -202,129 +166,82 @@ const AdminLayout = ({ children }) => {
             </button>
           ))}
         </nav>
+
+        {/* Bottom: Profile section */}
+        <div className="sidebar-footer">
+          <div className="sidebar-profile">
+            <div className="sidebar-avatar">
+              {userData?.avatar
+                ? <img src={userData.avatar} alt="avatar" />
+                : <span>{getInitial()}</span>
+              }
+            </div>
+            {sidebarOpen && (
+              <div className="sidebar-user-info">
+                <p className="sidebar-user-name">{userData?.name || 'Admin'}</p>
+                <p className="sidebar-user-email">{userData?.email || ''}</p>
+              </div>
+            )}
+          </div>
+
+          {sidebarOpen && (
+            <div className="sidebar-footer-actions">
+              <button
+                className="sidebar-action-btn edit"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+                <span>Edit Profile</span>
+              </button>
+              <button
+                className="sidebar-action-btn logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+
+          {/* Collapsed: icon-only buttons */}
+          {!sidebarOpen && (
+            <div className="sidebar-footer-actions-collapsed">
+              <button
+                className="sidebar-icon-btn"
+                title="Edit Profile"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+              </button>
+              <button
+                className="sidebar-icon-btn logout"
+                title="Logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content — no header */}
       <main className="admin-main">
-        <div className="admin-header">
-          {/* Mobile Menu Toggle Button */}
-          <button 
+        {/* Mobile hamburger — floated top-left inside content */}
+        {isMobile && (
+          <button
             className="mobile-menu-toggle"
             onClick={() => setSidebarOpen(!sidebarOpen)}
             aria-label="Toggle menu"
           >
             <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
           </button>
-          
-          <div className="header-title">
-            <h1>{getPageLabel()}</h1>
-            <p>Welcome back, {userData?.name || 'Admin'}</p>
-          </div>
-          
-          {/* Profile Dropdown */}
-          <div className="admin-profile">
-            <button 
-              className="profile-btn"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Admin'}</span>
-              <div className="admin-avatar">
-                {userData?.avatar ? (
-                  <img src={userData.avatar} alt="avatar" />
-                ) : (
-                  <span>{getInitial}</span>
-                )}
-                <span className="avatar-arrow">▼</span>
-              </div>
-            </button>
+        )}
 
-            {showDropdown && (
-              <div className="admin-dropdown">
-                <button 
-                  className="dropdown-item"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowProfileModal(true);
-                  }}
-                >
-                  <i className="fas fa-user"></i>
-                  View Profile
-                </button>
-                <button 
-                  className="dropdown-item logout"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowLogoutConfirm(true);
-                  }}
-                >
-                  <i className="fas fa-sign-out-alt"></i>
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-        
         <div className="admin-content">
           {children}
         </div>
       </main>
-
-      {/* View Profile Modal */}
-      {showProfileModal && (
-        <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-          <div className="modal-container profile-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Profile Information</h3>
-              <button className="modal-close" onClick={() => setShowProfileModal(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div className="profile-avatar">
-                {userData?.avatar ? (
-                  <img src={userData.avatar} alt="avatar" />
-                ) : (
-                  <span>{getInitial}</span>
-                )}
-              </div>
-              <div className="profile-info">
-                <div className="info-row">
-                  <label>Name</label>
-                  <p>{userData?.name}</p>
-                </div>
-                <div className="info-row">
-                  <label>Email</label>
-                  <p>{userData?.email}</p>
-                </div>
-                <div className="info-row">
-                  <label>Phone</label>
-                  <p>{userData?.phone || 'Not provided'}</p>
-                </div>
-                <div className="info-row">
-                  <label>Address</label>
-                  <p>{userData?.address || 'Not provided'}</p>
-                </div>
-                <div className="info-row">
-                  <label>Role</label>
-                  <p>{userData?.role}</p>
-                </div>
-              </div>
-              
-              <button 
-                className="edit-profile-inside-btn"
-                onClick={() => {
-                  setShowProfileModal(false);
-                  setShowEditModal(true);
-                }}
-              >
-                <i className="fas fa-edit"></i> Edit Profile
-              </button>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowProfileModal(false)}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Edit Profile Modal */}
       {showEditModal && (
@@ -378,7 +295,6 @@ const AdminLayout = ({ children }) => {
         </div>
       )}
 
-      {/* Logout Confirmation Modal - Using LogoutConfirmModal component */}
       <LogoutConfirmModal
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}

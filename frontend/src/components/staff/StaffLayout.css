@@ -438,163 +438,130 @@
   }
 }
 
-/* ============================================ */
-/* STAFF HEADER */
-/* ============================================ */
-
-.staff-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 64px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  gap: 16px;
-  position: sticky;
-  top: 0;
-  z-index: 98;
-}
-
-@media (max-width: 768px) {
-  .staff-header { padding: 0 16px; }
-}
-
-.staff-header .header-title {
-  flex: 1;
-  min-width: 0;
-}
-
-.staff-header .header-title h1 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 700;
+/* ── Mobile hamburger (inside content, mobile only) ──────── */
+.mobile-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
   color: #1e293b;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  margin: 16px 24px 0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+.mobile-menu-toggle:hover { background: rgba(0,0,0,0.05); }
+@media (max-width: 768px) {
+  .mobile-menu-toggle { display: flex; align-items: center; justify-content: center; }
 }
 
-.staff-header .header-title p {
-  margin: 2px 0 0 0;
-  font-size: 0.75rem;
-  color: #94a3b8;
+/* ── Sidebar footer — profile + actions ───── */
+.staff-layout .sidebar-footer {
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-/* ============================================ */
-/* STAFF PROFILE DROPDOWN */
-/* ============================================ */
-
-.staff-profile {
-  position: relative;
-}
-
-.staff-profile .profile-btn {
+.staff-layout .sidebar-profile {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: none;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  padding: 6px 12px 6px 8px;
-  border-radius: 40px;
-  transition: background 0.2s, border-color 0.2s;
+  padding: 4px;
 }
 
-.staff-profile .profile-btn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-}
-
-.staff-profile .staff-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #1e293b;
-}
-
-.staff-profile .staff-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+.staff-layout .sidebar-avatar {
+  width: 36px;
+  height: 36px;
   background: #0284c7;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   flex-shrink: 0;
+  overflow: hidden;
 }
-
-.staff-profile .staff-avatar img {
+.staff-layout .sidebar-avatar img {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
   object-fit: cover;
 }
 
-.staff-profile .avatar-arrow {
-  font-size: 10px;
+.staff-layout .sidebar-user-info { flex: 1; min-width: 0; }
+.staff-layout .sidebar-user-name {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.staff-layout .sidebar-user-email {
+  margin: 2px 0 0;
+  font-size: 0.72rem;
   color: #94a3b8;
-  margin-left: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.staff-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
-  padding: 8px;
-  z-index: 1001;
-  animation: dropdownFade 0.2s ease-out;
+.staff-layout .sidebar-footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-@keyframes dropdownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.staff-dropdown .dropdown-item {
+.staff-layout .sidebar-action-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
   width: 100%;
-  background: none;
+  padding: 9px 12px;
+  background: transparent;
   border: none;
   border-radius: 8px;
-  font-size: 0.9rem;
-  color: #1e293b;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #475569;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
 }
+.staff-layout .sidebar-action-btn i { width: 18px; text-align: center; font-size: 0.9rem; }
+.staff-layout .sidebar-action-btn:hover { background: #f1f5f9; color: #1e293b; }
+.staff-layout .sidebar-action-btn.logout { color: #dc2626; }
+.staff-layout .sidebar-action-btn.logout:hover { background: #fef2f2; }
 
-.staff-dropdown .dropdown-item:hover {
-  background: #f1f5f9;
+.staff-layout .sidebar-footer-actions-collapsed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
-
-.staff-dropdown .dropdown-item.logout {
-  color: #ef4444;
+.staff-layout .sidebar-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background 0.15s, color 0.15s;
 }
-
-.staff-dropdown .dropdown-item.logout:hover {
-  background: #fee2e2;
-}
-
-.staff-dropdown .dropdown-item i {
-  width: 18px;
-  font-size: 0.9rem;
-}
+.staff-layout .sidebar-icon-btn:hover { background: #f1f5f9; color: #1e293b; }
+.staff-layout .sidebar-icon-btn.logout { color: #dc2626; }
+.staff-layout .sidebar-icon-btn.logout:hover { background: #fef2f2; }
 
 /* ============================================ */
 /* STAFF CONTENT */
