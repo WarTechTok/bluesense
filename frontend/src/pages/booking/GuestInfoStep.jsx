@@ -50,12 +50,14 @@ const GuestInfoStep = ({
   }, [selectedOasis, selectedPackage, selectedPackageObj]);
 
   // Auto-set guest count to minimum when a package with a minimum is selected
+  // 🔥 FIX: REMOVED formData.guestCount from deps to stop auto-reset on every keystroke
   useEffect(() => {
     const minCapacity = getMinCapacity();
     if (minCapacity > 0 && formData.guestCount < minCapacity) {
       handleChange({ target: { name: "guestCount", value: minCapacity } });
     }
-  }, [selectedOasis, selectedPackage, getMinCapacity, handleChange, formData.guestCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedOasis, selectedPackage]); // ← formData.guestCount REMOVED
 
   // Listen for profile updates from navbar
   useEffect(() => {
