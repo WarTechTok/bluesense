@@ -97,6 +97,8 @@ const transformPackageData = (apiPackage) => {
       : `Up to ${apiPackage.maxCapacity} pax`,
     minCapacity: apiPackage.minCapacity || 0,
     maxCapacity: apiPackage.maxCapacity,
+    extraGuestFee: apiPackage.extraGuestFee ?? 150,
+    maxExtraGuests: apiPackage.maxExtraGuests ?? null,
     inclusions: apiPackage.inclusions || [],
     addons: [],
     sessions: apiPackage.availableSessions || ["Day", "Night", "22hrs"],
