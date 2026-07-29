@@ -41,11 +41,14 @@ const GuestInfoStep = ({
     // NEW: Prefer the minCapacity from the package object if available.
     // WHY: Using the DB value means admin changes in Package Management are
     //      reflected here immediately — no code change needed.
-    if (selectedPackageObj?.minCapacity > 0) return selectedPackageObj.minCapacity;
+    if (selectedPackageObj?.minCapacity > 0)
+      return selectedPackageObj.minCapacity;
 
     // FALLBACK: keep old hardcoded values so nothing breaks if the prop is missing.
-    if (selectedOasis === "Oasis 1" && selectedPackage === "Package 5+") return 30;
-    if (selectedOasis === "Oasis 2" && selectedPackage === "Package C") return 50;
+    if (selectedOasis === "Oasis 1" && selectedPackage === "Package 5+")
+      return 30;
+    if (selectedOasis === "Oasis 2" && selectedPackage === "Package C")
+      return 50;
     return 0;
   }, [selectedOasis, selectedPackage, selectedPackageObj]);
 
@@ -55,7 +58,13 @@ const GuestInfoStep = ({
     if (minCapacity > 0 && formData.guestCount < minCapacity) {
       handleChange({ target: { name: "guestCount", value: minCapacity } });
     }
-  }, [selectedOasis, selectedPackage, getMinCapacity, handleChange, formData.guestCount]);
+  }, [
+    selectedOasis,
+    selectedPackage,
+    getMinCapacity,
+    handleChange,
+    formData.guestCount,
+  ]);
 
   // Listen for profile updates from navbar
   useEffect(() => {
@@ -67,9 +76,15 @@ const GuestInfoStep = ({
           email: updatedUser.email || "",
           phone: updatedUser.phone || "",
         });
-        handleChange({ target: { name: "fullName", value: updatedUser.name || "" } });
-        handleChange({ target: { name: "email",    value: updatedUser.email || "" } });
-        handleChange({ target: { name: "phone",    value: updatedUser.phone || "" } });
+        handleChange({
+          target: { name: "fullName", value: updatedUser.name || "" },
+        });
+        handleChange({
+          target: { name: "email", value: updatedUser.email || "" },
+        });
+        handleChange({
+          target: { name: "phone", value: updatedUser.phone || "" },
+        });
       }
     };
 
@@ -104,7 +119,10 @@ const GuestInfoStep = ({
   // ── DEBUG LOGS — remove once validation is confirmed working ──────────────
   console.log("[GuestInfoStep] selectedPackageObj:", selectedPackageObj);
   console.log("[GuestInfoStep] maxCapacity:", selectedPackageObj?.maxCapacity);
-  console.log("[GuestInfoStep] maxExtraGuests:", selectedPackageObj?.maxExtraGuests);
+  console.log(
+    "[GuestInfoStep] maxExtraGuests:",
+    selectedPackageObj?.maxExtraGuests,
+  );
 
   // NEW: Compute the hard ceiling from the package object.
   // WHAT: totalMaxCapacity = maxCapacity + maxExtraGuests.
@@ -125,11 +143,13 @@ const GuestInfoStep = ({
   const isAboveCeiling = Number(formData.guestCount) > totalMaxCapacity;
 
   // WHAT: Is the guest count below the required minimum?
-  const isGuestCountAboveMin = minCapacity === 0 || Number(formData.guestCount) >= minCapacity;
+  const isGuestCountAboveMin =
+    minCapacity === 0 || Number(formData.guestCount) >= minCapacity;
 
   // NEW: Combine both checks to decide if the Confirm button should be disabled.
   // WHY:  Old code only checked > 100. Now we also block when above the ceiling.
-  const isConfirmDisabled = isConfirmed || isAboveCeiling || !isGuestCountAboveMin;
+  const isConfirmDisabled =
+    isConfirmed || isAboveCeiling || !isGuestCountAboveMin;
 
   console.log("[GuestInfoStep] totalMaxCapacity:", totalMaxCapacity);
   console.log("[GuestInfoStep] guestCount:", Number(formData.guestCount));
@@ -188,7 +208,9 @@ const GuestInfoStep = ({
         <div className="form-group">
           <label>
             Phone Number{" "}
-            <span style={{ color: "#94a3b8", fontSize: "12px" }}>(optional)</span>
+            <span style={{ color: "#94a3b8", fontSize: "12px" }}>
+              (optional)
+            </span>
           </label>
           <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>
@@ -218,8 +240,13 @@ const GuestInfoStep = ({
                 onKeyDown={(e) => {
                   // Allow: Backspace, Delete, Tab, arrows, Home, End
                   const allowed = [
-                    "Backspace", "Delete", "Tab",
-                    "ArrowLeft", "ArrowRight", "Home", "End",
+                    "Backspace",
+                    "Delete",
+                    "Tab",
+                    "ArrowLeft",
+                    "ArrowRight",
+                    "Home",
+                    "End",
                   ];
                   if (allowed.includes(e.key)) return;
                   // Block anything that is not a digit 0-9
@@ -230,12 +257,16 @@ const GuestInfoStep = ({
                   const pasted = e.clipboardData.getData("text");
                   const digitsOnly = pasted.replace(/\D/g, "");
                   if (digitsOnly) {
-                    handleChange({ target: { name: "guestCount", value: digitsOnly } });
+                    handleChange({
+                      target: { name: "guestCount", value: digitsOnly },
+                    });
                   }
                 }}
                 onChange={(e) => {
                   const digitsOnly = e.target.value.replace(/\D/g, "");
-                  handleChange({ target: { name: "guestCount", value: digitsOnly } });
+                  handleChange({
+                    target: { name: "guestCount", value: digitsOnly },
+                  });
                 }}
                 className={errors?.guestCount ? "error" : ""}
               />
@@ -244,7 +275,9 @@ const GuestInfoStep = ({
 
           {/* Minimum capacity warning */}
           {minCapacity > 0 && Number(formData.guestCount) < minCapacity && (
-            <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
+            <div
+              style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}
+            >
               ⚠️ Minimum {minCapacity} guests required for this package.
             </div>
           )}
@@ -256,9 +289,11 @@ const GuestInfoStep = ({
               HOW:  totalMaxCapacity is Infinity when no cap → this block never renders.
                     When it IS a finite number, we show the exact allowed total. */}
           {isAboveCeiling && totalMaxCapacity !== Infinity && (
-            <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              ⛔ Maximum {totalMaxCapacity} pax allowed (Base: {baseCapacity} + Extra:{" "}
-              {selectedPackageObj?.maxExtraGuests ?? 0})
+            <div
+              style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}
+            >
+              ⛔ You can add up to {selectedPackageObj?.maxExtraGuests ?? 0}{" "}
+              additional guests.
             </div>
           )}
 
@@ -268,16 +303,22 @@ const GuestInfoStep = ({
               HOW:  willHaveExtraCharge is true only when:
                       guestCount > baseCapacity  AND  guestCount <= totalMaxCapacity */}
           {willHaveExtraCharge && (
-            <div style={{ color: "#f59e0b", fontSize: "12px", marginTop: "4px" }}>
+            <div
+              style={{ color: "#f59e0b", fontSize: "12px", marginTop: "4px" }}
+            >
               ℹ️ Guests above {baseCapacity} pax will be charged ₱
-              {(selectedPackageObj?.extraGuestFee ?? 150).toLocaleString()} per person.
+              {(selectedPackageObj?.extraGuestFee ?? 150).toLocaleString()} per
+              person.
             </div>
           )}
 
           {/* Info message for packages with a required minimum */}
           {minCapacity > 0 && (
-            <div style={{ color: "#0284c7", fontSize: "11px", marginTop: "4px" }}>
-              ℹ️ This package requires minimum {minCapacity} guests. Auto-set to {minCapacity}.
+            <div
+              style={{ color: "#0284c7", fontSize: "11px", marginTop: "4px" }}
+            >
+              ℹ️ This package requires minimum {minCapacity} guests. Auto-set to{" "}
+              {minCapacity}.
             </div>
           )}
 
