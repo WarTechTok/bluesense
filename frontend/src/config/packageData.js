@@ -63,23 +63,71 @@ export const getPriceFromPackage = (packageObj, session, date, pax = 1) => {
 
 /**
  * Calculate extra-guest charge from an API package object.
- * ₱150 per guest over the package's base capacity (maxCapacity).
+ *
+ * WHAT: Returns the total extra fee for guests beyond the base capacity.
+ * WHY:  The fee rate used to be hardcoded as 150. Now we read it from
+ *       packageObj.extraGuestFee so that any admin change in Package
+ *       Management takes effect immediately without a code change.
+ * HOW:  (guestCount - included) × feePerPerson
+ *
+ * @param {object} packageObj  - API-fetched package (must have .maxCapacity, .extraGuestFee)
+ * @param {number} guestCount  - total number of guests the customer entered
+ * @returns {number}           - total extra charge in pesos (0 if within capacity)
  */
 export const getExtraGuestCharge = (packageObj, guestCount) => {
   if (!packageObj) return 0;
-  // Use maxCapacity as the "included" ceiling — guests beyond this pay extra
+
+  // WHAT: The number of guests whose cost is already included in the base price.
+  // WHY:  We only charge for guests ABOVE this — not for everyone.
+  // HOW:  Reads maxCapacity from the package object. Falls back to 0 so the
+  //       charge only fires when we actually know the capacity limit.
   const included = packageObj.maxCapacity || 0;
+
+  // WHAT: If the guest count is within the included limit, no extra charge.
   if (guestCount <= included) return 0;
-  return (guestCount - included) * 150;
+
+  // WHAT: Read the per-person fee from the package object.
+  // WHY:  This is the new editable field the admin sets in Package Management.
+  //       It lives in the database, not in this file.
+  // HOW:  `?? 150` means: use 150 ONLY if extraGuestFee is null or undefined.
+  //       This is different from `|| 150` — the `??` operator (nullish coalescing)
+  //       won't replace a valid value of 0, while `||` would.
+  const feePerPerson = packageObj.extraGuestFee ?? 150;
+
+  // WHAT: The total extra charge = number of extra guests × fee per person.
+  // Example: 5 extra guests × ₱200/person = ₱1,000
+  return (guestCount - included) * feePerPerson;
 };
 
+/**
+ * Returns a breakdown object for capacity fee display in BookingSummary.
+ *
+ * WHAT: Returns extraGuestCount, extraGuestCharge, isOverCapacity, and feePerPerson.
+ * WHY:  BookingSummary.jsx needs the count and the rate separately so it can
+ *       display "₱200 × 5 extra pax" instead of just "₱1,000".
+ * HOW:  Same logic as getExtraGuestCharge but returns structured data.
+ *
+ * @param {object} packageObj  - API-fetched package
+ * @param {number} guestCount  - total guests
+ * @returns {{ extraGuestCount, extraGuestCharge, isOverCapacity, feePerPerson }}
+ */
 export const getCapacityFeeInfo = (packageObj, guestCount) => {
   const included = packageObj?.maxCapacity || 0;
   const extraGuestCount = Math.max(0, (guestCount || 0) - included);
+
+  // WHAT: Read the per-person fee the same way as getExtraGuestCharge.
+  // WHY:  Consistency — both helpers must use the exact same fee rate
+  //       so the displayed breakdown always matches the calculated total.
+  const feePerPerson = packageObj?.extraGuestFee ?? 150;
+
   return {
     extraGuestCount,
-    extraGuestCharge: extraGuestCount * 150,
+    // WHAT: Total extra fee = count × rate.
+    extraGuestCharge: extraGuestCount * feePerPerson,
     isOverCapacity: extraGuestCount > 0,
+    // WHAT: Expose feePerPerson so the UI can show "₱200 × 5 pax".
+    // WHY:  Without this, the UI would have to duplicate the ?? 150 logic itself.
+    feePerPerson,
   };
 };
 

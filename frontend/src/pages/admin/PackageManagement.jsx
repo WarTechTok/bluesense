@@ -30,6 +30,14 @@ const PackageManagement = () => {
     description: "",
     maxCapacity: 20,
     minCapacity: 0,
+    // NEW: extraGuestFee added to form state.
+    // WHAT: Tracks the value the admin types into the Extra Guest Fee input.
+    // WHY:  React "controlled inputs" require the value to live in state.
+    //       Without this field here, the input would be "uncontrolled" and
+    //       React would warn you — and the value would NOT be sent to the API.
+    // HOW:  Default is 150, matching the Package model's default, so new
+    //       packages start with the standard fee already pre-filled.
+    extraGuestFee: 150,
     inclusions: [],
     pricing: {},
     availableSessions: ["Day", "Night"],
@@ -123,6 +131,11 @@ const PackageManagement = () => {
     }
 
     try {
+      // WHAT: Spread formData into packageData — this includes extraGuestFee
+      //       automatically because it's now part of formData state.
+      // WHY:  Whatever is in formData gets sent to the API. Since we added
+      //       extraGuestFee to formData, it will be included in the request
+      //       body without any extra code here.
       const packageData = {
         ...formData,
         image: formData.images[0] || formData.image || "",
@@ -190,6 +203,14 @@ const PackageManagement = () => {
       description: pkg.description || "",
       maxCapacity: pkg.maxCapacity || 20,
       minCapacity: pkg.minCapacity || 0,
+      // NEW: Load the saved fee from the package being edited.
+      // WHAT: Pre-fills the Extra Guest Fee input with whatever is stored in the DB.
+      // WHY:  When admin opens an existing package to edit it, the form must
+      //       show the currently saved fee — not reset to 150.
+      // HOW:  pkg.extraGuestFee comes from the API response.
+      //       `?? 150` handles old packages saved before this field existed —
+      //       they'll show 150 as the default, which is correct.
+      extraGuestFee: pkg.extraGuestFee ?? 150,
       inclusions: pkg.inclusions || [],
       pricing: pricingData,
       availableSessions: pkg.availableSessions || ["Day", "Night"],
@@ -250,6 +271,13 @@ const PackageManagement = () => {
       description: "",
       maxCapacity: 20,
       minCapacity: 0,
+      // NEW: Reset extraGuestFee to 150 when admin clicks "Add New Package".
+      // WHAT: Clears the form back to default values.
+      // WHY:  Without this, if the admin previously edited a package with
+      //       ₱200 fee and then clicks "Add New Package", the new form would
+      //       still show ₱200 from the previous edit session.
+      // HOW:  150 matches the Package model's default value.
+      extraGuestFee: 150,
       inclusions: [],
       pricing: {},
       availableSessions: ["Day", "Night"],
@@ -467,6 +495,14 @@ const PackageManagement = () => {
                     <span className="value">{pkg.availableSessions?.join(", ")}</span>
                   </div>
                   <div className="detail-item">
+                    <span className="label">Extra Guest Fee:</span>
+                    {/* WHAT: Show the current extra guest fee on each package card.
+                        WHY:  Admins can see at a glance what fee each package uses
+                              without having to open the edit form.
+                        HOW:  pkg.extraGuestFee comes from the API. Falls back to 150. */}
+                    <span className="value">₱{(pkg.extraGuestFee ?? 150).toLocaleString()}/pax</span>
+                  </div>
+                  <div className="detail-item">
                     <span className="label">Status:</span>
                     <span className={`status-badge ${pkg.isActive ? "active" : "inactive"}`}>
                       {pkg.isActive ? "Active" : "Inactive"}
@@ -608,6 +644,50 @@ const PackageManagement = () => {
                     <div className="form-group">
                       <label>Display Order</label>
                       <input type="number" value={formData.displayOrder} onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) })} min="1" />
+                    </div>
+                  </div>
+
+                  {/* NEW: Extra Guest Fee input */}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Extra Guest Fee (₱ per person)</label>
+                      {/*
+                        WHAT: A number input for the admin to set the charge
+                              per guest above the base capacity.
+                        WHY:  Before this input, the fee was hardcoded as 150
+                              in the source code. Now the admin can change it
+                              here and the new rate is saved to MongoDB.
+                        HOW:
+                          - `type="number"` restricts the input to numbers only.
+                          - `value={formData.extraGuestFee}` makes this a
+                            "controlled input" — React owns the displayed value
+                            and always keeps it in sync with formData state.
+                          - `onChange` fires every time the admin types.
+                            It calls setFormData with a copy of formData where
+                            only extraGuestFee is changed to the new number.
+                          - `parseInt(e.target.value)` converts the input string
+                            (inputs always give strings) to a real integer.
+                          - `|| 0` means if the field is empty or not a number,
+                            store 0 instead of NaN.
+                          - `min="0"` prevents negative values in the browser UI.
+                          - `placeholder="150"` shows the default value as hint text
+                            when the field is empty.
+                      */}
+                      <input
+                        type="number"
+                        value={formData.extraGuestFee}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            extraGuestFee: parseInt(e.target.value) || 0,
+                          })
+                        }
+                        min="0"
+                        placeholder="150"
+                      />
+                      <small>
+                        Charged per guest above base capacity. Default: ₱150/person.
+                      </small>
                     </div>
                   </div>
                 </div>

@@ -116,7 +116,10 @@ function Booking() {
   const calculateAddonsTotal = () =>
     Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
 
-  // Extra-guest charge: ₱150 per guest over maxCapacity
+  // WHAT: Calculates the total extra-guest charge using the DB fee rate.
+  // WHY:  getExtraGuestCharge() now reads currentPackage.extraGuestFee
+  //       instead of hardcoding 150, so admin changes take effect here.
+  // HOW:  currentPackage comes from the API and includes extraGuestFee.
   const calculateExtraGuestCharges = () =>
     getExtraGuestCharge(currentPackage, formData.guestCount);
 
@@ -133,6 +136,9 @@ function Booking() {
       total,
       guestCount: formData.guestCount,
       maxCapacity: getMaxCapacityForPackage(),
+      // WHAT: Log the fee rate so you can debug admin changes in the browser console.
+      // WHY:  Without this you can't tell if the new fee is being read correctly.
+      extraGuestFeeRate: currentPackage?.extraGuestFee ?? 150,
       package: selectedPackage,
       session: selectedSession,
       date: formData.reservationDate,
@@ -200,15 +206,18 @@ function Booking() {
     setFormData((prev) => ({ ...prev, [name]: newValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    // Update extra-guest warning using API capacity
+    // Update extra-guest warning using API capacity and DB fee rate
     if (name === "guestCount") {
       const maxCap = getMaxCapacityForPackage();
       const guests = parseInt(value) || 0;
       if (guests > maxCap && maxCap > 0) {
         const extra = guests - maxCap;
-        const extraCost = extra * 150;
+        // WHAT: Read the fee rate from currentPackage instead of hardcoding 150.
+        // WHY:  The warning message should show the actual rate the admin set.
+        const feeRate = currentPackage?.extraGuestFee ?? 150;
+        const extraCost = extra * feeRate;
         setExtraGuestWarning(
-          `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱150/guest = ₱${extraCost.toLocaleString()} will be added to your total.`,
+          `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱${feeRate}/guest = ₱${extraCost.toLocaleString()} will be added to your total.`,
         );
       } else {
         setExtraGuestWarning("");
@@ -484,7 +493,7 @@ function Booking() {
                 <>
                   <AddonsSelector
                     packageData={currentPackage}
-                    selectedSession={selectedSession} // ← ADD THIS LINE
+                    selectedSession={selectedSession}
                     onAddonsChange={setSelectedAddons}
                   />
                   <PaymentStep

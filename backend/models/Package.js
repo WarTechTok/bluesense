@@ -50,6 +50,28 @@ const packageSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // NEW FIELD: Extra Guest Fee
+    // ─────────────────────────────────────────────────────────────────────────
+    // WHAT: Stores the peso amount charged per guest beyond base capacity.
+    //
+    // WHY:  Before this field, the fee was hardcoded as 150 in multiple places
+    //       (bookingController.js, packageData.js, BookingSummary.jsx).
+    //       Hardcoding means any change requires a code edit + redeployment.
+    //       Storing it here lets the admin change it in Package Management and
+    //       the new rate takes effect immediately everywhere.
+    //
+    // HOW:  `type: Number` — Mongoose only accepts a number here.
+    //       `default: 150` — if you don't supply this field when creating a
+    //       package, MongoDB sets it to 150 automatically. This also means ALL
+    //       your existing packages in the database will read as 150 without any
+    //       migration script, because Mongoose uses the default when the field
+    //       is absent from a stored document.
+    // ─────────────────────────────────────────────────────────────────────────
+    extraGuestFee: {
+      type: Number,
+      default: 150,
+    },
+
     inclusions: [{ type: String }],
 
     // ── PRICING ──────────────────────────────────────────────────────────────

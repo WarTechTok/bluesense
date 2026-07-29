@@ -83,17 +83,25 @@ const BookingSummary = ({
   };
 
   // ============================================
-  // EXTRA PERSONS FEE — from API maxCapacity
-  // ₱150 per person over maxCapacity
+  // EXTRA PERSONS FEE — from API packageData
   // ============================================
+
+  // WHAT: Read the per-person fee from the package object.
+  // WHY:  The old code hardcoded 150 here. Now we read it from packageData
+  //       (which comes from the API) so admin changes take effect immediately.
+  // HOW:  `?? 150` — use 150 only if extraGuestFee is null/undefined.
+  //       This handles old cached data that predates the new field.
+  const feePerPerson = packageData?.extraGuestFee ?? 150;
+
   const getExtraPersonsFee = () => {
     if (!maxCapacity || maxCapacity <= 0) return 0;
     const guestCount = formData.guestCount || 1;
     if (guestCount <= maxCapacity) return 0;
-    return (guestCount - maxCapacity) * 150;
+    // WHAT: Use feePerPerson (from DB) instead of the old hardcoded 150.
+    return (guestCount - maxCapacity) * feePerPerson;
   };
 
-  const extraPersonsFee  = getExtraPersonsFee();
+  const extraPersonsFee   = getExtraPersonsFee();
   const extraPersonsCount = Math.max(0, (formData.guestCount || 0) - maxCapacity);
   const isBelowMin        = minCapacity > 0 && (formData.guestCount || 0) < minCapacity;
 
@@ -164,7 +172,8 @@ const BookingSummary = ({
                 {formData.guestCount} {formData.guestCount === 1 ? 'person' : 'persons'}
                 {extraPersonsCount > 0 && (
                   <span style={{ color: '#e67e22', marginLeft: '8px', fontSize: '0.7rem' }}>
-                    ({extraPersonsCount} extra @ ₱150/head)
+                    {/* WHAT: Show the actual fee rate, not hardcoded 150. */}
+                    ({extraPersonsCount} extra @ ₱{feePerPerson.toLocaleString()}/head)
                   </span>
                 )}
                 {isBelowMin && (
@@ -183,18 +192,26 @@ const BookingSummary = ({
               <span className="value" style={{ fontWeight: '600', color: '#0284c7' }}>{getRateBreakdown()}</span>
             </div>
 
-            {/* Package rate */}
+            {/* Base Rate (was "Package Rate") */}
             <div className="summary-item">
-              <span className="label">Package Rate</span>
+              <span className="label">Base Rate</span>
               <span className="value">₱{pricePerNight.toLocaleString()}</span>
             </div>
 
-            {/* Extra persons fee */}
+            {/* Extra guests fee — shows breakdown: total and rate × count */}
             {extraPersonsFee > 0 && (
               <div className="summary-item">
-                <span className="label">Extra Persons Fee</span>
+                <span className="label">Extra Guests</span>
                 <span className="value" style={{ color: '#e67e22' }}>
+                  {/* WHAT: Show the total fee amount. */}
                   + ₱{extraPersonsFee.toLocaleString()}
+                  {/* WHAT: Show the breakdown below: ₱rate × count pax.
+                      WHY:  Customers need to understand WHY the price is higher
+                            and what the per-person rate is.
+                      HOW:  feePerPerson comes from packageData.extraGuestFee (DB). */}
+                  <span style={{ fontSize: '0.75rem', display: 'block', color: '#b45309' }}>
+                    ₱{feePerPerson.toLocaleString()} × {extraPersonsCount} extra pax
+                  </span>
                 </span>
               </div>
             )}
@@ -209,7 +226,7 @@ const BookingSummary = ({
 
             {/* Total */}
             <div className="summary-total">
-              <span className="label">Total Amount</span>
+              <span className="label">Total</span>
               <span className="value">₱{totalPrice.toLocaleString()}</span>
             </div>
 
@@ -250,7 +267,8 @@ const BookingSummary = ({
             {extraPersonsFee > 0 && (
               <div className="summary-note" style={{ background: '#fef3c7', color: '#92400e' }}>
                 <i className="fas fa-exclamation-triangle"></i>
-                <span>Extra person charge: ₱150 per person beyond package capacity.</span>
+                {/* WHAT: Show the actual fee rate from the DB, not hardcoded 150. */}
+                <span>Extra person charge: ₱{feePerPerson.toLocaleString()} per person beyond package capacity.</span>
               </div>
             )}
             {isBelowMin && (
