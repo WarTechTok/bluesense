@@ -239,16 +239,12 @@ const GuestInfoStep = ({
             </div>
           )}
 
-          {/* NEW: Hard ceiling exceeded — BLOCK message.
-              WHAT: Shown when pax > (maxCapacity + maxExtraGuests).
-              WHY:  Replaces the old hardcoded "Maximum 100 guests only" message.
-                    The ceiling and the message text are now driven by the package DB values.
-              HOW:  totalMaxCapacity is Infinity when no cap → this block never renders.
-                    When it IS a finite number, we show the exact allowed total. */}
+          {/* Hard ceiling exceeded — BLOCK message.
+              Format: "Maximum [total] pax allowed (Base: [base] + Extra: [maxExtra])" */}
           {isAboveCeiling && totalMaxCapacity !== Infinity && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              ⛔ Maximum {totalMaxCapacity} pax allowed for this package. Please reduce
-              your guest count to {totalMaxCapacity} or fewer to continue.
+              ⛔ Maximum {totalMaxCapacity} pax allowed (Base: {baseCapacity} + Extra:{" "}
+              {selectedPackageObj?.maxExtraGuests ?? 0})
             </div>
           )}
 
