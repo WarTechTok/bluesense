@@ -68,16 +68,12 @@ const packageSchema = new mongoose.Schema(
     //       hard cap per package (e.g. fire code limits, venue size).
     //
     // HOW:  type: Number — Mongoose stores it as a number in MongoDB.
-    //       default: null — null means "no cap on extra guests". Any existing
-    //       packages in the DB that don't have this field will read as null
-    //       and behave exactly as before (no extra-guest upper limit enforced).
-    //       This makes the change fully backward-compatible — no migration needed.
-    //       min: 0 — prevents negative values. A value of 0 means zero extra
-    //       guests are allowed (customers must stay at or below base capacity).
+    //       default: 0 means no extra guests by default.
+    //       min: 0 prevents negative values.
     // ─────────────────────────────────────────────────────────────────────────
     maxExtraGuests: {
       type: Number,
-      default: null, // null = no cap; positive integer = hard ceiling above base
+      default: 0, // 0 = no extra guests; positive integer = extra guests allowed
       min: 0,
     },
 

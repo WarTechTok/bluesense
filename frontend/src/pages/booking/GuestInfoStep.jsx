@@ -9,8 +9,8 @@ import React, { useState, useEffect, useCallback } from "react";
 // WHAT: This helper computes maxCapacity + maxExtraGuests from the package object.
 // WHY:  The old code had a hardcoded `> 100` ceiling. Now the ceiling comes from
 //       the package the admin configured in Package Management.
-// HOW:  Returns Infinity when the admin set no cap (maxExtraGuests is null),
-//       so the `> Infinity` check is always false — no limit enforced.
+// HOW:  Always returns a finite number (base + maxExtraGuests).
+//       maxExtraGuests defaults to 0 when not set.
 import { getTotalMaxCapacity } from "../../config/packageData";
 
 const GuestInfoStep = ({
@@ -49,18 +49,13 @@ const GuestInfoStep = ({
     return 0;
   }, [selectedOasis, selectedPackage, selectedPackageObj]);
 
-  // Pre-fill to minimum ONLY when the package changes, not on every keystroke.
-  // formData.guestCount is intentionally excluded from deps: including it caused
-  // the field to snap back to the minimum after every keypress, making it
-  // impossible to delete digits or type a number below the minimum.
-  // Button/error-message validation below handles values under the minimum.
+  // Auto-set guest count to minimum when a package with a minimum is selected
   useEffect(() => {
     const minCapacity = getMinCapacity();
-    if (minCapacity > 0) {
+    if (minCapacity > 0 && formData.guestCount < minCapacity) {
       handleChange({ target: { name: "guestCount", value: minCapacity } });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedOasis, selectedPackage]);
+  }, [selectedOasis, selectedPackage, getMinCapacity, handleChange, formData.guestCount]);
 
   // Listen for profile updates from navbar
   useEffect(() => {
@@ -107,10 +102,7 @@ const GuestInfoStep = ({
   const minCapacity = getMinCapacity();
 
   // NEW: Compute the hard ceiling from the package object.
-  // WHAT: totalMaxCapacity = maxCapacity + maxExtraGuests.
-  //       Infinity when the admin set no cap on extra guests.
-  // WHY:  Replaces the old hardcoded `> 100` check. The ceiling is now
-  //       whatever the admin configured in Package Management.
+  // totalMaxCapacity = base + maxExtraGuests. Always a finite number.
   const totalMaxCapacity = getTotalMaxCapacity(selectedPackageObj);
 
   // NEW: The base capacity (guests included in package price, no extra charge).
@@ -118,10 +110,7 @@ const GuestInfoStep = ({
   //       an extra fee but are still within the allowed ceiling.
   const baseCapacity = selectedPackageObj?.maxCapacity || 0;
 
-  // NEW: Is the guest count above the hard ceiling?
-  // WHAT: true when pax > (maxCapacity + maxExtraGuests).
-  // WHY:  This replaces `formData.guestCount > 100`. The ceiling is now dynamic.
-  // HOW:  totalMaxCapacity is Infinity when no cap → this is always false → no block.
+  // isAboveCeiling: true when guest count exceeds base + maxExtraGuests.
   const isAboveCeiling = Number(formData.guestCount) > totalMaxCapacity;
 
   // WHAT: Is the guest count below the required minimum?
@@ -245,15 +234,13 @@ const GuestInfoStep = ({
           )}
 
           {/* NEW: Hard ceiling exceeded — BLOCK message.
-              WHAT: Shown when pax > (maxCapacity + maxExtraGuests).
-              WHY:  Replaces the old hardcoded "Maximum 100 guests only" message.
-                    The ceiling and the message text are now driven by the package DB values.
-              HOW:  totalMaxCapacity is Infinity when no cap → this block never renders.
-                    When it IS a finite number, we show the exact allowed total. */}
-          {isAboveCeiling && totalMaxCapacity !== Infinity && (
+              Shown when pax exceeds base + maxExtraGuests ceiling. */}
+          {isAboveCeiling && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              ⛔ Maximum {totalMaxCapacity} pax allowed for this package. Please reduce
-              your guest count to {totalMaxCapacity} or fewer to continue.
+              {baseCapacity > 0 && (selectedPackageObj?.maxExtraGuests ?? 0) === 0
+                ? `⛔ Maximum ${totalMaxCapacity} pax allowed. No additional guests permitted for this package.`
+                : `⛔ Maximum ${totalMaxCapacity} pax allowed (Base: ${baseCapacity} + Extra: ${selectedPackageObj?.maxExtraGuests ?? 0})`
+              }
             </div>
           )}
 
@@ -269,10 +256,10 @@ const GuestInfoStep = ({
             </div>
           )}
 
-          {/* Info: shown only when at/above the minimum so it reads as a reminder, not an error */}
-          {minCapacity > 0 && Number(formData.guestCount) >= minCapacity && (
+          {/* Info message for packages with a required minimum */}
+          {minCapacity > 0 && (
             <div style={{ color: "#0284c7", fontSize: "11px", marginTop: "4px" }}>
-              ℹ️ Minimum {minCapacity} guests required for this package.
+              ℹ️ This package requires minimum {minCapacity} guests. Auto-set to {minCapacity}.
             </div>
           )}
 

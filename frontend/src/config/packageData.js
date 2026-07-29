@@ -92,43 +92,13 @@ export const getExtraGuestCharge = (packageObj, guestCount) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NEW HELPER: getTotalMaxCapacity
-// ─────────────────────────────────────────────────────────────────────────────
-// WHAT: Returns the absolute maximum number of guests allowed for a booking.
-//       This is the hard ceiling that blocks any booking above it.
-//
-//       ceiling = maxCapacity + maxExtraGuests
-//
-//       Example: maxCapacity=20, maxExtraGuests=10 → ceiling=30.
-//       A booking of 31 pax will be blocked.
-//
-// WHY:  With maxExtraGuests now on the package, both GuestInfoStep.jsx (frontend
-//       validation) and bookingController.js (backend validation) need to compute
-//       this ceiling. This single helper keeps the logic in one place.
-//
-// HOW:  Returns Infinity when maxExtraGuests is null (admin set no cap), so the
-//       caller can do `pax > getTotalMaxCapacity(pkg)` without a null-check branch.
-//       Uses ?? null (nullish coalescing) so a maxExtraGuests of 0 (zero extras
-//       allowed) is treated as 0, NOT as "no cap".
-//
-// @param {object} packageObj - API-fetched package object
-// @returns {number}          - absolute max guests, or Infinity if no cap is set
-// ─────────────────────────────────────────────────────────────────────────────
+// getTotalMaxCapacity
+// Returns base + maxExtraGuests. Always a finite number.
+// maxExtraGuests defaults to 0 (no extra guests), never null.
 export const getTotalMaxCapacity = (packageObj) => {
-  if (!packageObj) return Infinity;
-
+  if (!packageObj) return 0;
   const base = packageObj.maxCapacity || 0;
-
-  // WHAT: Check if admin has set a cap on extra guests.
-  // HOW:  maxExtraGuests is null when the admin left the field blank (= no cap).
-  //       We MUST use ?? null here, not || null, because 0 is a valid value
-  //       meaning "zero extra guests allowed" — || would wrongly treat 0 as null.
-  const maxExtra = packageObj.maxExtraGuests ?? null;
-
-  // WHAT: No cap set → return Infinity so any pax count passes the ceiling check.
-  if (maxExtra === null) return Infinity;
-
-  // WHAT: Ceiling = base capacity + allowed extra guests.
+  const maxExtra = packageObj.maxExtraGuests ?? 0;
   return base + maxExtra;
 };
 
@@ -162,7 +132,7 @@ export const getCapacityFeeInfo = (packageObj, guestCount) => {
     extraGuestCharge: extraGuestCount * feePerPerson,
     isOverCapacity: extraGuestCount > 0,
     feePerPerson,
-    // NEW: ceiling value — Infinity when no cap, or base + maxExtraGuests when set.
+    // ceiling = base + maxExtraGuests (always a finite number)
     totalMaxCapacity,
   };
 };

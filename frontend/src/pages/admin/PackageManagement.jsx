@@ -143,17 +143,8 @@ const PackageManagement = () => {
         ...formData,
         image: formData.images[0] || formData.image || "",
 
-        // NEW: Convert the maxExtraGuests input value to a number or null.
-        // WHAT: HTML inputs always give strings. We need to convert before sending.
-        // WHY:  An empty string ("") sent to Mongoose would fail validation.
-        //       null tells the backend "no cap on extra guests".
-        // HOW:  If the field is empty ("") or blank, send null.
-        //       Otherwise parse it as an integer.
-        //       parseInt("") returns NaN — the || null turns NaN into null.
-        maxExtraGuests:
-          formData.maxExtraGuests === "" || formData.maxExtraGuests === null
-            ? null
-            : parseInt(formData.maxExtraGuests) || null,
+        // Convert maxExtraGuests string to integer. Defaults to 0 (no extras).
+        maxExtraGuests: parseInt(formData.maxExtraGuests) || 0,
       };
 
       if (editingPackage) {
@@ -218,13 +209,7 @@ const PackageManagement = () => {
       maxCapacity: pkg.maxCapacity || 20,
       minCapacity: pkg.minCapacity || 0,
 
-      // NEW: Pre-fill maxExtraGuests from the saved DB value.
-      // WHAT: When admin opens an existing package to edit it, the form must
-      //       show the currently saved cap — not reset to empty.
-      // HOW:  pkg.maxExtraGuests is null for packages with no cap (or old
-      //       packages that predate this field). We convert null → "" so the
-      //       HTML input shows as empty (meaning "no cap"). A number stays a number.
-      maxExtraGuests: pkg.maxExtraGuests ?? "",
+      maxExtraGuests: pkg.maxExtraGuests ?? 0,
 
       // EXISTING: Pre-fill extraGuestFee from the saved DB value.
       extraGuestFee: pkg.extraGuestFee ?? 150,
@@ -282,11 +267,7 @@ const PackageManagement = () => {
       maxCapacity: 20,
       minCapacity: 0,
 
-      // NEW: Reset maxExtraGuests to "" (no cap) when admin clicks "Add New Package".
-      // WHY:  Without this, if the admin previously edited a package with
-      //       maxExtraGuests=10 and then clicks "Add New Package", the new form
-      //       would still show 10 from the previous edit session.
-      maxExtraGuests: "",
+      maxExtraGuests: 0,
 
       // EXISTING: Reset extraGuestFee to 150 (standard default).
       extraGuestFee: 150,
@@ -312,11 +293,9 @@ const PackageManagement = () => {
   //       Returns null when no cap is set (so nothing is rendered in the card).
   // WHY:  Admins see the full ceiling at a glance without opening the edit form.
   const getTotalCapacityLabel = (pkg) => {
-    if (pkg.maxExtraGuests != null && pkg.maxExtraGuests >= 0) {
-      const totalMax = pkg.maxCapacity + pkg.maxExtraGuests;
-      return `${pkg.maxCapacity} base + ${pkg.maxExtraGuests} extra = ${totalMax} max`;
-    }
-    return null; // no extra guest cap set — don't show this row
+    const totalMax = pkg.maxCapacity + (pkg.maxExtraGuests ?? 0);
+    const extraLabel = pkg.maxExtraGuests === 0 ? "None" : `${pkg.maxExtraGuests} extra`;
+    return `${pkg.maxCapacity} base + ${extraLabel} = ${totalMax} max`;
   };
 
   const getPricingPreview = (pkg) => {
@@ -674,40 +653,18 @@ const PackageManagement = () => {
                     {/* NEW: Max Extra Guests input */}
                     <div className="form-group">
                       <label>Max Extra Guests Allowed</label>
-                      {/*
-                        WHAT: The maximum number of guests the customer can add ABOVE
-                              the base capacity. The absolute booking ceiling is:
-                                Base Capacity + Max Extra Guests
-                              Example: base=20, maxExtraGuests=10 → max booking = 30 pax.
-
-                        WHY:  Before this field, there was no upper limit on how many
-                              extra guests could be added — only the base capacity existed.
-                              This lets admins cap bookings per package (e.g. fire code).
-
-                        HOW:  - type="number" restricts the keyboard to numbers only.
-                              - value={formData.maxExtraGuests} makes it a controlled input.
-                              - onChange stores the raw string value in state.
-                                The conversion to number/null happens in handleSubmit.
-                              - min="0" prevents negative values in the browser UI.
-                              - placeholder="No limit" shows when the field is empty,
-                                indicating that leaving it blank = no cap on extra guests.
-                      */}
                       <input
                         type="number"
                         value={formData.maxExtraGuests}
-                        onChange={(e) => setFormData({ ...formData, maxExtraGuests: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, maxExtraGuests: parseInt(e.target.value) || 0 })}
                         min="0"
-                        placeholder="No limit"
+                        placeholder="0"
                       />
                       <small>
-                        Max extra guests above base capacity. Leave blank for no limit.
-                        {/* NEW: Live preview of the total ceiling as the admin types.
-                            WHAT: Shows "Total max: 30 pax" when base=20 and extra=10.
-                            WHY:  Immediate feedback so the admin doesn't have to do mental math.
-                            HOW:  Only renders when both fields have valid numbers. */}
-                        {formData.maxCapacity > 0 && formData.maxExtraGuests !== "" && parseInt(formData.maxExtraGuests) >= 0 && (
+                        Extra guests allowed above base capacity. 0 = no extra guests.
+                        {formData.maxCapacity > 0 && (
                           <span style={{ color: "#0284c7", marginLeft: "6px" }}>
-                            → Total max: {formData.maxCapacity + parseInt(formData.maxExtraGuests)} pax
+                            Total max: {formData.maxCapacity + (parseInt(formData.maxExtraGuests) || 0)} pax
                           </span>
                         )}
                       </small>
