@@ -9,6 +9,14 @@ const Booking = require("../models/Booking");
 const Sale = require("../models/Sale");
 const { uploadPaymentProof, uploadRefundProof, deleteFromCloudinary } = require("../utils/cloudinary");
 
+// NEW IMPORT: Package model — needed to look up maxCapacity, maxExtraGuests,
+// and extraGuestFee from the database instead of a hardcoded map.
+// WHY:  The old PACKAGE_CAPACITY object was hardcoded in this file, meaning
+//       any admin change to package capacity in Package Management had NO effect
+//       on the backend validation. Now we read directly from MongoDB so admin
+//       changes are enforced immediately on new bookings.
+const Package = require("../models/Package");
+
 // ============================================
 // CAPACITY CONFIGURATION
 // ============================================
@@ -78,26 +86,24 @@ const OASIS_CONFIG = {
   },
 };
 
-const PACKAGE_CAPACITY = {
-  "Oasis 1": {
-    "Package 1": { base: 20, max: 200 }, // 20 base, up to 100 total with extra charge
-    "Package 2": { base: 20, max: 200 },
-    "Package 3": { base: 20, max: 200 },
-    "Package 4": { base: 20, max: 200 },
-    "Package 5": { base: 20, max: 200 },
-    "Package 5+": { base: 30, max: 200 }, // 30 base, up to 100 total
-  },
-  "Oasis 2": {
-    "Package A": { base: 30, max: 200 },
-    "Package B": { base: 30, max: 200 },
-    "Package C": { base: 50, max: 200 }, // 50 base, up to 100 total
-  },
-};
+// NOTE: The old PACKAGE_CAPACITY hardcoded map has been REMOVED.
+// It used to look like:
+//   const PACKAGE_CAPACITY = {
+//     "Oasis 1": { "Package 1": { base: 20, max: 200 }, ... },
+//     "Oasis 2": { "Package A": { base: 30, max: 200 }, ... },
+//   };
+//
+// WHY REMOVED: Any admin change to maxCapacity or maxExtraGuests in Package
+// Management had zero effect on booking validation because the controller was
+// reading from this static object, not from the database.
+//
+// REPLACED BY: A live MongoDB lookup in createBooking using:
+//   const packageDoc = await Package.findOne({ oasis, name: packageName });
+// This means the admin's settings take effect on the very next booking.
 
 // ============================================
 // HELPER: Generate unique booking reference
 // ============================================
-// Generates reference like: A1B2C3, X9Y8Z7, etc. (6-character random alphanumeric)
 
 const generateBookingReference = async () => {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -105,13 +111,10 @@ const generateBookingReference = async () => {
   let reference;
 
   while (!isUnique) {
-    // Generate random 6-character alphanumeric code
     reference = '';
     for (let i = 0; i < 6; i++) {
       reference += characters.charAt(Math.floor(Math.random() * characters.length));
     }
-    
-    // Check if reference is unique
     const existingRef = await Booking.findOne({ bookingReference: reference });
     if (!existingRef) {
       isUnique = true;
@@ -134,8 +137,7 @@ const getDayRange = (date) => {
 };
 
 // ============================================
-// CREATE BOOKING - NO LIMITS VERSION
-// Customers can book as many as they want as long as they pay
+// CREATE BOOKING
 // ============================================
 
 const createBooking = async (req, res) => {
@@ -204,9 +206,9 @@ const createBooking = async (req, res) => {
     console.log(`   downpayment: ${downpayment}`);
     console.log(`   paymentMethod: ${paymentMethod}`);
 
-    const trimmedCustomerName = customerName?.trim();
+    const trimmedCustomerName    = customerName?.trim();
     const trimmedCustomerContact = customerContact?.trim();
-    const trimmedCustomerEmail = customerEmail?.trim();
+    const trimmedCustomerEmail   = customerEmail?.trim();
 
     if (!trimmedCustomerName || !trimmedCustomerEmail) {
       return res.status(400).json({
@@ -245,20 +247,20 @@ const createBooking = async (req, res) => {
 
     if (!bookingDate || !pax || !totalPrice || downpayment === undefined || downpayment === null) {
       const missingFields = [];
-      if (!bookingDate) missingFields.push("bookingDate");
-      if (!pax) missingFields.push("pax");
-      if (!totalPrice) missingFields.push("totalPrice");
+      if (!bookingDate)  missingFields.push("bookingDate");
+      if (!pax)          missingFields.push("pax");
+      if (!totalPrice)   missingFields.push("totalPrice");
       if (downpayment === undefined || downpayment === null) missingFields.push("downpayment");
-      
+
       return res.status(400).json({
         success: false,
         message: `❌ VALIDATION FAILED - Missing fields: ${missingFields.join(", ")}`,
         details: {
-          bookingDate: bookingDate || "MISSING",
-          pax: pax || "MISSING",
-          totalPrice: totalPrice || "MISSING",
-          downpayment: downpayment !== undefined && downpayment !== null ? downpayment : "MISSING"
-        }
+          bookingDate:  bookingDate  || "MISSING",
+          pax:          pax          || "MISSING",
+          totalPrice:   totalPrice   || "MISSING",
+          downpayment:  downpayment !== undefined && downpayment !== null ? downpayment : "MISSING",
+        },
       });
     }
 
@@ -273,15 +275,7 @@ const createBooking = async (req, res) => {
     let selectedDate;
     if (typeof bookingDate === "string") {
       const [year, month, day] = bookingDate.split("-");
-      selectedDate = new Date(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        0,
-        0,
-        0,
-        0,
-      );
+      selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
     } else {
       selectedDate = new Date(bookingDate);
     }
@@ -290,25 +284,72 @@ const createBooking = async (req, res) => {
     const { start, end } = getDayRange(selectedDate);
 
     // ============================================
-    // 1. CHECK PACKAGE CAPACITY
+    // 1. VALIDATE PAX AGAINST PACKAGE CAPACITY (DB-DRIVEN)
     // ============================================
+    // NEW: Fetch the package document from MongoDB instead of reading from
+    // the old hardcoded PACKAGE_CAPACITY map.
+    //
+    // WHAT: Look up the package by oasis + name to get:
+    //   - maxCapacity    (base, included in price)
+    //   - maxExtraGuests (hard ceiling above base; null = no cap)
+    //   - extraGuestFee  (charge per extra guest; default 150)
+    //
+    // WHY:  Admin changes in Package Management now take effect immediately on
+    //       new bookings. Previously, any admin edit was ignored by the backend.
+    //
+    // HOW:  Package.findOne({ oasis, name: packageName }) hits the packages
+    //       collection directly. We only use the capacity fields — not pricing.
+    // ─────────────────────────────────────────────────────────────────────────
+    const packageDoc = await Package.findOne({ oasis, name: packageName });
 
-    const packageLimit = PACKAGE_CAPACITY[oasis]?.[packageName];
-    if (packageLimit) {
-      const maxAllowed = typeof packageLimit === "object" ? packageLimit.max : packageLimit;
-      const baseCapacity = typeof packageLimit === "object" ? packageLimit.base : packageLimit;
+    if (packageDoc) {
+      const baseCapacity = packageDoc.maxCapacity;
 
-      if (pax > maxAllowed) {
-        return res.status(400).json({
-          success: false,
-          message: `${packageName} can only accommodate up to ${maxAllowed} persons maximum. You have ${pax} persons.`,
-        });
+      // NEW: Read maxExtraGuests from the DB.
+      // WHAT: null means the admin set no cap → no upper limit enforced.
+      //       A number means the hard ceiling is base + maxExtraGuests.
+      const maxExtraGuests = packageDoc.maxExtraGuests ?? null;
+
+      const guestCount = parseInt(pax);
+
+      if (maxExtraGuests !== null) {
+        // NEW: Admin has set a cap on extra guests — enforce the hard ceiling.
+        // WHAT: totalMax is the absolute maximum number of guests allowed.
+        // HOW:  totalMax = baseCapacity + maxExtraGuests
+        //       Example: base=20, maxExtraGuests=10 → totalMax=30.
+        //       A booking of 31 pax is rejected with a clear error message.
+        const totalMax = baseCapacity + maxExtraGuests;
+
+        if (guestCount > totalMax) {
+          // BLOCK: pax exceeds the hard ceiling.
+          // WHAT: Return a 400 error — the booking is not created.
+          // WHY:  This mirrors the frontend block in GuestInfoStep.jsx. The backend
+          //       check is the authoritative one — it protects against bypassed UI.
+          // HOW:  The error message tells the customer the exact ceiling so they
+          //       know what to reduce their count to.
+          console.log(`❌ PAX EXCEEDS MAX: ${guestCount} > ${totalMax} (base ${baseCapacity} + extra ${maxExtraGuests})`);
+          return res.status(400).json({
+            success: false,
+            message: `Maximum ${totalMax} pax allowed for ${packageName} (${baseCapacity} base + ${maxExtraGuests} extra). You have ${guestCount} guests.`,
+          });
+        }
       }
 
-      if (pax > baseCapacity) {
-        const extraGuests = pax - baseCapacity;
-        console.log(`✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * 150}`);
+      // WHAT: If pax is above base capacity (but within ceiling), log the extra charge.
+      // WHY:  Useful for debugging and audit trail. The actual price validation
+      //       happens on the frontend (BookingSummary); we trust the totalPrice
+      //       sent by the client here.
+      if (guestCount > baseCapacity) {
+        const extraGuests = guestCount - baseCapacity;
+        const feePerPerson = packageDoc.extraGuestFee ?? 150;
+        console.log(`✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * feePerPerson}`);
       }
+    } else {
+      // Package not found in DB — log a warning but don't block the booking.
+      // WHY:  If somehow the package was deleted between the customer selecting it
+      //       and submitting, we don't want to silently fail. The warning appears
+      //       in the server logs for the admin to investigate.
+      console.warn(`⚠️ Package "${packageName}" not found in DB for oasis "${oasis}". Skipping capacity check.`);
     }
 
     // ============================================
@@ -347,23 +388,13 @@ const createBooking = async (req, res) => {
       return res.status(409).json({
         success: false,
         message: "This date and session is already booked. Please select another date or session.",
-        error: "DUPLICATE_BOOKING"
+        error: "DUPLICATE_BOOKING",
       });
     }
 
     // ============================================
     // 4. CHECK DATE ADVANCE LIMITS
     // ============================================
-
-    // const maxAdvanceDate = new Date();
-    // maxAdvanceDate.setMonth(maxAdvanceDate.getMonth() + 3);
-
-    // if (selectedDate > maxAdvanceDate) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "You can only book up to 3 months in advance.",
-    //   });
-    // }
 
     const minAdvanceDate = new Date();
     minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
@@ -380,7 +411,6 @@ const createBooking = async (req, res) => {
     // CREATE BOOKING - ALL CHECKS PASSED
     // ============================================
 
-    // Generate unique booking reference
     let bookingReference;
     let isUnique = false;
     while (!isUnique) {
@@ -391,11 +421,10 @@ const createBooking = async (req, res) => {
       }
     }
 
-    // Generate sequential booking number
     const lastBooking = await Booking.findOne()
       .sort({ bookingNumber: -1 })
-      .select('bookingNumber');
-    
+      .select("bookingNumber");
+
     const nextBookingNumber = (lastBooking?.bookingNumber || 0) + 1;
 
     const newBooking = new Booking({
@@ -415,21 +444,18 @@ const createBooking = async (req, res) => {
       paymentType: paymentType || "downpayment",
       paymentProof: paymentProof || null,
       status: status || "Pending",
-      // Derive paymentStatus and stored downpayment from paymentType.
-      // Never trust the client-supplied paymentStatus — it could be stale or spoofed.
-      // fullpayment → Paid + downpayment = totalPrice (balance = 0)
-      // downpayment → Partial + downpayment = whatever the customer paid
-      paymentStatus: (paymentType === "fullpayment") ? "Paid" : "Partial",
-      downpayment:   (paymentType === "fullpayment") ? parseFloat(totalPrice) : parseFloat(downpayment),
+      // Derive paymentStatus from paymentType — never trust the client-supplied value.
+      paymentStatus: paymentType === "fullpayment" ? "Paid" : "Partial",
+      downpayment:   paymentType === "fullpayment" ? parseFloat(totalPrice) : parseFloat(downpayment),
       bookingReference: bookingReference,
-      bookingNumber: nextBookingNumber
+      bookingNumber: nextBookingNumber,
     });
 
     await newBooking.save();
 
     console.log(`✅ Booking created successfully:`);
     console.log(`   - Booking ID: ${newBooking._id}`);
-    console.log(`   - Payment Proof Saved: ${newBooking.paymentProof || 'NONE'}`);
+    console.log(`   - Payment Proof Saved: ${newBooking.paymentProof || "NONE"}`);
 
     res.status(201).json({
       success: true,
@@ -446,7 +472,7 @@ const createBooking = async (req, res) => {
 };
 
 // ============================================
-// GET ALL BOOKINGS - EXACT SAME PATTERN AS ROOMS
+// GET ALL BOOKINGS
 // ============================================
 
 const getAllBookings = async (req, res) => {
@@ -454,11 +480,10 @@ const getAllBookings = async (req, res) => {
   try {
     const bookings = await Booking.find().sort({ createdAt: -1 });
     console.log(`✅ Found ${bookings.length} bookings`);
-    
-    // Log bookings with payment proofs
-    const bookingsWithProofs = bookings.filter(b => b.paymentProof);
+
+    const bookingsWithProofs = bookings.filter((b) => b.paymentProof);
     console.log(`📸 ${bookingsWithProofs.length} bookings have payment proofs`);
-    
+
     res.json(bookings);
   } catch (error) {
     console.error("❌ Error in getAllBookings:", error);
@@ -467,20 +492,19 @@ const getAllBookings = async (req, res) => {
 };
 
 // ============================================
-// GET BOOKING BY ID - para sa details
+// GET BOOKING BY ID
 // ============================================
 
 const getBookingById = async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
-    // Removed .populate to avoid errors
 
     if (!booking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
     console.log(`📋 Retrieved booking ${req.params.id}:`);
-    console.log(`   - Payment Proof: ${booking.paymentProof || 'NONE'}`);
+    console.log(`   - Payment Proof: ${booking.paymentProof || "NONE"}`);
     console.log(`   - Payment Status: ${booking.paymentStatus}`);
     console.log(`   - Status: ${booking.status}`);
 
@@ -516,39 +540,34 @@ const updateBooking = async (req, res) => {
       addons,
     } = req.body;
 
-    // Get current booking to check status
     const currentBooking = await Booking.findById(id);
     if (!currentBooking) {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    // Prevent edits on completed bookings
     if (currentBooking.status === "Completed") {
       return res.status(400).json({ message: "Cannot modify a completed booking" });
     }
 
-    // Build update object with provided fields
     const updateData = {};
-    if (customerName !== undefined) updateData.customerName = customerName;
+    if (customerName    !== undefined) updateData.customerName    = customerName;
     if (customerContact !== undefined) updateData.customerContact = customerContact;
-    if (customerEmail !== undefined) updateData.customerEmail = customerEmail;
-    if (oasis !== undefined) updateData.oasis = oasis;
-    if (packageName !== undefined) updateData.package = packageName;
-    if (session !== undefined) updateData.session = session;
-    if (bookingDate !== undefined) updateData.bookingDate = bookingDate;
-    if (pax !== undefined) updateData.pax = pax;
-    if (totalPrice !== undefined) updateData.totalPrice = totalPrice;
-    if (downpayment !== undefined) updateData.downpayment = downpayment;
-    if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod;
-    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
-    if (status !== undefined) updateData.status = status;
+    if (customerEmail   !== undefined) updateData.customerEmail   = customerEmail;
+    if (oasis           !== undefined) updateData.oasis           = oasis;
+    if (packageName     !== undefined) updateData.package         = packageName;
+    if (session         !== undefined) updateData.session         = session;
+    if (bookingDate     !== undefined) updateData.bookingDate     = bookingDate;
+    if (pax             !== undefined) updateData.pax             = pax;
+    if (totalPrice      !== undefined) updateData.totalPrice      = totalPrice;
+    if (downpayment     !== undefined) updateData.downpayment     = downpayment;
+    if (paymentMethod   !== undefined) updateData.paymentMethod   = paymentMethod;
+    if (paymentStatus   !== undefined) updateData.paymentStatus   = paymentStatus;
+    if (status          !== undefined) updateData.status          = status;
     if (specialRequests !== undefined) updateData.specialRequests = specialRequests;
-    if (addons !== undefined) updateData.addons = addons || {};
+    if (addons          !== undefined) updateData.addons          = addons || {};
 
-    // Update the booking
     const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
 
-    // Handle sale record creation/updates based on status change
     if (status === "Confirmed" && (!currentBooking.status || currentBooking.status !== "Confirmed")) {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale && booking.totalPrice) {
@@ -565,7 +584,6 @@ const updateBooking = async (req, res) => {
       }
     }
 
-    // Delete sale record if booking is cancelled
     if (status === "Cancelled" && currentBooking.status !== "Cancelled") {
       const deletedSale = await Sale.findOneAndDelete({ booking: id });
       if (deletedSale) {
@@ -573,10 +591,7 @@ const updateBooking = async (req, res) => {
       }
     }
 
-    res.json({
-      message: "Booking updated successfully",
-      booking,
-    });
+    res.json({ message: "Booking updated successfully", booking });
   } catch (error) {
     console.error("Error updating booking:", error);
     res.status(400).json({ message: error.message });
@@ -584,25 +599,20 @@ const updateBooking = async (req, res) => {
 };
 
 // ============================================
+// UPDATE BOOKING STATUS
+// ============================================
 
 const updateBookingStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status, confirmedBy } = req.body;
 
-    // Prevent operations on completed bookings
     const currentBooking = await Booking.findById(id);
     if (currentBooking.status === "Completed") {
-      return res
-        .status(400)
-        .json({ message: "Cannot modify a completed booking" });
+      return res.status(400).json({ message: "Cannot modify a completed booking" });
     }
-    // Allow cancellation of Checked-in bookings (customer left before checkout, etc.)
-    // but block any other status change
     if (currentBooking.status === "Checked-in" && status !== "Cancelled") {
-      return res
-        .status(400)
-        .json({ message: "Checked-in bookings can only be cancelled or checked out" });
+      return res.status(400).json({ message: "Checked-in bookings can only be cancelled or checked out" });
     }
 
     const updateData = { status };
@@ -610,11 +620,8 @@ const updateBookingStatus = async (req, res) => {
       updateData.confirmedBy = confirmedBy;
     }
 
-    const booking = await Booking.findByIdAndUpdate(id, updateData, {
-      new: true,
-    });
+    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
 
-    // Create sale record when booking is confirmed or completed (when payment is received)
     if (status === "Completed" && booking.totalAmount) {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale) {
@@ -624,14 +631,13 @@ const updateBookingStatus = async (req, res) => {
           bookingNumber: booking.bookingNumber || 0,
           bookingReference: booking.bookingReference,
           location: booking.oasis,
-          date: new Date(), // FIX: explicitly set date so it's always present for report filtering
+          date: new Date(),
         });
         await sale.save();
         console.log(`✅ Sale record created for ${status} booking ${id} (Booking #${booking.bookingNumber})`);
       }
     }
 
-    // Delete sale record if booking is cancelled
     if (status === "Cancelled") {
       const deletedSale = await Sale.findOneAndDelete({ booking: id });
       if (deletedSale) {
@@ -639,17 +645,14 @@ const updateBookingStatus = async (req, res) => {
       }
     }
 
-    res.json({
-      message: `Booking ${status}`,
-      booking,
-    });
+    res.json({ message: `Booking ${status}`, booking });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
 // ============================================
-// UPDATE PAYMENT STATUS - for partial payments
+// UPDATE PAYMENT STATUS
 // ============================================
 
 const updatePaymentStatus = async (req, res) => {
@@ -657,26 +660,17 @@ const updatePaymentStatus = async (req, res) => {
     const { id } = req.params;
     const { paymentStatus } = req.body;
 
-    // If setting to 'Paid', update downpayment to match totalAmount
-    // This prevents balance from being recalculated and auto-correcting to 'Partial'
     const updateData = { paymentStatus };
-    if (paymentStatus === 'Paid') {
+    if (paymentStatus === "Paid") {
       const booking = await Booking.findById(id);
       if (booking && booking.totalAmount) {
         updateData.downpayment = booking.totalAmount;
       }
     }
 
-    const booking = await Booking.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true },
-    );
+    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
 
-    res.json({
-      message: `Payment ${paymentStatus}`,
-      booking,
-    });
+    res.json({ message: `Payment ${paymentStatus}`, booking });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -705,60 +699,47 @@ const getBookingsByCustomerEmail = async (req, res) => {
 };
 
 // ============================================
-// DELETE BOOKING - admin only (optional)
+// DELETE BOOKING
 // ============================================
 
 const deleteBooking = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get booking details before deletion
     const booking = await Booking.findById(id);
-    
+
     if (!booking) {
-      return res.status(404).json({ 
-        success: false,
-        message: "Booking not found" 
-      });
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // Prevent deletion of completed bookings
     if (booking.status === "Completed") {
-      return res.status(400).json({ 
-        success: false,
-        message: "Cannot delete a completed booking" 
-      });
+      return res.status(400).json({ success: false, message: "Cannot delete a completed booking" });
     }
 
-    // Delete associated sale record
     const deletedSale = await Sale.findOneAndDelete({ booking: id });
     if (deletedSale) {
       console.log(`🗑️ Sale record deleted for booking ${id}`);
       console.log(`   Booking Reference: ${booking.bookingReference}`);
       console.log(`   Customer: ${booking.customerName}`);
-      console.log(`   Amount: ₱${booking.totalAmount?.toLocaleString() || 'N/A'}`);
+      console.log(`   Amount: ₱${booking.totalAmount?.toLocaleString() || "N/A"}`);
     }
 
-    // Delete the booking itself
     const deletedBooking = await Booking.findByIdAndDelete(id);
 
     console.log(`🗑️ Booking deleted successfully`);
-    console.log(`   Booking #${booking.bookingNumber || 'N/A'}`);
+    console.log(`   Booking #${booking.bookingNumber || "N/A"}`);
     console.log(`   Reference: ${booking.bookingReference}`);
     console.log(`   Status: ${booking.status}`);
 
-    res.json({ 
+    res.json({
       success: true,
       message: "Booking and associated sales records deleted successfully",
       deletedBooking,
-      deletedSale
+      deletedSale,
     });
   } catch (error) {
     console.error("Error deleting booking:", error);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -771,20 +752,16 @@ const getBookedDatesWithSessions = async (req, res) => {
     const { oasis, email } = req.query;
 
     if (!oasis) {
-      return res.status(400).json({
-        success: false,
-        message: "Oasis is required",
-      });
+      return res.status(400).json({ success: false, message: "Oasis is required" });
     }
 
     const getLocalDateString = (date) => {
-      const year = date.getFullYear();
+      const year  = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
+      const day   = String(date.getDate()).padStart(2, "0");
       return `${year}-${month}-${day}`;
     };
 
-    // Fetch ALL bookings for this OASIS (Confirmed AND Pending)
     const bookings = await Booking.find({
       oasis,
       status: { $in: ["Confirmed", "Pending"] },
@@ -792,42 +769,20 @@ const getBookedDatesWithSessions = async (req, res) => {
 
     console.log(`📅 Found ${bookings.length} bookings for ${oasis}`);
 
-    // Group bookings by date and session with status tracking
     const bookedDatesMap = {};
 
     bookings.forEach((booking) => {
-      const dateStr = getLocalDateString(booking.bookingDate);
-      const session = booking.session || "Day";
+      const dateStr   = getLocalDateString(booking.bookingDate);
+      const session   = booking.session || "Day";
       const isConfirmed = booking.status === "Confirmed";
-      const isPending = booking.status === "Pending";
+      const isPending   = booking.status === "Pending";
 
       if (!bookedDatesMap[dateStr]) {
         bookedDatesMap[dateStr] = {
           date: dateStr,
-          Day: { 
-            booked: false, 
-            status: "available", 
-            count: 0, 
-            names: [],
-            hasConfirmed: false,
-            hasPending: false
-          },
-          Night: { 
-            booked: false, 
-            status: "available", 
-            count: 0, 
-            names: [],
-            hasConfirmed: false,
-            hasPending: false
-          },
-          "22hrs": { 
-            booked: false, 
-            status: "available", 
-            count: 0, 
-            names: [],
-            hasConfirmed: false,
-            hasPending: false
-          },
+          Day:    { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
+          Night:  { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
+          "22hrs":{ booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
           userHasBooking: false,
           userBookingSession: null,
           userBookingStatus: null,
@@ -838,16 +793,10 @@ const getBookedDatesWithSessions = async (req, res) => {
         const sessionInfo = bookedDatesMap[dateStr][session];
         sessionInfo.count += 1;
         sessionInfo.names.push(booking.customerName);
-        
-        // Track if there are confirmed or pending bookings
-        if (isConfirmed) {
-          sessionInfo.hasConfirmed = true;
-        }
-        if (isPending) {
-          sessionInfo.hasPending = true;
-        }
-        
-        // Determine the status priority: confirmed > pending > available
+
+        if (isConfirmed) sessionInfo.hasConfirmed = true;
+        if (isPending)   sessionInfo.hasPending   = true;
+
         if (sessionInfo.hasConfirmed) {
           sessionInfo.status = "confirmed";
           sessionInfo.booked = true;
@@ -855,27 +804,23 @@ const getBookedDatesWithSessions = async (req, res) => {
           sessionInfo.status = "pending";
           sessionInfo.booked = true;
         }
-        
-        // Check if this booking belongs to the current user
+
         if (email && booking.customerEmail === email) {
-          bookedDatesMap[dateStr].userHasBooking = true;
-          bookedDatesMap[dateStr].userBookingSession = session;
-          bookedDatesMap[dateStr].userBookingStatus = booking.status;
+          bookedDatesMap[dateStr].userHasBooking     = true;
+          bookedDatesMap[dateStr].userBookingSession  = session;
+          bookedDatesMap[dateStr].userBookingStatus   = booking.status;
           console.log(`✅ User ${email} has ${booking.status} booking on ${dateStr} for ${session} session`);
         }
       }
     });
 
-    // Process each date to determine availability for new bookings
     Object.keys(bookedDatesMap).forEach((dateStr) => {
       const dayInfo = bookedDatesMap[dateStr];
-
-      // 22hrs blocks both Day and Night
       if (dayInfo["22hrs"].count > 0) {
         dayInfo["22hrs"].booked = true;
         dayInfo["22hrs"].status = dayInfo["22hrs"].hasConfirmed ? "confirmed" : "pending";
-        dayInfo.Day.booked = true;
-        dayInfo.Day.status = dayInfo["22hrs"].status;
+        dayInfo.Day.booked  = true;
+        dayInfo.Day.status  = dayInfo["22hrs"].status;
         dayInfo.Night.booked = true;
         dayInfo.Night.status = dayInfo["22hrs"].status;
       }
@@ -883,16 +828,10 @@ const getBookedDatesWithSessions = async (req, res) => {
 
     console.log("📤 Returning booked dates with status:", Object.keys(bookedDatesMap));
 
-    res.json({
-      success: true,
-      bookedDates: bookedDatesMap,
-    });
+    res.json({ success: true, bookedDates: bookedDatesMap });
   } catch (error) {
     console.error("Error fetching booked dates:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -902,36 +841,25 @@ const getBookedDatesWithSessions = async (req, res) => {
 
 const verifyPayment = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id; // From auth token
+    const { id }    = req.params;
+    const userId    = req.user?.id;
 
     const booking = await Booking.findById(id);
 
     if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
-    // Determine payment status based on payment type and current status
-    // If payment status is already "Partial", verify the remaining balance and set to "Paid"
-    // Otherwise, determine based on payment type
     let paymentStatus;
     let isRemainingPayment = false;
 
-    if (booking.paymentStatus === 'Partial') {
-      // Guest is paying the remaining balance
-      paymentStatus = 'Paid';
+    if (booking.paymentStatus === "Partial") {
+      paymentStatus = "Paid";
       isRemainingPayment = true;
     } else {
-      // Initial payment verification
-      paymentStatus = booking.paymentType === 'fullpayment' ? 'Paid' : 'Partial';
+      paymentStatus = booking.paymentType === "fullpayment" ? "Paid" : "Partial";
     }
 
-    // Update booking — mark payment as verified and booking as confirmed.
-    // For fullpayment OR when verifying the remaining balance (isRemainingPayment),
-    // also set downpayment = totalAmount so the balance always reads ₱0.
     const updateFields = {
       paymentStatus: paymentStatus,
       status: "Confirmed",
@@ -939,24 +867,16 @@ const verifyPayment = async (req, res) => {
       paymentVerifiedAt: new Date(),
       confirmedBy: userId,
     };
-    if (paymentStatus === 'Paid') {
-      // Align downpayment to totalAmount so (totalAmount - downpayment) = 0
+    if (paymentStatus === "Paid") {
       updateFields.downpayment = booking.totalAmount;
     }
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      updateFields,
-      { new: true },
-    ).populate("paymentVerifiedBy", "name email");
+    const updatedBooking = await Booking.findByIdAndUpdate(id, updateFields, { new: true })
+      .populate("paymentVerifiedBy", "name email");
 
-    // Note: Sale record will be created only when booking status changes to "Completed"
-    // This is handled in the updateBookingStatus function
-
-    // Send email notification to customer
     const sendEmail = require("../utils/sendEmail");
     const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
     try {
-      const isFullyPaid = booking.paymentType === 'fullpayment' || isRemainingPayment;
+      const isFullyPaid      = booking.paymentType === "fullpayment" || isRemainingPayment;
       const remainingBalance = booking.totalAmount - booking.downpayment;
 
       await sendEmail({
@@ -1027,26 +947,21 @@ const verifyPayment = async (req, res) => {
       });
     } catch (emailError) {
       console.error("Error sending confirmation email:", emailError);
-      // Don't throw error, booking is already confirmed
     }
 
     res.json({
       success: true,
-      message:
-        "Payment verified successfully. Booking confirmed and customer notified.",
+      message: "Payment verified successfully. Booking confirmed and customer notified.",
       booking: updatedBooking,
     });
   } catch (error) {
     console.error("Error verifying payment:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // ============================================
-// DELETE PAYMENT PROOF - Staff deletes payment proof after verification
+// DELETE PAYMENT PROOF
 // ============================================
 
 const deletePaymentProof = async (req, res) => {
@@ -1056,20 +971,13 @@ const deletePaymentProof = async (req, res) => {
     const booking = await Booking.findById(id);
 
     if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found",
-      });
+      return res.status(404).json({ success: false, message: "Booking not found" });
     }
 
     if (!booking.paymentProof) {
-      return res.status(400).json({
-        success: false,
-        message: "No payment proof to delete",
-      });
+      return res.status(400).json({ success: false, message: "No payment proof to delete" });
     }
 
-    // Delete from Cloudinary if URL is a Cloudinary URL
     try {
       if (booking.paymentProof && booking.paymentProof.includes("cloudinary.com")) {
         await deleteFromCloudinary(booking.paymentProof);
@@ -1079,26 +987,16 @@ const deletePaymentProof = async (req, res) => {
       console.warn("⚠️  Could not delete from Cloudinary:", fileDeleteError.message);
     }
 
-    // Update booking - remove payment proof
     const updatedBooking = await Booking.findByIdAndUpdate(
       id,
-      {
-        paymentProof: null,
-      },
-      { new: true },
+      { paymentProof: null },
+      { new: true }
     );
 
-    res.json({
-      success: true,
-      message: "Payment proof deleted successfully",
-      booking: updatedBooking,
-    });
+    res.json({ success: true, message: "Payment proof deleted successfully", booking: updatedBooking });
   } catch (error) {
     console.error("Error deleting payment proof:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -1111,50 +1009,35 @@ const cancelBooking = async (req, res) => {
     const { id } = req.params;
     const { reason, isEmergency } = req.body;
     const proofFile = req.file;
-    
+
     const booking = await Booking.findById(id);
-    
+
     if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: "Booking not found. Please refresh and try again."
-      });
+      return res.status(404).json({ success: false, message: "Booking not found. Please refresh and try again." });
     }
-    
-    // Check if booking belongs to this user
+
     if (booking.customerEmail !== req.user.email) {
-      return res.status(403).json({
-        success: false,
-        message: "You can only cancel your own bookings."
-      });
+      return res.status(403).json({ success: false, message: "You can only cancel your own bookings." });
     }
-    
-    // Check if booking can be cancelled
-    if (booking.status === 'Cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: "This booking has already been cancelled."
-      });
+
+    if (booking.status === "Cancelled") {
+      return res.status(400).json({ success: false, message: "This booking has already been cancelled." });
     }
-    
-    if (booking.status === 'Completed') {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot cancel a completed booking."
-      });
+
+    if (booking.status === "Completed") {
+      return res.status(400).json({ success: false, message: "Cannot cancel a completed booking." });
     }
-    
-    // Update booking
-    booking.status = 'Cancelled';
-    booking.cancellationReason = isEmergency === 'true' ? 'emergency' : 'user_cancelled';
-    booking.cancellationNote = reason || 'User requested cancellation';
-    booking.cancelledAt = new Date();
-    booking.cancelledBy = req.user.email;
-    
-    if (isEmergency === 'true') {
+
+    booking.status             = "Cancelled";
+    booking.cancellationReason = isEmergency === "true" ? "emergency" : "user_cancelled";
+    booking.cancellationNote   = reason || "User requested cancellation";
+    booking.cancelledAt        = new Date();
+    booking.cancelledBy        = req.user.email;
+
+    if (isEmergency === "true") {
       booking.refundRequested = true;
-      booking.refundStatus = 'pending';
-      booking.refundReason = reason;
+      booking.refundStatus    = "pending";
+      booking.refundReason    = reason;
       if (proofFile) {
         try {
           const { url } = await uploadRefundProof(proofFile.buffer);
@@ -1165,49 +1048,33 @@ const cancelBooking = async (req, res) => {
         }
       }
     }
-    
+
     await booking.save();
-    
-    // Delete associated sale record if exists
+
     const existingSale = await Sale.findOne({ booking: id });
     if (existingSale) {
       await Sale.findOneAndDelete({ booking: id });
     }
-    
-    let message = "";
-    if (isEmergency === 'true') {
-      message = "✅ Your cancellation has been submitted successfully. Your refund request is now pending review. Our team will get back to you within 3-5 business days.";
-    } else {
-      message = "✅ Your booking has been cancelled. Please note that the downpayment is non-refundable.";
-    }
-    
-    res.json({
-      success: true,
-      message: message,
-      booking
-    });
-    
+
+    const message = isEmergency === "true"
+      ? "✅ Your cancellation has been submitted successfully. Your refund request is now pending review. Our team will get back to you within 3-5 business days."
+      : "✅ Your booking has been cancelled. Please note that the downpayment is non-refundable.";
+
+    res.json({ success: true, message, booking });
   } catch (error) {
     console.error("Cancel booking error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Something went wrong. Please try again later."
-    });
+    res.status(500).json({ success: false, message: "Something went wrong. Please try again later." });
   }
 };
 
 // ============================================
-// CHECK-IN - Customer arrives at the resort.
-// Transitions: Confirmed → Checked-in
-// Does NOT complete the booking or create a Sale.
-// Payment collection (if Partial) is noted here — actual
-// money received on-site; paymentStatus stays Partial until check-out.
+// CHECK-IN - Confirmed → Checked-in
 // ============================================
 
 const checkIn = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id;
+    const { id }   = req.params;
+    const userId   = req.user?.id;
 
     const booking = await Booking.findById(id);
     if (!booking)
@@ -1219,22 +1086,15 @@ const checkIn = async (req, res) => {
     if (booking.status === "Cancelled")
       return res.status(400).json({ success: false, message: "Cannot check in a cancelled booking" });
     if (booking.status !== "Confirmed")
-      return res.status(400).json({
-        success: false,
-        message: "Booking must be Confirmed before check-in. Verify the downpayment first.",
-      });
+      return res.status(400).json({ success: false, message: "Booking must be Confirmed before check-in. Verify the downpayment first." });
 
-    booking.status     = "Checked-in";
-    booking.checkedInBy = userId;
-    booking.checkedInAt = new Date();
+    booking.status      = "Checked-in";
+    booking.checkedInBy  = userId;
+    booking.checkedInAt  = new Date();
     await booking.save();
 
     console.log(`✅ Check-in: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
-    res.json({
-      success: true,
-      message: `${booking.customerName} has been checked in successfully.`,
-      booking,
-    });
+    res.json({ success: true, message: `${booking.customerName} has been checked in successfully.`, booking });
   } catch (error) {
     console.error("Error during check-in:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -1242,16 +1102,13 @@ const checkIn = async (req, res) => {
 };
 
 // ============================================
-// CHECK-OUT - Customer leaves the resort.
-// Transitions: Checked-in → Completed
-// If payment was still Partial (paid remaining on-site), marks as Paid.
-// Creates the Sale record — revenue is only recorded at check-out.
+// CHECK-OUT - Checked-in → Completed
 // ============================================
 
 const checkOut = async (req, res) => {
   try {
-    const { id } = req.params;
-    const userId = req.user?.id;
+    const { id }  = req.params;
+    const userId  = req.user?.id;
 
     const booking = await Booking.findById(id);
     if (!booking)
@@ -1259,14 +1116,10 @@ const checkOut = async (req, res) => {
     if (booking.status === "Completed")
       return res.status(400).json({ success: false, message: "Booking is already completed" });
     if (booking.status !== "Checked-in")
-      return res.status(400).json({
-        success: false,
-        message: "Booking must be in Checked-in status before check-out.",
-      });
+      return res.status(400).json({ success: false, message: "Booking must be in Checked-in status before check-out." });
 
-    // If customer paid remaining on-site (still Partial), mark fully paid now
     if (booking.paymentStatus === "Partial") {
-      booking.downpayment = booking.totalAmount; // align so balance reads ₱0
+      booking.downpayment   = booking.totalAmount;
       booking.paymentStatus = "Paid";
     }
 
@@ -1275,7 +1128,6 @@ const checkOut = async (req, res) => {
     booking.checkedOutAt  = new Date();
     await booking.save();
 
-    // Create Sale record — only at Completed (check-out) stage
     const existingSale = await Sale.findOne({ booking: id });
     if (!existingSale && booking.totalAmount) {
       const sale = new Sale({
@@ -1291,34 +1143,27 @@ const checkOut = async (req, res) => {
     }
 
     console.log(`✅ Check-out: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
-    res.json({
-      success: true,
-      message: `${booking.customerName} has been checked out. Booking completed.`,
-      booking,
-    });
+    res.json({ success: true, message: `${booking.customerName} has been checked out. Booking completed.`, booking });
   } catch (error) {
     console.error("Error during check-out:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
 // ============================================
-// CLEANUP ORPHANED SALES - Remove sales with no matching booking
+// CLEANUP ORPHANED SALES
 // ============================================
 
 const cleanupOrphanedSales = async (req, res) => {
   try {
     console.log("🧹 Starting cleanup of orphaned sales records...");
-    
-    // Get all sales records
+
     const allSales = await Sale.find();
     console.log(`📊 Total sales in database: ${allSales.length}`);
-    
+
     let orphanedCount = 0;
     const orphanedSales = [];
-    
-    // Check each sale to see if it has a matching booking
+
     for (const sale of allSales) {
       if (sale.booking) {
         const booking = await Booking.findById(sale.booking);
@@ -1328,61 +1173,51 @@ const cleanupOrphanedSales = async (req, res) => {
         }
       }
     }
-    
+
     if (orphanedCount === 0) {
       return res.json({
         success: true,
         message: "✅ No orphaned sales found. All sales have matching bookings.",
         totalSales: allSales.length,
-        orphanedCount: 0
+        orphanedCount: 0,
       });
     }
-    
+
     console.log(`🗑️ Found ${orphanedCount} orphaned sales records`);
-    
-    // Delete orphaned sales
+
     const result = await Sale.deleteMany({ _id: { $in: orphanedSales } });
-    
+
     console.log(`✅ Deleted ${result.deletedCount} orphaned sales records`);
-    
+
     res.json({
       success: true,
       message: `✅ Cleanup complete! Deleted ${orphanedCount} orphaned sales records.`,
       totalSales: allSales.length,
       orphanedCount: orphanedCount,
       deletedCount: result.deletedCount,
-      orphanedSalesIds: orphanedSales
+      orphanedSalesIds: orphanedSales,
     });
   } catch (error) {
     console.error("❌ Error cleaning up orphaned sales:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error cleaning up orphaned sales: " + error.message
-    });
+    res.status(500).json({ success: false, message: "Error cleaning up orphaned sales: " + error.message });
   }
 };
 
 // ============================================
-// SYNC BOOKINGS & SALES - Bidirectional Data Integrity
+// SYNC BOOKINGS & SALES
 // ============================================
-/**
- * Comprehensive cleanup to ensure only accurate booking & sales data
- * - Removes sales with missing bookings
- * - Removes sales for non-completed bookings
- * - Ensures bidirectional data integrity
- */
+
 const syncBookingsAndSales = async (req, res) => {
   try {
     console.log("🔄 Starting comprehensive booking & sales sync...\n");
-    
+
     let deletedOrphanedSales = 0;
     let deletedSalesForNonCompleted = 0;
     let issues = [];
-    
-    // ===== STEP 1: Remove orphaned sales (no matching booking) =====
+
     console.log("📋 Step 1: Removing sales with missing bookings...");
     const allSales = await Sale.find();
-    
+
     for (const sale of allSales) {
       if (sale.booking) {
         const booking = await Booking.findById(sale.booking);
@@ -1393,42 +1228,36 @@ const syncBookingsAndSales = async (req, res) => {
         }
       }
     }
-    
-    // ===== STEP 2: Remove sales for non-completed bookings =====
+
     console.log("\n📋 Step 2: Removing sales for non-completed bookings...");
-    const salesForNonCompleted = await Sale.find()
-      .populate('booking', 'status bookingReference bookingNumber');
-    
+    const salesForNonCompleted = await Sale.find().populate("booking", "status bookingReference bookingNumber");
+
     for (const sale of salesForNonCompleted) {
-      if (sale.booking && sale.booking.status !== 'Completed') {
+      if (sale.booking && sale.booking.status !== "Completed") {
         await Sale.findByIdAndDelete(sale._id);
         deletedSalesForNonCompleted++;
         console.log(`  🗑️ Deleted sale for ${sale.booking.status} booking: ${sale.booking.bookingReference}`);
       }
     }
-    
-    // ===== STEP 3: Verify final state =====
+
     console.log("\n📋 Step 3: Verifying final data state...");
     const finalBookings = await Booking.find();
-    const finalSales = await Sale.find().populate('booking', 'bookingReference status bookingNumber');
-    
-    // Check for any remaining issues
+    const finalSales    = await Sale.find().populate("booking", "bookingReference status bookingNumber");
+
     for (const sale of finalSales) {
-      if (sale.booking) {
-        if (sale.booking.status !== 'Completed') {
-          issues.push({
-            type: 'WARNING',
-            issue: 'Sale found for non-completed booking',
-            sale: sale._id,
-            booking: sale.booking.bookingReference,
-            status: sale.booking.status
-          });
-        }
+      if (sale.booking && sale.booking.status !== "Completed") {
+        issues.push({
+          type: "WARNING",
+          issue: "Sale found for non-completed booking",
+          sale: sale._id,
+          booking: sale.booking.bookingReference,
+          status: sale.booking.status,
+        });
       }
     }
-    
+
     console.log(`\n✅ Sync Complete!\n`);
-    
+
     res.json({
       success: true,
       message: "✅ Booking and Sales data synchronized successfully!",
@@ -1438,16 +1267,13 @@ const syncBookingsAndSales = async (req, res) => {
         deletedOrphanedSales,
         deletedSalesForNonCompleted,
         totalDeleted: deletedOrphanedSales + deletedSalesForNonCompleted,
-        remainingIssues: issues.length
+        remainingIssues: issues.length,
       },
-      issues: issues
+      issues: issues,
     });
   } catch (error) {
     console.error("❌ Error syncing bookings & sales:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error syncing bookings & sales: " + error.message
-    });
+    res.status(500).json({ success: false, message: "Error syncing bookings & sales: " + error.message });
   }
 };
 
@@ -1458,53 +1284,40 @@ const syncBookingsAndSales = async (req, res) => {
 const verifySalesConnection = async (req, res) => {
   try {
     console.log("🔍 Verifying sales and bookings connection...");
-    
+
     const allBookings = await Booking.find();
-    const allSales = await Sale.find();
-    
+    const allSales    = await Sale.find();
+
     console.log(`📊 Total bookings: ${allBookings.length}`);
     console.log(`💰 Total sales: ${allSales.length}`);
-    
-    let connectedCount = 0;
+
+    let connectedCount   = 0;
     let orphanedBookings = 0;
-    let orphanedSales = 0;
+    let orphanedSales    = 0;
     const issues = [];
-    
-    // Check bookings without sales (when they should have them)
+
     for (const booking of allBookings) {
-      if (booking.status === 'Completed') {
+      if (booking.status === "Completed") {
         const sale = await Sale.findOne({ booking: booking._id });
         if (!sale) {
           orphanedBookings++;
-          issues.push({
-            type: 'Missing Sale',
-            bookingId: booking._id,
-            bookingRef: booking.bookingReference,
-            bookingStatus: booking.status,
-            bookingNumber: booking.bookingNumber
-          });
+          issues.push({ type: "Missing Sale", bookingId: booking._id, bookingRef: booking.bookingReference, bookingStatus: booking.status, bookingNumber: booking.bookingNumber });
         } else {
           connectedCount++;
         }
       }
     }
-    
-    // Check sales with missing bookings
+
     for (const sale of allSales) {
       if (sale.booking) {
         const booking = await Booking.findById(sale.booking);
         if (!booking) {
           orphanedSales++;
-          issues.push({
-            type: 'Orphaned Sale',
-            saleId: sale._id,
-            bookingId: sale.booking,
-            amount: sale.amount
-          });
+          issues.push({ type: "Orphaned Sale", saleId: sale._id, bookingId: sale.booking, amount: sale.amount });
         }
       }
     }
-    
+
     res.json({
       success: true,
       summary: {
@@ -1512,16 +1325,13 @@ const verifySalesConnection = async (req, res) => {
         totalSales: allSales.length,
         connectedPairs: connectedCount,
         orphanedBookings: orphanedBookings,
-        orphanedSales: orphanedSales
+        orphanedSales: orphanedSales,
       },
-      issues: issues.slice(0, 50) // Show first 50 issues
+      issues: issues.slice(0, 50),
     });
   } catch (error) {
     console.error("❌ Error verifying sales connection:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error verifying connection: " + error.message
-    });
+    res.status(500).json({ success: false, message: "Error verifying connection: " + error.message });
   }
 };
 
@@ -1542,5 +1352,5 @@ module.exports = {
   cancelBooking,
   cleanupOrphanedSales,
   verifySalesConnection,
-  syncBookingsAndSales
+  syncBookingsAndSales,
 };

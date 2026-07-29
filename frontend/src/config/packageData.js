@@ -65,69 +65,105 @@ export const getPriceFromPackage = (packageObj, session, date, pax = 1) => {
  * Calculate extra-guest charge from an API package object.
  *
  * WHAT: Returns the total extra fee for guests beyond the base capacity.
- * WHY:  The fee rate used to be hardcoded as 150. Now we read it from
- *       packageObj.extraGuestFee so that any admin change in Package
- *       Management takes effect immediately without a code change.
+ * WHY:  The fee rate is read from packageObj.extraGuestFee (per-package)
+ *       rather than a hardcoded constant, so admin changes take effect immediately.
  * HOW:  (guestCount - included) × feePerPerson
  *
- * @param {object} packageObj  - API-fetched package (must have .maxCapacity, .extraGuestFee)
+ * @param {object} packageObj  - API-fetched package (.maxCapacity, .extraGuestFee)
  * @param {number} guestCount  - total number of guests the customer entered
- * @returns {number}           - total extra charge in pesos (0 if within capacity)
+ * @returns {number}           - total extra charge in pesos (0 if within base capacity)
  */
 export const getExtraGuestCharge = (packageObj, guestCount) => {
   if (!packageObj) return 0;
 
-  // WHAT: The number of guests whose cost is already included in the base price.
-  // WHY:  We only charge for guests ABOVE this — not for everyone.
-  // HOW:  Reads maxCapacity from the package object. Falls back to 0 so the
-  //       charge only fires when we actually know the capacity limit.
+  // WHAT: Guests up to maxCapacity are included in the package price.
   const included = packageObj.maxCapacity || 0;
 
-  // WHAT: If the guest count is within the included limit, no extra charge.
+  // WHAT: No extra charge if guest count is within the included limit.
   if (guestCount <= included) return 0;
 
-  // WHAT: Read the per-person fee from the package object.
-  // WHY:  This is the new editable field the admin sets in Package Management.
-  //       It lives in the database, not in this file.
-  // HOW:  `?? 150` means: use 150 ONLY if extraGuestFee is null or undefined.
-  //       This is different from `|| 150` — the `??` operator (nullish coalescing)
-  //       won't replace a valid value of 0, while `||` would.
+  // WHAT: Read the per-person fee from the package (set by admin).
+  // HOW:  ?? 150 uses 150 only if extraGuestFee is null or undefined.
+  //       It won't replace a valid value of 0 (unlike ||).
   const feePerPerson = packageObj.extraGuestFee ?? 150;
 
-  // WHAT: The total extra charge = number of extra guests × fee per person.
-  // Example: 5 extra guests × ₱200/person = ₱1,000
+  // WHAT: Total = number of extra guests × fee per person.
   return (guestCount - included) * feePerPerson;
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW HELPER: getTotalMaxCapacity
+// ─────────────────────────────────────────────────────────────────────────────
+// WHAT: Returns the absolute maximum number of guests allowed for a booking.
+//       This is the hard ceiling that blocks any booking above it.
+//
+//       ceiling = maxCapacity + maxExtraGuests
+//
+//       Example: maxCapacity=20, maxExtraGuests=10 → ceiling=30.
+//       A booking of 31 pax will be blocked.
+//
+// WHY:  With maxExtraGuests now on the package, both GuestInfoStep.jsx (frontend
+//       validation) and bookingController.js (backend validation) need to compute
+//       this ceiling. This single helper keeps the logic in one place.
+//
+// HOW:  Returns Infinity when maxExtraGuests is null (admin set no cap), so the
+//       caller can do `pax > getTotalMaxCapacity(pkg)` without a null-check branch.
+//       Uses ?? null (nullish coalescing) so a maxExtraGuests of 0 (zero extras
+//       allowed) is treated as 0, NOT as "no cap".
+//
+// @param {object} packageObj - API-fetched package object
+// @returns {number}          - absolute max guests, or Infinity if no cap is set
+// ─────────────────────────────────────────────────────────────────────────────
+export const getTotalMaxCapacity = (packageObj) => {
+  if (!packageObj) return Infinity;
+
+  const base = packageObj.maxCapacity || 0;
+
+  // WHAT: Check if admin has set a cap on extra guests.
+  // HOW:  maxExtraGuests is null when the admin left the field blank (= no cap).
+  //       We MUST use ?? null here, not || null, because 0 is a valid value
+  //       meaning "zero extra guests allowed" — || would wrongly treat 0 as null.
+  const maxExtra = packageObj.maxExtraGuests ?? null;
+
+  // WHAT: No cap set → return Infinity so any pax count passes the ceiling check.
+  if (maxExtra === null) return Infinity;
+
+  // WHAT: Ceiling = base capacity + allowed extra guests.
+  return base + maxExtra;
+};
+
 /**
- * Returns a breakdown object for capacity fee display in BookingSummary.
+ * Returns a full breakdown object for capacity fee display in BookingSummary.
  *
- * WHAT: Returns extraGuestCount, extraGuestCharge, isOverCapacity, and feePerPerson.
- * WHY:  BookingSummary.jsx needs the count and the rate separately so it can
- *       display "₱200 × 5 extra pax" instead of just "₱1,000".
- * HOW:  Same logic as getExtraGuestCharge but returns structured data.
+ * WHAT: Returns extraGuestCount, extraGuestCharge, isOverCapacity, feePerPerson,
+ *       AND totalMaxCapacity so callers have everything they need in one call.
+ * WHY:  BookingSummary.jsx needs the count and rate separately to display
+ *       "₱150 × 5 extra pax = ₱750". It also needs totalMaxCapacity to show
+ *       the "max X pax" label when a cap is set.
  *
  * @param {object} packageObj  - API-fetched package
- * @param {number} guestCount  - total guests
- * @returns {{ extraGuestCount, extraGuestCharge, isOverCapacity, feePerPerson }}
+ * @param {number} guestCount  - total guests entered by customer
+ * @returns {{ extraGuestCount, extraGuestCharge, isOverCapacity, feePerPerson, totalMaxCapacity }}
  */
 export const getCapacityFeeInfo = (packageObj, guestCount) => {
   const included = packageObj?.maxCapacity || 0;
   const extraGuestCount = Math.max(0, (guestCount || 0) - included);
 
-  // WHAT: Read the per-person fee the same way as getExtraGuestCharge.
-  // WHY:  Consistency — both helpers must use the exact same fee rate
-  //       so the displayed breakdown always matches the calculated total.
+  // WHAT: Same fee lookup as getExtraGuestCharge — must stay consistent.
   const feePerPerson = packageObj?.extraGuestFee ?? 150;
+
+  // NEW: Also compute the absolute ceiling so BookingSummary can display it.
+  // WHY:  Having it here means callers don't need a separate import of
+  //       getTotalMaxCapacity — one call returns everything.
+  const totalMaxCapacity = getTotalMaxCapacity(packageObj);
 
   return {
     extraGuestCount,
-    // WHAT: Total extra fee = count × rate.
     extraGuestCharge: extraGuestCount * feePerPerson,
     isOverCapacity: extraGuestCount > 0,
-    // WHAT: Expose feePerPerson so the UI can show "₱200 × 5 pax".
-    // WHY:  Without this, the UI would have to duplicate the ?? 150 logic itself.
     feePerPerson,
+    // NEW: ceiling value — Infinity when no cap, or base + maxExtraGuests when set.
+    totalMaxCapacity,
   };
 };
 
@@ -167,15 +203,11 @@ export const getAvailableSessionsFromPackage = (packageObj) =>
 // API-driven helpers above instead of these.
 // ============================================
 
-// Empty oasisPackages shell — structure only, no prices, no capacities.
-// If any component still references oasisPackages[x].packages[y] it will
-// get an empty object back rather than a stale hardcoded price.
 export const oasisPackages = {
   'Oasis 1': { name: 'Oasis 1', packages: {} },
   'Oasis 2': { name: 'Oasis 2', packages: {} },
 };
 
-// These still work but return 0 (forcing callers to use API-driven helpers).
 export const getPackagePrice    = () => 0;
 export const getMaxCapacity     = () => 0;
 export const getBaseCapacity    = () => 0;

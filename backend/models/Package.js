@@ -39,6 +39,7 @@ const packageSchema = new mongoose.Schema(
       },
     },
 
+    // Base capacity — guests up to this number are included in the package price.
     maxCapacity: {
       type: Number,
       required: true,
@@ -50,22 +51,45 @@ const packageSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // NEW FIELD: Extra Guest Fee
     // ─────────────────────────────────────────────────────────────────────────
-    // WHAT: Stores the peso amount charged per guest beyond base capacity.
+    // NEW FIELD: maxExtraGuests
+    // ─────────────────────────────────────────────────────────────────────────
+    // WHAT: The maximum number of guests allowed ABOVE the base capacity
+    //       (maxCapacity). The hard booking ceiling becomes:
+    //         maxCapacity + maxExtraGuests
     //
-    // WHY:  Before this field, the fee was hardcoded as 150 in multiple places
-    //       (bookingController.js, packageData.js, BookingSummary.jsx).
-    //       Hardcoding means any change requires a code edit + redeployment.
-    //       Storing it here lets the admin change it in Package Management and
-    //       the new rate takes effect immediately everywhere.
+    //       Example: maxCapacity=20, maxExtraGuests=10 → max total = 30 pax.
+    //       Guests 1–20 → included in package price (no extra charge).
+    //       Guests 21–30 → each pay extraGuestFee (₱150 by default).
+    //       A booking for 31+ pax → BLOCKED with an error message.
     //
-    // HOW:  `type: Number` — Mongoose only accepts a number here.
-    //       `default: 150` — if you don't supply this field when creating a
-    //       package, MongoDB sets it to 150 automatically. This also means ALL
-    //       your existing packages in the database will read as 150 without any
-    //       migration script, because Mongoose uses the default when the field
-    //       is absent from a stored document.
+    // WHY:  Previously there was no upper bound on extra guests — only the
+    //       base capacity (maxCapacity) existed. This lets admins enforce a
+    //       hard cap per package (e.g. fire code limits, venue size).
+    //
+    // HOW:  type: Number — Mongoose stores it as a number in MongoDB.
+    //       default: null — null means "no cap on extra guests". Any existing
+    //       packages in the DB that don't have this field will read as null
+    //       and behave exactly as before (no extra-guest upper limit enforced).
+    //       This makes the change fully backward-compatible — no migration needed.
+    //       min: 0 — prevents negative values. A value of 0 means zero extra
+    //       guests are allowed (customers must stay at or below base capacity).
+    // ─────────────────────────────────────────────────────────────────────────
+    maxExtraGuests: {
+      type: Number,
+      default: null, // null = no cap; positive integer = hard ceiling above base
+      min: 0,
+    },
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // EXISTING FIELD: extraGuestFee  (per-package, NOT global)
+    // ─────────────────────────────────────────────────────────────────────────
+    // WHAT: The peso amount charged per guest above maxCapacity.
+    // WHY:  Kept per-package so each package can have its own rate.
+    //       No global Settings model is needed.
+    // HOW:  default: 150 — existing packages that were saved before this field
+    //       existed will automatically read as ₱150 (Mongoose applies the
+    //       default at read time; no migration script required).
     // ─────────────────────────────────────────────────────────────────────────
     extraGuestFee: {
       type: Number,
@@ -85,21 +109,15 @@ const packageSchema = new mongoose.Schema(
     // PAX-based packages (Package C — or any future package with isPaxBased:true):
     //   { "50pax": { "Day": 19000, "Night": 20000, "22hrs": 26000 },
     //     "100pax": { "Day": 20000, "Night": 21000, "22hrs": 30000 } }
-    //   The pax numbers come from minCapacity / maxCapacity — they are DYNAMIC.
     //
-    // WHY Mixed (not Map<string, {weekday,weekend}>):
-    //   Mongoose's Map sub-schema validator would coerce any value that doesn't
-    //   match { weekday: Number, weekend: Number } to { weekday: 0, weekend: 0 }.
-    //   PAX-based values like { "Day": 19000 } don't match that shape, so they
-    //   were silently zeroed out on every save.  Using Mixed + Schema.Types.Mixed
-    //   disables that coercion while keeping full flexibility.
+    // WHY Mixed: Mongoose's typed Map would coerce PAX-based values and zero
+    //   them out on every save. Mixed disables that coercion.
     // ─────────────────────────────────────────────────────────────────────────
     pricing: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
 
-    // Flag set automatically by the route based on pricing key shape.
     // true  → pricing keys are pax tiers ("50pax", "100pax", …)
     // false → pricing keys are session names ("Day", "Night", "22hrs")
     isPaxBased: {

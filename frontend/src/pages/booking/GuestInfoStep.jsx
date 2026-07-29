@@ -5,6 +5,14 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 
+// NEW IMPORT: getTotalMaxCapacity tells us the hard ceiling for the selected package.
+// WHAT: This helper computes maxCapacity + maxExtraGuests from the package object.
+// WHY:  The old code had a hardcoded `> 100` ceiling. Now the ceiling comes from
+//       the package the admin configured in Package Management.
+// HOW:  Returns Infinity when the admin set no cap (maxExtraGuests is null),
+//       so the `> Infinity` check is always false — no limit enforced.
+import { getTotalMaxCapacity } from "../../config/packageData";
+
 const GuestInfoStep = ({
   formData,
   errors,
@@ -13,6 +21,13 @@ const GuestInfoStep = ({
   isConfirmed,
   selectedOasis,
   selectedPackage,
+  // NEW PROP: selectedPackageObj
+  // WHAT: The full API-fetched package object (not just the name string).
+  // WHY:  We need maxCapacity and maxExtraGuests from the DB to compute the
+  //       real booking ceiling. The name string alone isn't enough.
+  // HOW:  Pass this from Booking.jsx where `currentPackage` already exists.
+  //       If not provided, we fall back to safe defaults (no ceiling enforced).
+  selectedPackageObj,
 }) => {
   const [userInfo, setUserInfo] = useState({
     fullName: formData.fullName || "",
@@ -20,14 +35,21 @@ const GuestInfoStep = ({
     phone: formData.phone || "",
   });
 
-  // Get minimum capacity for selected package
+  // Get minimum capacity for selected package (driven by DB object when available,
+  // falls back to the hardcoded values for Package 5+ and Package C).
   const getMinCapacity = useCallback(() => {
+    // NEW: Prefer the minCapacity from the package object if available.
+    // WHY: Using the DB value means admin changes in Package Management are
+    //      reflected here immediately — no code change needed.
+    if (selectedPackageObj?.minCapacity > 0) return selectedPackageObj.minCapacity;
+
+    // FALLBACK: keep old hardcoded values so nothing breaks if the prop is missing.
     if (selectedOasis === "Oasis 1" && selectedPackage === "Package 5+") return 30;
     if (selectedOasis === "Oasis 2" && selectedPackage === "Package C") return 50;
     return 0;
-  }, [selectedOasis, selectedPackage]);
+  }, [selectedOasis, selectedPackage, selectedPackageObj]);
 
-  // Auto-set guest count to minimum when Package 5+ or Package C is selected
+  // Auto-set guest count to minimum when a package with a minimum is selected
   useEffect(() => {
     const minCapacity = getMinCapacity();
     if (minCapacity > 0 && formData.guestCount < minCapacity) {
@@ -45,15 +67,9 @@ const GuestInfoStep = ({
           email: updatedUser.email || "",
           phone: updatedUser.phone || "",
         });
-        handleChange({
-          target: { name: "fullName", value: updatedUser.name || "" },
-        });
-        handleChange({
-          target: { name: "email", value: updatedUser.email || "" },
-        });
-        handleChange({
-          target: { name: "phone", value: updatedUser.phone || "" },
-        });
+        handleChange({ target: { name: "fullName", value: updatedUser.name || "" } });
+        handleChange({ target: { name: "email",    value: updatedUser.email || "" } });
+        handleChange({ target: { name: "phone",    value: updatedUser.phone || "" } });
       }
     };
 
@@ -81,11 +97,42 @@ const GuestInfoStep = ({
     });
   }, [formData.fullName, formData.email, formData.phone]);
 
-  // Get min and max capacity
+  // ── Capacity logic ────────────────────────────────────────────────────────
+
   const minCapacity = getMinCapacity();
-  const isGuestCountValid = formData.guestCount <= 100;
-  const isGuestCountAboveMin = minCapacity === 0 || formData.guestCount >= minCapacity;
-  const isConfirmDisabled = isConfirmed || !isGuestCountValid || !isGuestCountAboveMin;
+
+  // NEW: Compute the hard ceiling from the package object.
+  // WHAT: totalMaxCapacity = maxCapacity + maxExtraGuests.
+  //       Infinity when the admin set no cap on extra guests.
+  // WHY:  Replaces the old hardcoded `> 100` check. The ceiling is now
+  //       whatever the admin configured in Package Management.
+  const totalMaxCapacity = getTotalMaxCapacity(selectedPackageObj);
+
+  // NEW: The base capacity (guests included in package price, no extra charge).
+  // WHY:  We use this to show an informational message when guests will incur
+  //       an extra fee but are still within the allowed ceiling.
+  const baseCapacity = selectedPackageObj?.maxCapacity || 0;
+
+  // NEW: Is the guest count above the hard ceiling?
+  // WHAT: true when pax > (maxCapacity + maxExtraGuests).
+  // WHY:  This replaces `formData.guestCount > 100`. The ceiling is now dynamic.
+  // HOW:  totalMaxCapacity is Infinity when no cap → this is always false → no block.
+  const isAboveCeiling = Number(formData.guestCount) > totalMaxCapacity;
+
+  // WHAT: Is the guest count below the required minimum?
+  const isGuestCountAboveMin = minCapacity === 0 || Number(formData.guestCount) >= minCapacity;
+
+  // NEW: Combine both checks to decide if the Confirm button should be disabled.
+  // WHY:  Old code only checked > 100. Now we also block when above the ceiling.
+  const isConfirmDisabled = isConfirmed || isAboveCeiling || !isGuestCountAboveMin;
+
+  // NEW: Will the customer pay an extra guest fee (above base but within ceiling)?
+  // WHY:  We show a soft informational message in this case — not an error, just
+  //       a heads-up that extra charges will apply.
+  const willHaveExtraCharge =
+    baseCapacity > 0 &&
+    Number(formData.guestCount) > baseCapacity &&
+    !isAboveCeiling;
 
   return (
     <div className="step-card">
@@ -115,6 +162,7 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
+
         <div className="form-group">
           <label>
             Email Address <span className="required">*</span>
@@ -126,9 +174,11 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
+
         <div className="form-group">
           <label>
-            Phone Number <span style={{color: '#94a3b8', fontSize: '12px'}}>(optional)</span>
+            Phone Number{" "}
+            <span style={{ color: "#94a3b8", fontSize: "12px" }}>(optional)</span>
           </label>
           <div className="input-wrapper">
             <i className="fas fa-phone input-icon"></i>
@@ -137,7 +187,7 @@ const GuestInfoStep = ({
             </div>
           </div>
         </div>
-        
+
         <div className="form-group">
           <label>
             Number of Guests <span className="required">*</span>
@@ -183,20 +233,38 @@ const GuestInfoStep = ({
           </div>
 
           {/* Minimum capacity warning */}
-          {minCapacity > 0 && formData.guestCount < minCapacity && (
+          {minCapacity > 0 && Number(formData.guestCount) < minCapacity && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
               ⚠️ Minimum {minCapacity} guests required for this package.
             </div>
           )}
 
-          {/* Maximum capacity warning */}
-          {formData.guestCount > 100 && (
+          {/* NEW: Hard ceiling exceeded — BLOCK message.
+              WHAT: Shown when pax > (maxCapacity + maxExtraGuests).
+              WHY:  Replaces the old hardcoded "Maximum 100 guests only" message.
+                    The ceiling and the message text are now driven by the package DB values.
+              HOW:  totalMaxCapacity is Infinity when no cap → this block never renders.
+                    When it IS a finite number, we show the exact allowed total. */}
+          {isAboveCeiling && totalMaxCapacity !== Infinity && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
-              Maximum 100 guests only. Please reduce to 100 or less to confirm.
+              ⛔ Maximum {totalMaxCapacity} pax allowed for this package. Please reduce
+              your guest count to {totalMaxCapacity} or fewer to continue.
             </div>
           )}
 
-          {/* Info message for auto-filled packages */}
+          {/* NEW: Extra charge info message — shown when above base but within ceiling.
+              WHAT: Lets the customer know they'll be charged per extra guest.
+              WHY:  This is helpful UX — they learn about the fee before they confirm.
+              HOW:  willHaveExtraCharge is true only when:
+                      guestCount > baseCapacity  AND  guestCount <= totalMaxCapacity */}
+          {willHaveExtraCharge && (
+            <div style={{ color: "#f59e0b", fontSize: "12px", marginTop: "4px" }}>
+              ℹ️ Guests above {baseCapacity} pax will be charged ₱
+              {(selectedPackageObj?.extraGuestFee ?? 150).toLocaleString()} per person.
+            </div>
+          )}
+
+          {/* Info message for packages with a required minimum */}
           {minCapacity > 0 && (
             <div style={{ color: "#0284c7", fontSize: "11px", marginTop: "4px" }}>
               ℹ️ This package requires minimum {minCapacity} guests. Auto-set to {minCapacity}.

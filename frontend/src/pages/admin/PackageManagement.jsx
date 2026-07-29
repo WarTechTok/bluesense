@@ -30,14 +30,22 @@ const PackageManagement = () => {
     description: "",
     maxCapacity: 20,
     minCapacity: 0,
-    // NEW: extraGuestFee added to form state.
-    // WHAT: Tracks the value the admin types into the Extra Guest Fee input.
+
+    // NEW: maxExtraGuests added to form state.
+    // WHAT: Tracks the value the admin types into the Max Extra Guests input.
     // WHY:  React "controlled inputs" require the value to live in state.
-    //       Without this field here, the input would be "uncontrolled" and
-    //       React would warn you — and the value would NOT be sent to the API.
-    // HOW:  Default is 150, matching the Package model's default, so new
-    //       packages start with the standard fee already pre-filled.
+    //       Without this field in state, the input would be "uncontrolled"
+    //       and the value would NOT be sent to the API when the form is saved.
+    // HOW:  Default is "" (empty string) which we convert to null before
+    //       sending to the API. null in MongoDB means "no cap on extra guests".
+    //       The admin types a number to set a limit (e.g. 10 → max 10 extra guests).
+    maxExtraGuests: "",
+
+    // EXISTING: extraGuestFee stays per-package (not global).
+    // WHAT: The charge in pesos per extra guest above base capacity.
+    // HOW:  Default 150 matches the Package model's default value.
     extraGuestFee: 150,
+
     inclusions: [],
     pricing: {},
     availableSessions: ["Day", "Night"],
@@ -131,14 +139,21 @@ const PackageManagement = () => {
     }
 
     try {
-      // WHAT: Spread formData into packageData — this includes extraGuestFee
-      //       automatically because it's now part of formData state.
-      // WHY:  Whatever is in formData gets sent to the API. Since we added
-      //       extraGuestFee to formData, it will be included in the request
-      //       body without any extra code here.
       const packageData = {
         ...formData,
         image: formData.images[0] || formData.image || "",
+
+        // NEW: Convert the maxExtraGuests input value to a number or null.
+        // WHAT: HTML inputs always give strings. We need to convert before sending.
+        // WHY:  An empty string ("") sent to Mongoose would fail validation.
+        //       null tells the backend "no cap on extra guests".
+        // HOW:  If the field is empty ("") or blank, send null.
+        //       Otherwise parse it as an integer.
+        //       parseInt("") returns NaN — the || null turns NaN into null.
+        maxExtraGuests:
+          formData.maxExtraGuests === "" || formData.maxExtraGuests === null
+            ? null
+            : parseInt(formData.maxExtraGuests) || null,
       };
 
       if (editingPackage) {
@@ -180,7 +195,6 @@ const PackageManagement = () => {
         if (val === undefined || val === null) {
           normalised[session] = { weekday: 0, weekend: 0 };
         } else if (typeof val === "number") {
-          // Flat number — use same value for both day types as starting point
           normalised[session] = { weekday: val, weekend: val };
         } else {
           normalised[session] = { weekday: val.weekday || 0, weekend: val.weekend || 0 };
@@ -203,14 +217,18 @@ const PackageManagement = () => {
       description: pkg.description || "",
       maxCapacity: pkg.maxCapacity || 20,
       minCapacity: pkg.minCapacity || 0,
-      // NEW: Load the saved fee from the package being edited.
-      // WHAT: Pre-fills the Extra Guest Fee input with whatever is stored in the DB.
-      // WHY:  When admin opens an existing package to edit it, the form must
-      //       show the currently saved fee — not reset to 150.
-      // HOW:  pkg.extraGuestFee comes from the API response.
-      //       `?? 150` handles old packages saved before this field existed —
-      //       they'll show 150 as the default, which is correct.
+
+      // NEW: Pre-fill maxExtraGuests from the saved DB value.
+      // WHAT: When admin opens an existing package to edit it, the form must
+      //       show the currently saved cap — not reset to empty.
+      // HOW:  pkg.maxExtraGuests is null for packages with no cap (or old
+      //       packages that predate this field). We convert null → "" so the
+      //       HTML input shows as empty (meaning "no cap"). A number stays a number.
+      maxExtraGuests: pkg.maxExtraGuests ?? "",
+
+      // EXISTING: Pre-fill extraGuestFee from the saved DB value.
       extraGuestFee: pkg.extraGuestFee ?? 150,
+
       inclusions: pkg.inclusions || [],
       pricing: pricingData,
       availableSessions: pkg.availableSessions || ["Day", "Night"],
@@ -224,8 +242,6 @@ const PackageManagement = () => {
   };
 
   // ── Delete ───────────────────────────────────────────────
-  // Opens the inline confirmation dialog — avoids window.confirm()
-  // which can be blocked by browsers / iframes.
   const handleDeleteClick = (pkg) => {
     setDeleteConfirm({ pkg });
     setDeleteError("");
@@ -245,18 +261,12 @@ const PackageManagement = () => {
 
     try {
       await packageApi.deletePackage(pkg._id);
-
-      // Optimistically remove from local state for instant feedback
       setPackages((prev) => prev.filter((p) => p._id !== pkg._id));
-
-      // Then refresh the global cache and re-fetch from the server
       await refreshAllData();
       await fetchPackages();
-
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting package:", error);
-      // error.message is now populated by the apiClient interceptor fix
       setDeleteError(error.message || "Failed to delete package. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -271,13 +281,16 @@ const PackageManagement = () => {
       description: "",
       maxCapacity: 20,
       minCapacity: 0,
-      // NEW: Reset extraGuestFee to 150 when admin clicks "Add New Package".
-      // WHAT: Clears the form back to default values.
+
+      // NEW: Reset maxExtraGuests to "" (no cap) when admin clicks "Add New Package".
       // WHY:  Without this, if the admin previously edited a package with
-      //       ₱200 fee and then clicks "Add New Package", the new form would
-      //       still show ₱200 from the previous edit session.
-      // HOW:  150 matches the Package model's default value.
+      //       maxExtraGuests=10 and then clicks "Add New Package", the new form
+      //       would still show 10 from the previous edit session.
+      maxExtraGuests: "",
+
+      // EXISTING: Reset extraGuestFee to 150 (standard default).
       extraGuestFee: 150,
+
       inclusions: [],
       pricing: {},
       availableSessions: ["Day", "Night"],
@@ -294,14 +307,24 @@ const PackageManagement = () => {
     return `Up to ${pkg.maxCapacity} pax`;
   };
 
+  // NEW: Build the "total max" label shown on each package card.
+  // WHAT: Shows "20 base + 10 extra = 30 total max" when maxExtraGuests is set.
+  //       Returns null when no cap is set (so nothing is rendered in the card).
+  // WHY:  Admins see the full ceiling at a glance without opening the edit form.
+  const getTotalCapacityLabel = (pkg) => {
+    if (pkg.maxExtraGuests != null && pkg.maxExtraGuests >= 0) {
+      const totalMax = pkg.maxCapacity + pkg.maxExtraGuests;
+      return `${pkg.maxCapacity} base + ${pkg.maxExtraGuests} extra = ${totalMax} max`;
+    }
+    return null; // no extra guest cap set — don't show this row
+  };
+
   const getPricingPreview = (pkg) => {
     if (pkg.name === "Package C") {
-      // PAX-based: values may be flat numbers or {weekday} objects
       const dayVal = pkg.pricing?.["50pax"]?.Day;
       const price = typeof dayVal === "number" ? dayVal : (dayVal?.weekday || 0);
       return `₱${price.toLocaleString()}`;
     }
-    // Regular: pricing may be flat { Day: 9000 } OR nested { Day: { weekday: 9000 } }
     const firstVal = Object.values(pkg.pricing || {})[0];
     const firstPrice = typeof firstVal === "number" ? firstVal : (firstVal?.weekday || 0);
     return `₱${firstPrice.toLocaleString()}`;
@@ -490,16 +513,26 @@ const PackageManagement = () => {
                     <span className="label">Capacity:</span>
                     <span className="value">{getCapacityDisplay(pkg)}</span>
                   </div>
+
+                  {/* NEW: Total max pax display — only shown when maxExtraGuests is set.
+                      WHAT: e.g. "20 base + 10 extra = 30 max"
+                      WHY:  Admins can immediately see the booking ceiling without
+                            opening the edit form.
+                      HOW:  getTotalCapacityLabel() returns null when no cap is set,
+                            so this row only renders when it's relevant. */}
+                  {getTotalCapacityLabel(pkg) && (
+                    <div className="detail-item">
+                      <span className="label">Total Max:</span>
+                      <span className="value">{getTotalCapacityLabel(pkg)}</span>
+                    </div>
+                  )}
+
                   <div className="detail-item">
                     <span className="label">Sessions:</span>
                     <span className="value">{pkg.availableSessions?.join(", ")}</span>
                   </div>
                   <div className="detail-item">
                     <span className="label">Extra Guest Fee:</span>
-                    {/* WHAT: Show the current extra guest fee on each package card.
-                        WHY:  Admins can see at a glance what fee each package uses
-                              without having to open the edit form.
-                        HOW:  pkg.extraGuestFee comes from the API. Falls back to 150. */}
                     <span className="value">₱{(pkg.extraGuestFee ?? 150).toLocaleString()}/pax</span>
                   </div>
                   <div className="detail-item">
@@ -526,11 +559,7 @@ const PackageManagement = () => {
       {/* ── Delete Confirmation Modal ── */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={handleDeleteCancel}>
-          <div
-            className="modal-container"
-            style={{ maxWidth: 420 }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-container" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Delete Package</h3>
               <button className="modal-close" onClick={handleDeleteCancel} disabled={isDeleting}>✕</button>
@@ -543,34 +572,15 @@ const PackageManagement = () => {
                 This will permanently remove the package and all its images. This action cannot be undone.
               </p>
               {deleteError && (
-                <div style={{
-                  background: "#fef2f2",
-                  border: "1px solid #fecaca",
-                  borderRadius: 8,
-                  padding: "10px 14px",
-                  color: "#dc2626",
-                  fontSize: "0.85rem",
-                  marginBottom: 16,
-                }}>
+                <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "10px 14px", color: "#dc2626", fontSize: "0.85rem", marginBottom: 16 }}>
                   <i className="fas fa-exclamation-circle" style={{ marginRight: 6 }}></i>
                   {deleteError}
                 </div>
               )}
             </div>
             <div className="modal-footer">
-              <button
-                className="btn-secondary"
-                onClick={handleDeleteCancel}
-                disabled={isDeleting}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn-primary"
-                style={{ background: "#dc2626" }}
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-              >
+              <button className="btn-secondary" onClick={handleDeleteCancel} disabled={isDeleting}>Cancel</button>
+              <button className="btn-primary" style={{ background: "#dc2626" }} onClick={handleDeleteConfirm} disabled={isDeleting}>
                 {isDeleting ? (
                   <><i className="fas fa-spinner fa-spin"></i> Deleting…</>
                 ) : (
@@ -611,6 +621,7 @@ const PackageManagement = () => {
 
             <div className="modal-body">
               <form className="package-form">
+
                 {/* Basic Info */}
                 <div className="form-section">
                   <h4>Basic Information</h4>
@@ -633,8 +644,18 @@ const PackageManagement = () => {
                   </div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Maximum Capacity *</label>
-                      <input type="number" value={formData.maxCapacity} onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })} min="1" />
+                      <label>Base Capacity (included in price) *</label>
+                      {/*
+                        EXISTING FIELD — label updated to "Base Capacity" for clarity.
+                        WHAT: The number of guests whose cost is already covered by the package price.
+                        WHY:  Guests above this number pay extraGuestFee per person.
+                      */}
+                      <input
+                        type="number"
+                        value={formData.maxCapacity}
+                        onChange={(e) => setFormData({ ...formData, maxCapacity: parseInt(e.target.value) })}
+                        min="1"
+                      />
                     </div>
                     <div className="form-group">
                       <label>Minimum Capacity</label>
@@ -647,47 +668,71 @@ const PackageManagement = () => {
                     </div>
                   </div>
 
-                  {/* NEW: Extra Guest Fee input */}
+                  {/* Extra guest settings row */}
                   <div className="form-row">
+
+                    {/* NEW: Max Extra Guests input */}
+                    <div className="form-group">
+                      <label>Max Extra Guests Allowed</label>
+                      {/*
+                        WHAT: The maximum number of guests the customer can add ABOVE
+                              the base capacity. The absolute booking ceiling is:
+                                Base Capacity + Max Extra Guests
+                              Example: base=20, maxExtraGuests=10 → max booking = 30 pax.
+
+                        WHY:  Before this field, there was no upper limit on how many
+                              extra guests could be added — only the base capacity existed.
+                              This lets admins cap bookings per package (e.g. fire code).
+
+                        HOW:  - type="number" restricts the keyboard to numbers only.
+                              - value={formData.maxExtraGuests} makes it a controlled input.
+                              - onChange stores the raw string value in state.
+                                The conversion to number/null happens in handleSubmit.
+                              - min="0" prevents negative values in the browser UI.
+                              - placeholder="No limit" shows when the field is empty,
+                                indicating that leaving it blank = no cap on extra guests.
+                      */}
+                      <input
+                        type="number"
+                        value={formData.maxExtraGuests}
+                        onChange={(e) => setFormData({ ...formData, maxExtraGuests: e.target.value })}
+                        min="0"
+                        placeholder="No limit"
+                      />
+                      <small>
+                        Max extra guests above base capacity. Leave blank for no limit.
+                        {/* NEW: Live preview of the total ceiling as the admin types.
+                            WHAT: Shows "Total max: 30 pax" when base=20 and extra=10.
+                            WHY:  Immediate feedback so the admin doesn't have to do mental math.
+                            HOW:  Only renders when both fields have valid numbers. */}
+                        {formData.maxCapacity > 0 && formData.maxExtraGuests !== "" && parseInt(formData.maxExtraGuests) >= 0 && (
+                          <span style={{ color: "#0284c7", marginLeft: "6px" }}>
+                            → Total max: {formData.maxCapacity + parseInt(formData.maxExtraGuests)} pax
+                          </span>
+                        )}
+                      </small>
+                    </div>
+
+                    {/* EXISTING: Extra Guest Fee input */}
                     <div className="form-group">
                       <label>Extra Guest Fee (₱ per person)</label>
                       {/*
-                        WHAT: A number input for the admin to set the charge
-                              per guest above the base capacity.
-                        WHY:  Before this input, the fee was hardcoded as 150
-                              in the source code. Now the admin can change it
-                              here and the new rate is saved to MongoDB.
-                        HOW:
-                          - `type="number"` restricts the input to numbers only.
-                          - `value={formData.extraGuestFee}` makes this a
-                            "controlled input" — React owns the displayed value
-                            and always keeps it in sync with formData state.
-                          - `onChange` fires every time the admin types.
-                            It calls setFormData with a copy of formData where
-                            only extraGuestFee is changed to the new number.
-                          - `parseInt(e.target.value)` converts the input string
-                            (inputs always give strings) to a real integer.
-                          - `|| 0` means if the field is empty or not a number,
-                            store 0 instead of NaN.
-                          - `min="0"` prevents negative values in the browser UI.
-                          - `placeholder="150"` shows the default value as hint text
-                            when the field is empty.
+                        WHAT: The peso amount charged per guest above base capacity.
+                        WHY:  Kept per-package (not global) so different packages can
+                              have different rates. Admin sets this here.
+                        HOW:  parseInt(e.target.value) || 0 converts the input string
+                              to an integer; || 0 prevents NaN when the field is empty.
                       */}
                       <input
                         type="number"
                         value={formData.extraGuestFee}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            extraGuestFee: parseInt(e.target.value) || 0,
-                          })
+                          setFormData({ ...formData, extraGuestFee: parseInt(e.target.value) || 0 })
                         }
                         min="0"
                         placeholder="150"
                       />
-                      <small>
-                        Charged per guest above base capacity. Default: ₱150/person.
-                      </small>
+                      <small>Charged per guest above base capacity. Default: ₱150/person.</small>
                     </div>
                   </div>
                 </div>
@@ -699,10 +744,7 @@ const PackageManagement = () => {
                     Upload up to 10 images. The first image is used as the cover photo.
                     Drag thumbnails to reorder.
                   </p>
-                  <PackageImageUploader
-                    images={formData.images}
-                    onChange={handleImagesChange}
-                  />
+                  <PackageImageUploader images={formData.images} onChange={handleImagesChange} />
                 </div>
 
                 {/* Sessions */}
@@ -759,6 +801,7 @@ const PackageManagement = () => {
                     <span>Active (visible to customers)</span>
                   </label>
                 </div>
+
               </form>
             </div>
 
