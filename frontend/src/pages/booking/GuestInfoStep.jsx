@@ -101,6 +101,11 @@ const GuestInfoStep = ({
 
   const minCapacity = getMinCapacity();
 
+  // ── DEBUG LOGS — remove once validation is confirmed working ──────────────
+  console.log("[GuestInfoStep] selectedPackageObj:", selectedPackageObj);
+  console.log("[GuestInfoStep] maxCapacity:", selectedPackageObj?.maxCapacity);
+  console.log("[GuestInfoStep] maxExtraGuests:", selectedPackageObj?.maxExtraGuests);
+
   // NEW: Compute the hard ceiling from the package object.
   // WHAT: totalMaxCapacity = maxCapacity + maxExtraGuests.
   //       Infinity when the admin set no cap on extra guests.
@@ -125,6 +130,11 @@ const GuestInfoStep = ({
   // NEW: Combine both checks to decide if the Confirm button should be disabled.
   // WHY:  Old code only checked > 100. Now we also block when above the ceiling.
   const isConfirmDisabled = isConfirmed || isAboveCeiling || !isGuestCountAboveMin;
+
+  console.log("[GuestInfoStep] totalMaxCapacity:", totalMaxCapacity);
+  console.log("[GuestInfoStep] guestCount:", Number(formData.guestCount));
+  console.log("[GuestInfoStep] isAboveCeiling:", isAboveCeiling);
+  console.log("[GuestInfoStep] isConfirmDisabled:", isConfirmDisabled);
 
   // NEW: Will the customer pay an extra guest fee (above base but within ceiling)?
   // WHY:  We show a soft informational message in this case — not an error, just
@@ -239,8 +249,12 @@ const GuestInfoStep = ({
             </div>
           )}
 
-          {/* Hard ceiling exceeded — BLOCK message.
-              Format: "Maximum [total] pax allowed (Base: [base] + Extra: [maxExtra])" */}
+          {/* NEW: Hard ceiling exceeded — BLOCK message.
+              WHAT: Shown when pax > (maxCapacity + maxExtraGuests).
+              WHY:  Replaces the old hardcoded "Maximum 100 guests only" message.
+                    The ceiling and the message text are now driven by the package DB values.
+              HOW:  totalMaxCapacity is Infinity when no cap → this block never renders.
+                    When it IS a finite number, we show the exact allowed total. */}
           {isAboveCeiling && totalMaxCapacity !== Infinity && (
             <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
               ⛔ Maximum {totalMaxCapacity} pax allowed (Base: {baseCapacity} + Extra:{" "}

@@ -457,7 +457,6 @@ function Booking() {
                       <span className="info-value">{selectedPackage}</span>
                     </div>
                   </div>
-                  // ✅ FIXED
                   <GuestInfoStep
                     formData={formData}
                     errors={errors}
@@ -467,7 +466,7 @@ function Booking() {
                     extraGuestWarning={extraGuestWarning}
                     selectedOasis={selectedOasis}
                     selectedPackage={selectedPackage}
-                    selectedPackageObj={currentPackage} // ← ADD THIS
+                    selectedPackageObj={currentPackage}
                   />
                   {errors.confirmInfo && (
                     <span className="error-message confirm-error">
