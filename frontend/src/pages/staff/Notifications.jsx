@@ -69,8 +69,8 @@ const StaffNotificationsPage = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/staff/dashboard' },
     { id: 'tasks', label: 'My Tasks', icon: 'fas fa-tasks', path: '/staff/tasks' },
-    { id: 'rooms', label: 'Assigned Rooms', icon: 'fas fa-door-open', path: '/staff/rooms' },
-    { id: 'inspections', label: 'Room Inspections', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
+    { id: 'rooms', label: 'Assigned Task', icon: 'fas fa-door-open', path: '/staff/rooms' },
+    { id: 'inspections', label: 'Inspection Report', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
   ];
 
   const isActive = (path) => location.pathname === path;

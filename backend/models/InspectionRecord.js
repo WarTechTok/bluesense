@@ -109,6 +109,16 @@ const inspectionRecordSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+
+  // ============================================
+  // RATING
+  // ============================================
+  rating: {
+    type: Number,
+    default: 5,
+    min: 1,
+    max: 10
+  },
   
   // ============================================
   // TIMESTAMPS

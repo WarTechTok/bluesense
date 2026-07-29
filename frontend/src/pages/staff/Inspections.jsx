@@ -104,8 +104,8 @@ const Inspections = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/staff/dashboard' },
     { id: 'tasks', label: 'My Tasks', icon: 'fas fa-tasks', path: '/staff/tasks' },
-    { id: 'rooms', label: 'Assigned Rooms', icon: 'fas fa-door-open', path: '/staff/rooms' },
-    { id: 'inspections', label: 'Room Inspections', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
+    { id: 'rooms', label: 'Assigned Task', icon: 'fas fa-door-open', path: '/staff/rooms' },
+    { id: 'inspections', label: 'Inspection Report', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -284,6 +284,35 @@ const Inspections = () => {
     }
   };
 
+  const getInspectionProofImage = (inspection) => {
+    const candidates = [
+      inspection?.proofImageUrl,
+      inspection?.imageUrl,
+      inspection?.photoUrl,
+      inspection?.inspectionImageUrl,
+      inspection?.photosPath?.[0],
+      inspection?.photos?.[0],
+      inspection?.image?.url,
+      inspection?.image?.secure_url,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate;
+      }
+      if (candidate && typeof candidate === 'object') {
+        if (typeof candidate.url === 'string' && candidate.url.trim()) {
+          return candidate.url;
+        }
+        if (typeof candidate.secure_url === 'string' && candidate.secure_url.trim()) {
+          return candidate.secure_url;
+        }
+      }
+    }
+
+    return null;
+  };
+
   return (
     <div className="admin-layout">
       {/* Mobile Overlay */}
@@ -346,7 +375,7 @@ const Inspections = () => {
           </button>
           
           <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Room Inspections'}</h1>
+            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Inspection Report'}</h1>
             <p>Welcome back, {userData?.name || 'Staff'}</p>
           </div>
           
@@ -400,7 +429,7 @@ const Inspections = () => {
         <div className="admin-content">
       <div className="page-header">
         <div className="header-content">
-          <h1>Room Inspections</h1>
+          <h1>Inspection Report</h1>
           <p>Create and track room inspection reports</p>
         </div>
         <button
@@ -521,7 +550,7 @@ const Inspections = () => {
           <div className="form-section">
             <h3>Proof Image</h3>
             <div className="form-group">
-              <label>Upload Room Inspection Proof Image *</label>
+              <label>Upload Inspection Report Proof Image *</label>
               <input
                 type="file"
                 accept="image/*"
@@ -601,6 +630,7 @@ const Inspections = () => {
           <div className="inspections-grid">
             {inspections.map((inspection) => {
               const inspectionRoom = inspection.room || inspection.roomId;
+              const proofImageUrl = getInspectionProofImage(inspection);
               return (
               <div key={inspection._id} className="inspection-card">
                 <div className="inspection-header">
@@ -645,6 +675,16 @@ const Inspections = () => {
                     </span>
                   </div>
                 </div>
+
+                {proofImageUrl && (
+                  <div style={{ marginTop: '12px' }}>
+                    <img
+                      src={proofImageUrl}
+                      alt="Inspection proof"
+                      style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '10px', border: '1px solid #dbeafe' }}
+                    />
+                  </div>
+                )}
 
                 {inspection.damageFound === 'Yes' && (
                   <div className="damage-summary">
@@ -716,16 +756,19 @@ const Inspections = () => {
                 </div>
               )}
 
-              {(selectedInspection.photosPath?.length || selectedInspection.photoUrl) && (
-                <div className="detail-section">
-                  <h4>Proof Image</h4>
-                  <img
-                    src={selectedInspection.photosPath?.[0] || selectedInspection.photoUrl}
-                    alt="Inspection proof"
-                    style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #dbeafe' }}
-                  />
-                </div>
-              )}
+              {(() => {
+                const selectedProofImageUrl = getInspectionProofImage(selectedInspection);
+                return selectedProofImageUrl ? (
+                  <div className="detail-section">
+                    <h4>Proof Image</h4>
+                    <img
+                      src={selectedProofImageUrl}
+                      alt="Inspection proof"
+                      style={{ width: '100%', maxHeight: '320px', objectFit: 'cover', borderRadius: '12px', border: '1px solid #dbeafe' }}
+                    />
+                  </div>
+                ) : null;
+              })()}
 
               <p className="submission-date">
                 <strong>Submitted:</strong>{' '}

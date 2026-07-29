@@ -84,8 +84,8 @@ const Rooms = () => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-chart-line', path: '/staff/dashboard' },
     { id: 'tasks', label: 'My Tasks', icon: 'fas fa-tasks', path: '/staff/tasks' },
-    { id: 'rooms', label: 'Assigned Rooms', icon: 'fas fa-door-open', path: '/staff/rooms' },
-    { id: 'inspections', label: 'Room Inspections', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
+    { id: 'rooms', label: 'Assigned Task', icon: 'fas fa-door-open', path: '/staff/rooms' },
+    { id: 'inspections', label: 'Inspection Report', icon: 'fas fa-clipboard-check', path: '/staff/inspections' },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -216,7 +216,7 @@ const Rooms = () => {
           </button>
           
           <div className="header-title">
-            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Assigned Rooms'}</h1>
+            <h1>{menuItems.find(item => isActive(item.path))?.label || 'Assigned Task'}</h1>
             <p>Welcome back, {userData?.name || 'Staff'}</p>
           </div>
           
@@ -269,19 +269,19 @@ const Rooms = () => {
         
         <div className="admin-content rooms-page">
       <div className="page-header">
-        <h1>My Assigned Rooms</h1>
+        <h1>My Assigned Task</h1>
         <p>View all rooms assigned to you for cleaning and maintenance</p>
       </div>
 
       {/* Rooms Grid */}
       <div className="rooms-container">
         {loading ? (
-          <div className="loading">Loading assigned rooms...</div>
+          <div className="loading">Loading assigned tasks...</div>
         ) : rooms.length === 0 ? (
           <div className="empty-state">
             <i className="fas fa-door-open"></i>
-            <h2>No rooms assigned</h2>
-            <p>You don't have any rooms assigned yet</p>
+            <h2>No tasks assigned</h2>
+            <p>You don't have any tasks assigned yet</p>
           </div>
         ) : (
           rooms.map((room) => (

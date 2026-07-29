@@ -1,11 +1,16 @@
 /* frontend/src/components/admin/ConfirmationModal.css */
 
 /*
- * Must be higher than Modal.css (.modal-overlay z-index: 1000)
- * so ConfirmationModal renders on top when both are open at once.
+ * Keep confirmation dialogs above admin tabs and other overlays.
  */
 .confirmation-modal-overlay {
-  z-index: 1100 !important;
+  z-index: 2147483647 !important;
+  isolation: isolate;
+}
+
+.confirm-modal {
+  position: relative;
+  z-index: 2147483647;
 }
 
 .confirm-modal {
