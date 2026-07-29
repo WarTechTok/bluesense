@@ -19,6 +19,20 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
 const isValidGmailAddress = (value) => /^[^\s@]+@gmail\.com$/i.test((value || "").trim());
 
+const normalizeContactNumber = (value) => {
+  const digitsOnly = (value || "").replace(/\D/g, "");
+  if (!digitsOnly) return "+639";
+
+  let subscriber = digitsOnly;
+  if (subscriber.startsWith("639")) {
+    subscriber = subscriber.slice(3);
+  } else if (subscriber.startsWith("09")) {
+    subscriber = subscriber.slice(2);
+  }
+  subscriber = subscriber.slice(0, 10);
+  return `+639${subscriber}`;
+};
+
 function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState([]);
@@ -44,7 +58,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
   const [formData, setFormData] = useState({
     customerName: "",
-    customerContact: "",
+    customerContact: "+639",
     customerEmail: "",
     guestCount: 1,
     reservationDate: "",
@@ -86,7 +100,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     setSelectedAddOns({});
     setFormData({
       customerName: "",
-      customerContact: "",
+      customerContact: "+639",
       customerEmail: "",
       guestCount: 1,
       reservationDate: "",
@@ -98,32 +112,55 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     setStep(1);
   }, []);
 
-  // Fetch sessions and add-ons on mount
+  // Fetch sessions on mount and add-ons when session changes
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Fetch sessions
         const sessionResponse = await fetch(`${API_BASE_URL}/api/admin/sessions`);
         if (sessionResponse.ok) {
           const data = await sessionResponse.json();
           setSessionData(data);
         }
-
-        // Fetch add-ons from correct endpoint
-        setLoadingAddOns(true);
-        const addonsResponse = await fetch(`${API_BASE_URL}/api/admin/addons/active`);
-        if (addonsResponse.ok) {
-          const data = await addonsResponse.json();
-          setAddOns(data);
-        }
       } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoadingAddOns(false);
+        console.error("Error fetching session data:", error);
       }
     };
     loadData();
   }, []);
+
+  useEffect(() => {
+    const loadAddOns = async () => {
+      setLoadingAddOns(true);
+      try {
+        const url = selectedSession
+          ? `${API_BASE_URL}/api/admin/addons/active?session=${encodeURIComponent(selectedSession)}`
+          : `${API_BASE_URL}/api/admin/addons/active`;
+
+        const addonsResponse = await fetch(url);
+        if (addonsResponse.ok) {
+          const data = await addonsResponse.json();
+          setAddOns(data);
+
+          const validAddonNames = new Set(data.map((addon) => addon.name));
+          const filteredSelected = Object.fromEntries(
+            Object.entries(selectedAddOns).filter(([name]) => validAddonNames.has(name))
+          );
+          if (Object.keys(filteredSelected).length !== Object.keys(selectedAddOns).length) {
+            setSelectedAddOns(filteredSelected);
+          }
+        } else {
+          setAddOns([]);
+        }
+      } catch (error) {
+        console.error("Error fetching add-ons:", error);
+        setAddOns([]);
+      } finally {
+        setLoadingAddOns(false);
+      }
+    };
+
+    loadAddOns();
+  }, [selectedSession]);
 
   // Reset form when not editing (new booking)
   useEffect(() => {
@@ -139,7 +176,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       setSelectedSession(editingBooking.session);
       setFormData({
         customerName: editingBooking.customerName || "",
-        customerContact: editingBooking.customerContact || "",
+        customerContact: normalizeContactNumber(editingBooking.customerContact || "+639"),
         customerEmail: editingBooking.customerEmail || "",
         guestCount: editingBooking.pax || 1,
         reservationDate: editingBooking.bookingDate || "",
@@ -153,11 +190,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   }, [editingBooking, fetchPackagesForOasis]);
 
   // Get current package data
+  const allowedSessionValues = ['Day', 'Night', '22hrs'];
+
   const currentPackage = selectedPackage ? {
     ...selectedPackage,
-    sessions: selectedPackage.sessions?.length > 0
+    sessions: (selectedPackage.sessions?.length > 0
       ? selectedPackage.sessions
-      : selectedPackage.availableSessions || [],
+      : selectedPackage.availableSessions || []
+    ).filter((session) => allowedSessionValues.includes(session)),
   } : null;
 
   const getSessionDisplay = (session) => {
@@ -165,7 +205,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     const sessionMap = {
       Day: "Day (8AM - 5PM)",
       Night: "Night (6PM - 6AM)",
-      "22hrs": "22-Hour Session (Flexible)",
+      "22hrs": "22-Hour Session (Whole Day)",
     };
     return sessionMap[session] || session;
   };
@@ -295,8 +335,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
 
       if (!trimmedContact) {
         newErrors.customerContact = "Contact number is required";
-      } else if (!/^\+63\d{10}$/.test(trimmedContact)) {
-        newErrors.customerContact = "Contact number must start with +63 and include 10 digits";
+      } else if (!/^\+639\d{10}$/.test(trimmedContact)) {
+        newErrors.customerContact = "Contact number must start with +639 and include 10 digits";
       }
 
       if (!trimmedEmail) {
@@ -328,7 +368,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         newErrors.session = "This session is already fully booked on this date";
       }
       
-      if (formData.guestCount < 1) newErrors.guestCount = "Guest count must be at least 1";
+      if (!formData.guestCount || formData.guestCount < 1) newErrors.guestCount = "Guest count must be at least 1";
 
       const minCap = getMinCapacityForPackage();
       const maxCap = getMaxCapacityForPackage();
@@ -509,8 +549,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
               <label>Contact Number *</label>
               <input
                 type="tel"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="+639XXXXXXXXXX"
                 value={formData.customerContact}
-                onChange={(e) => setFormData({ ...formData, customerContact: e.target.value })}
+                onChange={(e) => {
+                  const normalizedContact = normalizeContactNumber(e.target.value);
+                  setFormData({ ...formData, customerContact: normalizedContact });
+                }}
                 className={errors.customerContact ? 'error' : ''}
               />
               {errors.customerContact && <span className="error-text">{errors.customerContact}</span>}
@@ -602,7 +648,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                     <option 
                       key={session} 
                       value={session}
-                      disabled={bookedSessions[session] ? true : false}
+                      disabled={bookedSessions[session] || shouldDisableSessionOption(session)}
                     >
                       {getSessionDisplay(session)}{bookedSessions[session] ? ' (BOOKED)' : ''}
                     </option>
