@@ -32,6 +32,18 @@ router.get('/sales', authenticate, authorize('admin'), reportController.getSales
 router.get('/inventory-usage', authenticate, reportController.getInventoryUsageReport);
 
 // ============================================
+// GET INSPECTION REPORT - room inspection submissions from housekeepers (Admin only)
+// Query params: startDate, endDate
+// ============================================
+router.get('/inspections', authenticate, authorize('admin'), reportController.getInspectionReport);
+
+// ============================================
+// GET POOL MONITORING REPORT - water quality history from sensor readings (Admin only)
+// Query params: startDate, endDate, oasis
+// ============================================
+router.get('/pool-monitoring', authenticate, authorize('admin'), reportController.getPoolMonitoringReport);
+
+// ============================================
 // GET STAFF ACTIVITY REPORT - staff performance metrics (Admin only)
 // Query params: startDate, endDate
 // Returns PDF or data object

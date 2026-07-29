@@ -94,14 +94,12 @@ const Reports = () => {
     if (!reportData) return [];
     
     if (reportType === "sales") {
-      // Ensure we return an array
       if (reportData.sales && Array.isArray(reportData.sales)) {
         return reportData.sales;
       }
       return [];
     }
     
-    // For booking and inventory, ensure we return an array
     if (Array.isArray(reportData)) {
       return reportData;
     }
@@ -230,6 +228,18 @@ const Reports = () => {
         if (!data || !Array.isArray(data)) {
           data = [];
         }
+      } else if (reportType === "inspection") {
+        data = await adminApi.getInspectionReport(queryStartDate, queryEndDate);
+
+        if (!data || !Array.isArray(data)) {
+          data = [];
+        }
+      } else if (reportType === "pool-monitoring") {
+        data = await adminApi.getPoolMonitoringReport(queryStartDate, queryEndDate);
+
+        if (!data || !Array.isArray(data)) {
+          data = [];
+        }
       }
 
       setReportData(data);
@@ -338,6 +348,48 @@ const Reports = () => {
         
         sheetName = "Inventory Report";
         filename = `inventory-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
+      } else if (reportType === "inspection") {
+        const inspectionData = Array.isArray(reportData) ? reportData : [];
+
+        if (inspectionData.length === 0) {
+          showConfirmationModal("No Data", "No data to export", null, "OK");
+          setExporting(false);
+          return;
+        }
+
+        exportData = inspectionData.map((row) => ({
+          "Date": row.date ? new Date(row.date).toLocaleDateString() : "N/A",
+          "Room": row.roomName || "N/A",
+          "Inspected By": row.inspectedBy || "N/A",
+          "Condition": row.condition || "N/A",
+          "Damage Found": row.damageFound || "No",
+          "Items Needed": row.itemsNeeded || "N/A",
+          "Status": row.status || "N/A",
+          "Rating": row.rating || "N/A",
+        }));
+
+        sheetName = "Inspection Report";
+        filename = `inspection-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
+      } else if (reportType === "pool-monitoring") {
+        const poolData = Array.isArray(reportData) ? reportData : [];
+
+        if (poolData.length === 0) {
+          showConfirmationModal("No Data", "No data to export", null, "OK");
+          setExporting(false);
+          return;
+        }
+
+        exportData = poolData.map((row) => ({
+          "Date": row.timestamp ? new Date(row.timestamp).toLocaleString() : "N/A",
+          "Oasis": row.oasis || "N/A",
+          "pH": row.ph ?? 0,
+          "Temperature": row.temperature ?? 0,
+          "Turbidity": row.turbidity || "N/A",
+          "Status": row.status || "N/A",
+        }));
+
+        sheetName = "Pool Monitoring History";
+        filename = `pool-monitoring-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
       }
 
       if (exportFormat === "word") {
@@ -461,6 +513,8 @@ const Reports = () => {
   const getNoDataColSpan = () => {
     if (reportType === "booking") return "13";
     if (reportType === "sales") return "6";
+    if (reportType === "inspection") return "8";
+    if (reportType === "pool-monitoring") return "6";
     return "3";
   };
 
@@ -483,6 +537,8 @@ const Reports = () => {
               <option value="booking">Booking Report</option>
               <option value="sales">Sales Report</option>
               <option value="inventory">Inventory Usage Report</option>
+              <option value="inspection">Inspection Report</option>
+              <option value="pool-monitoring">Pool Monitoring History</option>
             </select>
           </div>
 
@@ -575,6 +631,24 @@ const Reports = () => {
             </div>
           )}
 
+          {reportType === "inspection" && (
+            <div className="stats-grid small">
+              <div className="stat-card">
+                <div className="stat-title">Inspection Records</div>
+                <div className="stat-value">{getDataArray().length}</div>
+              </div>
+            </div>
+          )}
+
+          {reportType === "pool-monitoring" && (
+            <div className="stats-grid small">
+              <div className="stat-card">
+                <div className="stat-title">Monitoring Entries</div>
+                <div className="stat-value">{getDataArray().length}</div>
+              </div>
+            </div>
+          )}
+
           {/* Data Table */}
           <div className="table-responsive">
             <table className="data-table">
@@ -612,6 +686,28 @@ const Reports = () => {
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Item Name</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Total Used</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Current Stock</th>
+                    </>
+                  )}
+                  {reportType === "inspection" && (
+                    <>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Date</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Room</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Inspected By</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Condition</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Damage Found</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Items Needed</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Status</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Rating</th>
+                    </>
+                  )}
+                  {reportType === "pool-monitoring" && (
+                    <>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Date</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Oasis</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>pH</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Temperature</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Turbidity</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Status</th>
                     </>
                   )}
                 </tr>
@@ -681,6 +777,28 @@ const Reports = () => {
                             <td>{row.item || row.name || "N/A"}</td>
                             <td>{row.totalUsed || 0}</td>
                             <td>{row.currentStock || 0}</td>
+                          </>
+                        )}
+                        {reportType === "inspection" && (
+                          <>
+                            <td>{row.date ? new Date(row.date).toLocaleDateString() : "N/A"}</td>
+                            <td>{row.roomName || "N/A"}</td>
+                            <td>{row.inspectedBy || "N/A"}</td>
+                            <td>{row.condition || "N/A"}</td>
+                            <td>{row.damageFound || "No"}</td>
+                            <td>{row.itemsNeeded || "N/A"}</td>
+                            <td>{row.status || "N/A"}</td>
+                            <td>{row.rating || "N/A"}</td>
+                          </>
+                        )}
+                        {reportType === "pool-monitoring" && (
+                          <>
+                            <td>{row.timestamp ? new Date(row.timestamp).toLocaleString() : "N/A"}</td>
+                            <td>{row.oasis || "N/A"}</td>
+                            <td>{row.ph ?? 0}</td>
+                            <td>{row.temperature ?? 0}</td>
+                            <td>{row.turbidity || "N/A"}</td>
+                            <td>{row.status || "N/A"}</td>
                           </>
                         )}
                       </tr>

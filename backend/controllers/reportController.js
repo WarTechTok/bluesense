@@ -8,6 +8,8 @@ const Sale = require('../models/Sale');
 const Booking = require('../models/Booking');
 const Inventory = require('../models/Inventory');
 const Staff = require('../models/Staff');
+const InspectionRecord = require('../models/InspectionRecord');
+const Readings = require('../models/reading');
 
 // ============================================
 // HELPER - Build timezone-aware date range (Philippine Time UTC+8)
@@ -190,6 +192,77 @@ exports.getInventoryUsageReport = async (req, res) => {
  * Returns: Each staff member's activity count (inventory usage logs)
  * Shows: Name, email, role, status, and number of activities
  */
+exports.getInspectionReport = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const query = {};
+
+    if (startDate && endDate) {
+      query.inspectionDate = buildDateRange(startDate, endDate);
+    }
+
+    const inspections = await InspectionRecord.find(query)
+      .populate('room', 'name')
+      .populate('inspectedBy', 'name email')
+      .sort({ inspectionDate: -1 });
+
+    const formattedInspections = inspections.map((inspection) => ({
+      _id: inspection._id,
+      date: inspection.inspectionDate || inspection.createdAt,
+      roomName: inspection.room?.name || 'Unknown Room',
+      inspectedBy: inspection.inspectedBy?.name || 'Unknown Staff',
+      condition: inspection.cleanliness || inspection.furnitureCondition || 'Good',
+      damageFound: inspection.damagesFound || inspection.damageFound ? 'Yes' : 'No',
+      damageDescription: inspection.damageDescription || 'No damage reported',
+      itemsNeeded: Array.isArray(inspection.itemsNeeded)
+        ? inspection.itemsNeeded.join(', ')
+        : (inspection.itemsNeeded || ''),
+      notes: inspection.notes || 'No additional notes',
+      status: inspection.status || 'Submitted',
+      rating: inspection.rating || 5,
+      proofImage: inspection.photosPath?.[0] || null
+    }));
+
+    res.json(formattedInspections);
+  } catch (error) {
+    console.error('❌ Error in getInspectionReport:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getPoolMonitoringReport = async (req, res) => {
+  try {
+    const { startDate, endDate, oasis } = req.query;
+    const query = {};
+
+    if (oasis) {
+      query.oasis = oasis;
+    }
+
+    if (startDate && endDate) {
+      query.timestamp = buildDateRange(startDate, endDate);
+    }
+
+    const readings = await Readings.find(query).sort({ timestamp: -1 });
+
+    const formattedReadings = readings.map((reading) => ({
+      _id: reading._id,
+      oasis: reading.oasis === 'oasis1' ? 'Oasis 1' : 'Oasis 2',
+      ph: reading.ph ?? 0,
+      temperature: reading.temperature ?? 0,
+      turbidity: reading.turbidity || 'No Data',
+      status: reading.status || 'Normal',
+      timestamp: reading.timestamp,
+      date: reading.timestamp || reading.createdAt
+    }));
+
+    res.json(formattedReadings);
+  } catch (error) {
+    console.error('❌ Error in getPoolMonitoringReport:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 exports.getStaffActivityReport = async (req, res) => {
   try {
     const staff = await Staff.find().select('-password');

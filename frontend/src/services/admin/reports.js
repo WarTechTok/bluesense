@@ -35,6 +35,26 @@ export const getInventoryUsageReport = async (startDate, endDate) => {
   }
 };
 
+export const getInspectionReport = async (startDate, endDate) => {
+  try {
+    const res = await apiClient.get('/reports/inspections', { params: { startDate, endDate } });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching inspection report:', error);
+    throw error;
+  }
+};
+
+export const getPoolMonitoringReport = async (startDate, endDate, oasis) => {
+  try {
+    const res = await apiClient.get('/reports/pool-monitoring', { params: { startDate, endDate, oasis } });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching pool monitoring report:', error);
+    throw error;
+  }
+};
+
 export const getStaffActivityReport = async () => {
   try {
     const res = await apiClient.get('/reports/staff-activity');
