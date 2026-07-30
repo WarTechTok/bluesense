@@ -26,6 +26,7 @@ const AddOnManagement = () => {
     isActive: true,
     displayOrder: 1
   });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     fetchAddons();
@@ -43,10 +44,34 @@ const AddOnManagement = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.name || formData.name.trim().length === 0) {
+      errors.name = 'Add-on name is required';
+    }
+
+    if (formData.price === '' || formData.price === null || formData.price === undefined) {
+      errors.price = 'Price is required';
+    } else if (Number(formData.price) <= 0) {
+      errors.price = 'Price must be greater than 0';
+    }
+
+    if (!Array.isArray(formData.availableForSessions) || formData.availableForSessions.length === 0) {
+      errors.availableForSessions = 'Please select at least one session';
+    }
+
+    if (!formData.displayOrder || Number(formData.displayOrder) < 1) {
+      errors.displayOrder = 'Display order must be at least 1';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // ── Submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!formData.name || formData.price <= 0) {
-      alert("Add-on name and price are required");
+    if (!validateForm()) {
       return;
     }
 
@@ -60,6 +85,7 @@ const AddOnManagement = () => {
       setShowModal(false);
       fetchAddons();
       resetForm();
+      setFormErrors({});
       alert(`Add-on ${editingAddon ? "updated" : "created"} successfully!`);
     } catch (error) {
       console.error("Error saving add-on:", error);
@@ -286,9 +312,15 @@ const AddOnManagement = () => {
                     <input 
                       type="text" 
                       value={formData.name} 
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (formErrors.name) {
+                          setFormErrors({ ...formErrors, name: undefined });
+                        }
+                      }} 
                       placeholder="e.g., Karaoke, Stove" 
                     />
+                    {formErrors.name && <small className="field-error">{formErrors.name}</small>}
                   </div>
 
                   <div className="form-group">
@@ -306,10 +338,16 @@ const AddOnManagement = () => {
                     <input 
                       type="number" 
                       value={formData.price} 
-                      onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, price: parseInt(e.target.value) || 0 });
+                        if (formErrors.price) {
+                          setFormErrors({ ...formErrors, price: undefined });
+                        }
+                      }} 
                       min="0" 
                       step="100" 
                     />
+                    {formErrors.price && <small className="field-error">{formErrors.price}</small>}
                   </div>
 
                   <div className="form-group">
@@ -317,9 +355,15 @@ const AddOnManagement = () => {
                     <input 
                       type="number" 
                       value={formData.displayOrder} 
-                      onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 1 })} 
+                      onChange={(e) => {
+                        setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 1 });
+                        if (formErrors.displayOrder) {
+                          setFormErrors({ ...formErrors, displayOrder: undefined });
+                        }
+                      }} 
                       min="1" 
                     />
+                    {formErrors.displayOrder && <small className="field-error">{formErrors.displayOrder}</small>}
                   </div>
                 </div>
 
@@ -343,6 +387,7 @@ const AddOnManagement = () => {
                       <span>22-Hour Session</span>
                     </label>
                   </div>
+                  {formErrors.availableForSessions && <small className="field-error">{formErrors.availableForSessions}</small>}
                 </div>
 
                 <div className="form-section">
@@ -350,6 +395,7 @@ const AddOnManagement = () => {
                     <input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} />
                     <span>Active (visible to customers)</span>
                   </label>
+                  {formErrors.general && <small className="field-error">{formErrors.general}</small>}
                 </div>
               </form>
             </div>

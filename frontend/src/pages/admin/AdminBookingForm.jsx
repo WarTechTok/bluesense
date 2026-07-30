@@ -29,7 +29,7 @@ const normalizeContactNumber = (value) => {
   } else if (subscriber.startsWith("09")) {
     subscriber = subscriber.slice(2);
   }
-  subscriber = subscriber.slice(0, 10);
+  subscriber = subscriber.slice(0, 9);
   return `+639${subscriber}`;
 };
 
@@ -50,6 +50,15 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     title: '',
     message: ''
   });
+
+  const isSessionActive = (session) => {
+    if (!sessionData || sessionData.length === 0) return true;
+    return sessionData.some((s) => s.name === session && s.isActive);
+  };
+
+  const shouldDisableSessionOption = (session) => {
+    return !isSessionActive(session);
+  };
 
   // Helper to show modal alerts
   const showAlert = (title, message) => {
@@ -197,8 +206,17 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     sessions: (selectedPackage.sessions?.length > 0
       ? selectedPackage.sessions
       : selectedPackage.availableSessions || []
-    ).filter((session) => allowedSessionValues.includes(session)),
+    )
+      .filter((session) => allowedSessionValues.includes(session))
+      .filter((session) => isSessionActive(session)),
   } : null;
+
+  useEffect(() => {
+    if (selectedSession && !isSessionActive(selectedSession)) {
+      setSelectedSession("");
+      setSelectedAddOns({});
+    }
+  }, [selectedSession, sessionData]);
 
   const getSessionDisplay = (session) => {
     if (!session) return session;
@@ -313,6 +331,23 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     setSelectedAddOns(newSelected);
   };
 
+  useEffect(() => {
+    if (!selectedSession) {
+      setSelectedAddOns({});
+      return;
+    }
+
+    const validSelected = Object.fromEntries(
+      Object.entries(selectedAddOns).filter(([name]) =>
+        addOns.some((addon) => addon.name === name)
+      )
+    );
+
+    if (Object.keys(validSelected).length !== Object.keys(selectedAddOns).length) {
+      setSelectedAddOns(validSelected);
+    }
+  }, [selectedSession, addOns]);
+
   const getDownpayment = () => {
     const dp = getDownpaymentAmount(selectedSession, sessionData);
     console.log("💳 Downpayment calculated:", dp, "for session:", selectedSession);
@@ -331,12 +366,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         newErrors.customerName = "Customer name is required";
       } else if (trimmedName.length < 2) {
         newErrors.customerName = "Customer name must be at least 2 characters";
+      } else if (/\d/.test(trimmedName)) {
+        newErrors.customerName = "Customer name cannot contain numbers";
       }
 
       if (!trimmedContact) {
         newErrors.customerContact = "Contact number is required";
-      } else if (!/^\+639\d{10}$/.test(trimmedContact)) {
-        newErrors.customerContact = "Contact number must start with +639 and include 10 digits";
+      } else if (!/^\+639\d{9}$/.test(trimmedContact)) {
+        newErrors.customerContact = "Contact number must start with +639 and include 9 digits";
       }
 
       if (!trimmedEmail) {
@@ -551,7 +588,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="+639XXXXXXXXXX"
+                placeholder="+639XXXXXXXXX"
                 value={formData.customerContact}
                 onChange={(e) => {
                   const normalizedContact = normalizeContactNumber(e.target.value);
@@ -644,15 +681,18 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
               >
                 <option value="">Select Session</option>
                 {currentPackage?.sessions && currentPackage.sessions.length > 0 ? (
-                  currentPackage.sessions.map((session) => (
-                    <option 
-                      key={session} 
-                      value={session}
-                      disabled={bookedSessions[session] || shouldDisableSessionOption(session)}
-                    >
-                      {getSessionDisplay(session)}{bookedSessions[session] ? ' (BOOKED)' : ''}
-                    </option>
-                  ))
+                  currentPackage.sessions.map((session) => {
+                    const inactive = shouldDisableSessionOption(session);
+                    return (
+                      <option 
+                        key={session} 
+                        value={session}
+                        disabled={bookedSessions[session] || inactive}
+                      >
+                        {getSessionDisplay(session)}{bookedSessions[session] ? ' (BOOKED)' : inactive ? ' (INACTIVE)' : ''}
+                      </option>
+                    );
+                  })
                 ) : (
                   <option disabled>No sessions available for this package</option>
                 )}
