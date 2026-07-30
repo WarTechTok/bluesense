@@ -1,6 +1,7 @@
 // src/components/admin/PoolMonitoring.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { getLatestReading, getHistory } from "../../services/api";
+import apiCall from "../../services/apiClient";
 import * as adminApi from "../../services/admin";
 import MessageModal from "../modals/MessageModal";
 import "./PoolMonitoring.css";
@@ -290,14 +291,14 @@ const PoolMonitoring = () => {
               key={oasis.id}
               className="pm-oasis-card"
               onClick={async () => {
-                await fetch(
-                  "https://bluesense.onrender.com/api/readings/set-oasis",
-                  {
+                try {
+                  await apiCall("/api/readings/set-oasis", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ oasis: oasis.id }),
-                  }
-                );
+                  });
+                } catch (err) {
+                  console.error("Failed to set oasis on server:", err);
+                }
                 setSelectedOasis(oasis.id);
               }}
             >
@@ -370,10 +371,13 @@ const PoolMonitoring = () => {
           <button
             className="pm-switch-btn"
             onClick={async () => {
-              await fetch("https://bluesense.onrender.com/api/readings/stop", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-              });
+              try {
+                await apiCall("/api/readings/stop", {
+                  method: "POST",
+                });
+              } catch (err) {
+                console.error("Failed to stop monitoring on server:", err);
+              }
               setSelectedOasis(null);
               setLatestReading(null);
               setHistoryData([]);
