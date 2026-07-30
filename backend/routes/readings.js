@@ -4,16 +4,18 @@
 // ============================================
 
 const express = require("express");
-const Readings = require("../models/reading.js");  // ← ADD THIS IMPORT
-const { 
+// FIX: Removed unused Readings import — it was imported here but never used.
+// All database operations go through the controller, not the routes file.
+const {
     addReading,
     addReadingPublic,
-    getLatest, 
+    getLatest,
     getHistory,
     setCurrentOasis,
     getCurrentOasis,
-    stopMonitoring  // ← ADD THIS
+    stopMonitoring
 } = require("../controllers/ctrl_readings.js");
+const { verifyToken } = require("../middleware/auth.js");
 
 const router = express.Router();
 
@@ -21,20 +23,23 @@ const router = express.Router();
 // PUBLIC ROUTES - No authentication required (for ESP32)
 // ============================================
 
-// POST - ESP32 sends readings (public)
+// POST - ESP32 sends readings (public, no auth needed)
 router.post("/readings/public", addReadingPublic);
 
-// GET - Public endpoint for ESP32 to check current oasis
+// GET - ESP32 checks which oasis to monitor (public, no auth needed)
 router.get("/readings/current-oasis", getCurrentOasis);
 
 // ============================================
 // AUTHENTICATED ROUTES - For admin dashboard
 // ============================================
 
-router.post("/readings", addReading);
-router.get("/readings/latest", getLatest);
-router.get("/readings/history", getHistory);
-router.post("/readings/set-oasis", setCurrentOasis);
-router.post("/readings/stop", stopMonitoring);  // ← ADD THIS
+router.post("/readings", verifyToken, addReading);
+router.get("/readings/latest", verifyToken, getLatest);
+// FIX: Added verifyToken — getHistory was listed as authenticated in the
+// comment but had no middleware actually protecting it. Anyone could call
+// /api/readings/history and get all sensor data without logging in.
+router.get("/readings/history", verifyToken, getHistory);
+router.post("/readings/set-oasis", verifyToken, setCurrentOasis);
+router.post("/readings/stop", verifyToken, stopMonitoring);
 
 module.exports = router;

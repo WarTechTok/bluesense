@@ -11,12 +11,29 @@ const Settings = require("../models/Settings.js");
 // ============================================
 const addReading = async (req, res) => {
     try {
-        const { oasis, ph, turbidity, temperature, status } = req.body;
-        
+        const { oasis, ph, turbidity, temperature } = req.body;
+
+        // FIX: Added proper validation — previously had no checks at all
         if (!oasis) {
             return res.status(400).json({ error: "oasis field is required (oasis1 or oasis2)" });
         }
-        
+        if (ph === undefined || ph === null) {
+            return res.status(400).json({ error: "ph is required" });
+        }
+        if (temperature === undefined || temperature === null) {
+            return res.status(400).json({ error: "temperature is required" });
+        }
+        if (!turbidity) {
+            return res.status(400).json({ error: "turbidity is required" });
+        }
+
+        // FIX: Backend calculates status from actual values instead of
+        // trusting whatever the ESP32 sends. This ensures status is always
+        // correct even if the ESP32 has a bug in its status calculation.
+        const status = (ph < 7.2 || ph > 7.8 || turbidity !== "Clear")
+            ? "Need Cleaning"
+            : "Normal";
+
         const newReading = new Readings({
             oasis,
             ph,
@@ -24,7 +41,7 @@ const addReading = async (req, res) => {
             temperature,
             status
         });
-        
+
         await newReading.save();
         res.status(200).json({ message: "Reading saved successfully", oasis });
     } catch (err) {
@@ -37,25 +54,50 @@ const addReading = async (req, res) => {
 // ============================================
 const addReadingPublic = async (req, res) => {
     try {
-        const { oasis, ph, turbidity, temperature, status } = req.body;
-        
+        const { oasis, ph, turbidity, temperature } = req.body;
+
         console.log("📥 Public reading received:", { oasis, ph, turbidity, temperature });
-        
+
+        // FIX: Validate all required fields are present
         if (!oasis) {
             return res.status(400).json({ error: "oasis field is required (oasis1 or oasis2)" });
         }
-        
+        if (ph === undefined || ph === null) {
+            return res.status(400).json({ error: "ph is required" });
+        }
+        if (temperature === undefined || temperature === null) {
+            return res.status(400).json({ error: "temperature is required" });
+        }
+        if (!turbidity) {
+            return res.status(400).json({ error: "turbidity is required" });
+        }
+
+        // FIX: Backend calculates status itself from the actual sensor values.
+        // Previously used `status: status || "Normal"` which meant:
+        // - If ESP32 forgot to send status, it was saved as "Normal" even if
+        //   pH was dangerously high or pool was dirty.
+        // - Backend blindly trusted whatever the ESP32 decided the status was.
+        // Now the backend always determines the correct status independently.
+        const status = (ph < 7.2 || ph > 7.8 || turbidity !== "Clear")
+            ? "Need Cleaning"
+            : "Normal";
+
+        // FIX: Removed `ph: ph || 0` and `temperature: temperature || 0`.
+        // The || 0 pattern silently replaced missing/zero values with 0,
+        // making bad data look like a valid reading in the database.
+        // Now we save exactly what was sent, and Mongoose model validation
+        // (min/max in reading.js) rejects out-of-range values with a 400 error.
         const newReading = new Readings({
             oasis,
-            ph: ph || 0,
-            turbidity: turbidity || "Unknown",
-            temperature: temperature || 0,
-            status: status || "Normal"
+            ph,
+            turbidity,
+            temperature,
+            status
         });
-        
+
         await newReading.save();
-        console.log(`✅ Public reading saved for ${oasis}`);
-        res.status(200).json({ message: "Reading saved successfully", oasis });
+        console.log(`✅ Public reading saved for ${oasis} — status: ${status}`);
+        res.status(200).json({ message: "Reading saved successfully", oasis, status });
     } catch (err) {
         console.error("Error saving public reading:", err);
         res.status(400).json({ error: err.message });
@@ -68,14 +110,14 @@ const addReadingPublic = async (req, res) => {
 const getLatest = async (req, res) => {
     try {
         const { oasis } = req.query;
-        
+
         const filter = {};
         if (oasis) {
             filter.oasis = oasis;
         }
-        
+
         const latest = await Readings.findOne(filter).sort({ timestamp: -1 });
-        
+
         if (!latest) {
             return res.status(200).json({
                 message: "No readings yet",
@@ -104,13 +146,21 @@ const getLatest = async (req, res) => {
 const getHistory = async (req, res) => {
     try {
         const { oasis } = req.query;
-        
+
         const filter = {};
         if (oasis) {
             filter.oasis = oasis;
         }
-        
-        const history = await Readings.find(filter).sort({ timestamp: -1 });
+
+        // FIX: Added limit to prevent returning thousands of records in one
+        // query as the database grows. Default 100, max 500.
+        // Frontend can pass ?limit=200 to get more records.
+        const limit = Math.min(parseInt(req.query.limit) || 100, 500);
+
+        const history = await Readings.find(filter)
+            .sort({ timestamp: -1 })
+            .limit(limit);
+
         res.json(history || []);
     } catch (error) {
         console.error("Error in getHistory:", error);
@@ -124,23 +174,22 @@ const getHistory = async (req, res) => {
 const setCurrentOasis = async (req, res) => {
     try {
         const { oasis } = req.body;
-        
+
         if (oasis !== 'oasis1' && oasis !== 'oasis2' && oasis !== 'none') {
             return res.status(400).json({ error: "Invalid oasis. Must be 'oasis1', 'oasis2', or 'none'" });
         }
-        
-        // Save to database (persists across server restarts)
+
         await Settings.findOneAndUpdate(
             { key: 'currentOasis' },
             { value: oasis },
             { upsert: true, new: true }
         );
-        
+
         const label = oasis === 'oasis1' ? 'Oasis 1' : oasis === 'oasis2' ? 'Oasis 2' : 'IDLE (none)';
         console.log(`📡 ESP32 should now monitor: ${label}`);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             oasis: oasis,
             message: oasis === 'none'
                 ? "ESP32 monitoring stopped — waiting for admin selection"
@@ -157,17 +206,16 @@ const setCurrentOasis = async (req, res) => {
 // ============================================
 const stopMonitoring = async (req, res) => {
     try {
-        // Set current oasis to 'none' to stop ESP32 from sending data
         await Settings.findOneAndUpdate(
             { key: 'currentOasis' },
             { value: 'none' },
             { upsert: true, new: true }
         );
-        
+
         console.log("🛑 ESP32 monitoring stopped - going idle");
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             oasis: 'none',
             message: "ESP32 monitoring stopped"
         });
@@ -183,14 +231,12 @@ const stopMonitoring = async (req, res) => {
 const getCurrentOasis = async (req, res) => {
     try {
         let setting = await Settings.findOne({ key: 'currentOasis' });
-        
+
         if (!setting) {
-            // No setting in DB yet — create with 'none' so ESP32 waits for
-            // an explicit admin selection rather than auto-starting on oasis1
             setting = await Settings.create({ key: 'currentOasis', value: 'none' });
             console.log("📋 Initialized currentOasis setting to 'none' (waiting for admin selection)");
         }
-        
+
         res.json({ oasis: setting.value });
     } catch (error) {
         console.error("Error getting current oasis:", error);
@@ -198,10 +244,10 @@ const getCurrentOasis = async (req, res) => {
     }
 };
 
-module.exports = { 
+module.exports = {
     addReading,
     addReadingPublic,
-    getLatest, 
+    getLatest,
     getHistory,
     setCurrentOasis,
     getCurrentOasis,
