@@ -10,12 +10,15 @@ const Settings = require("../models/Settings.js");
 // Shared status calculator
 // FIX: Now also considers ORP — low ORP means insufficient disinfection.
 // ============================================
-function calculateStatus(ph, turbidity, orp) {
+function calculateStatus(ph, turbidity, temperature, orp) {
+    // WHO Guidelines for Safe Recreational Water Environments, Vol. 2 (Swimming Pools)
     const phBad      = ph < 7.2 || ph > 7.8;
     const turbBad    = turbidity !== "Clear";
-    // ORP below 400 mV = insufficient chlorine (WHO/CDC guideline)
-    const orpBad     = (orp !== null && orp !== undefined) && orp < 400;
-    return (phBad || turbBad || orpBad) ? "Need Cleaning" : "Normal";
+    // WHO swimming pool temp range: 26–28°C (32°C applies to spa/hot tubs only)
+    const tempBad    = (temperature !== null && temperature !== undefined) && (temperature < 26 || temperature > 28);
+    // WHO ORP range: 650–750 mV. Below = under-disinfected; above = over-chlorinated (harmful)
+    const orpBad     = (orp !== null && orp !== undefined) && (orp < 650 || orp > 750);
+    return (phBad || turbBad || tempBad || orpBad) ? "Need Cleaning" : "Normal";
 }
 
 // ============================================
@@ -30,7 +33,7 @@ const addReading = async (req, res) => {
         if (temperature === undefined || temperature === null) return res.status(400).json({ error: "temperature is required" });
         if (!turbidity) return res.status(400).json({ error: "turbidity is required" });
 
-        const status = calculateStatus(ph, turbidity, orp);
+        const status = calculateStatus(ph, turbidity, temperature, orp);
 
         const newReading = new Readings({ oasis, ph, turbidity, temperature, orp: orp ?? null, status });
         await newReading.save();
@@ -54,12 +57,12 @@ const addReadingPublic = async (req, res) => {
         if (temperature === undefined || temperature === null) return res.status(400).json({ error: "temperature is required" });
         if (!turbidity) return res.status(400).json({ error: "turbidity is required" });
 
-        const status = calculateStatus(ph, turbidity, orp);
+        const status = calculateStatus(ph, turbidity, temperature, orp);
 
         const newReading = new Readings({ oasis, ph, turbidity, temperature, orp: orp ?? null, status });
         await newReading.save();
 
-        console.log(`✅ Public reading saved for ${oasis} — pH:${ph} ORP:${orp ?? "N/A"} status:${status}`);
+        console.log(`✅ Public reading saved for ${oasis} — pH:${ph} temp:${temperature}°C ORP:${orp ?? "N/A"} status:${status}`);
         res.status(200).json({ message: "Reading saved successfully", oasis, status });
     } catch (err) {
         console.error("Error saving public reading:", err);
