@@ -123,16 +123,24 @@ const PoolMonitoring = () => {
       temperature: r.temperature || 0,
       turbidity: r.turbidity === "Clear" ? 1 : r.turbidity === "Cloudy" ? 2 : 3,
       turbidityLabel: r.turbidity || "No Data",
+      orp: r.orp ?? 0,
     }));
 
   const chartData = getChartData();
 
-  // UPDATED: WHO Standards for status
+  // WHO Guidelines for Safe Recreational Water Environments, Vol. 2 (Swimming Pools)
   const getStatusInfo = (reading) => {
     if (!reading)
       return { color: "#94a3b8", bg: "#f1f5f9", text: "No Data", icon: "○" };
-    // WHO: pH should be 7.2-7.8, Turbidity should be Clear
-    if (reading.ph < 7.2 || reading.ph > 7.8 || reading.turbidity !== "Clear")
+    const phBad   = reading.ph < 7.2 || reading.ph > 7.8;
+    const turbBad = reading.turbidity !== "Clear";
+    // WHO swimming pool temp: 26–28°C (32°C is spa/hot tub threshold, not pool)
+    const tempBad = reading.temperature !== null && reading.temperature !== undefined
+                    && (reading.temperature < 26 || reading.temperature > 28);
+    // WHO ORP: 650–750 mV. Under 650 = under-disinfected; over 750 = over-chlorinated
+    const orpBad  = reading.orp !== null && reading.orp !== undefined
+                    && (reading.orp < 650 || reading.orp > 750);
+    if (phBad || turbBad || tempBad || orpBad)
       return {
         color: "#ef4444",
         bg: "#fef2f2",
@@ -149,24 +157,28 @@ const PoolMonitoring = () => {
   const getChartColor = () => {
     if (selectedChart === "ph") return "#0284c7";
     if (selectedChart === "temperature") return "#f59e0b";
+    if (selectedChart === "orp") return "#9333ea";
     return "#10b981";
   };
 
   const getYAxisMax = () => {
     if (selectedChart === "ph") return 9;
     if (selectedChart === "temperature") return 45;
+    if (selectedChart === "orp") return 1000;
     return 4;
   };
 
   const getYAxisSteps = () => {
     if (selectedChart === "ph") return [7.0, 7.2, 7.5, 7.8, 8.0];
-    if (selectedChart === "temperature") return [20, 25, 30, 32, 35];
+    if (selectedChart === "temperature") return [20, 24, 26, 28, 32];
+    if (selectedChart === "orp") return [400, 650, 750, 850, 1000];
     return [1, 2, 3];
   };
 
   const getValue = (item) => {
     if (selectedChart === "ph") return item.ph;
     if (selectedChart === "temperature") return item.temperature;
+    if (selectedChart === "orp") return item.orp;
     return item.turbidity;
   };
 
@@ -174,15 +186,18 @@ const PoolMonitoring = () => {
     if (selectedChart === "ph") return item.ph.toFixed(2);
     if (selectedChart === "temperature")
       return `${item.temperature.toFixed(1)}°C`;
+    if (selectedChart === "orp") return `${Math.round(item.orp)} mV`;
     return item.turbidityLabel;
   };
 
-  // UPDATED: WHO Standards for dot colors
+  // UPDATED: WHO Standards for dot colors (includes ORP)
   const getDotColor = (item) => {
     if (selectedChart === "ph")
       return item.ph < 7.2 || item.ph > 7.8 ? "#ef4444" : "#0284c7";
     if (selectedChart === "temperature")
-      return item.temperature > 32 ? "#ef4444" : "#f59e0b";
+      return item.temperature < 26 || item.temperature > 28 ? "#ef4444" : "#f59e0b";
+    if (selectedChart === "orp")
+      return item.orp < 650 || item.orp > 750 ? "#ef4444" : "#9333ea";
     return item.turbidity === 3
       ? "#ef4444"
       : item.turbidity === 2
@@ -225,7 +240,7 @@ const PoolMonitoring = () => {
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
         title: `${taskType} Required - ${activeOasis?.label}`,
-        description: `${normalizedDescription}\n\nPool readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, Turbidity ${latestReading?.turbidity}`,
+        description: `${normalizedDescription}\n\nPool readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, Turbidity ${latestReading?.turbidity}, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}`,
         priority: 'High',
         status: 'Pending',
         taskType,
@@ -239,7 +254,7 @@ const PoolMonitoring = () => {
           userId: selectedStaff,
           email: staffMember.email,
           subject: `🏊 Pool Maintenance Assignment - ${activeOasis?.label}`,
-          message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C. Please check the pool and take necessary corrective actions.`,
+          message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}. Please check the pool and take necessary corrective actions.`,
           type: 'Task Assignment'
         });
       }
@@ -537,7 +552,7 @@ const PoolMonitoring = () => {
                 className="pm-reading-value"
                 style={{
                   color:
-                    latestReading?.temperature > 32
+                    latestReading?.temperature < 26 || latestReading?.temperature > 28
                       ? "#ef4444"
                       : "#f59e0b",
                 }}
@@ -546,12 +561,13 @@ const PoolMonitoring = () => {
                   ? `${latestReading.temperature.toFixed(1)}°C`
                   : "--"}
               </span>
+              <span className="pm-reading-range">WHO range: 26–28°C</span>
             </div>
             <div
               className="pm-reading-status-dot"
               style={{
                 background:
-                  latestReading?.temperature > 32 || latestReading?.temperature < 21
+                  latestReading?.temperature < 26 || latestReading?.temperature > 28
                     ? "#ef4444"
                     : "#10b981",
               }}
@@ -600,6 +616,62 @@ const PoolMonitoring = () => {
                     ? "#ef4444"
                     : latestReading?.turbidity === "Cloudy"
                       ? "#f59e0b"
+                      : "#10b981",
+              }}
+            />
+          </div>
+
+          {/* ORP */}
+          <div className="pm-reading-card">
+            <div className="pm-reading-icon" style={{ background: "#fdf4ff" }}>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#9333ea"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+              </svg>
+            </div>
+            <div className="pm-reading-info">
+              <span className="pm-reading-label">ORP</span>
+              <span
+                className="pm-reading-value"
+                style={{
+                  color:
+                    latestReading?.orp === null || latestReading?.orp === undefined
+                      ? "#94a3b8"
+                      : latestReading.orp < 650 || latestReading.orp > 750
+                        ? "#ef4444"
+                        : "#9333ea",
+                }}
+              >
+                {latestReading?.orp !== null && latestReading?.orp !== undefined
+                  ? `${Math.round(latestReading.orp)} mV`
+                  : "--"}
+              </span>
+              <span className="pm-reading-range">
+                {latestReading?.orp !== null && latestReading?.orp !== undefined
+                  ? latestReading.orp < 650
+                    ? "LOW — under-disinfected"
+                    : latestReading.orp <= 750
+                      ? "GOOD (WHO: 650–750)"
+                      : "HIGH — over-chlorinated"
+                  : "WHO range: 650–750 mV"}
+              </span>
+            </div>
+            <div
+              className="pm-reading-status-dot"
+              style={{
+                background:
+                  latestReading?.orp === null || latestReading?.orp === undefined
+                    ? "#94a3b8"
+                    : latestReading.orp < 650 || latestReading.orp > 750
+                      ? "#ef4444"
                       : "#10b981",
               }}
             />
@@ -711,6 +783,7 @@ const PoolMonitoring = () => {
                 { key: "ph", label: "pH", color: "#0284c7" },
                 { key: "temperature", label: "Temp", color: "#f59e0b" },
                 { key: "turbidity", label: "Turbidity", color: "#10b981" },
+                { key: "orp", label: "ORP", color: "#9333ea" },
               ].map((c) => (
                 <button
                   key={c.key}
