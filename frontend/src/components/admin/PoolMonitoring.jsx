@@ -29,6 +29,7 @@ const OASIS_OPTIONS = [
 
 const PoolMonitoring = () => {
   const [selectedOasis, setSelectedOasis] = useState(null);
+  const [initializing, setInitializing] = useState(true); // true while we check the DB on mount
   const [latestReading, setLatestReading] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [poolLoading, setPoolLoading] = useState(false);
@@ -49,6 +50,25 @@ const PoolMonitoring = () => {
     title: '',
     message: ''
   });
+
+  // ── On mount: restore active oasis from database ──────────────────
+  // Without this, every page load / tab reopen drops back to the selector
+  // screen even though the ESP32 is still monitoring an oasis.
+  useEffect(() => {
+    const syncOasisFromDB = async () => {
+      try {
+        const data = await apiCall("/api/readings/current-oasis");
+        if (data?.oasis && data.oasis !== "none") {
+          setSelectedOasis(data.oasis);
+        }
+      } catch (err) {
+        console.error("Failed to fetch current oasis on mount:", err);
+      } finally {
+        setInitializing(false);
+      }
+    };
+    syncOasisFromDB();
+  }, []); // runs once on mount
 
   const fetchPoolReadings = useCallback(async () => {
     if (!selectedOasis) return;
@@ -282,6 +302,18 @@ const PoolMonitoring = () => {
       setIsAssigning(false);
     }
   };
+
+  // ── INITIALIZING: checking database before rendering anything ──
+  if (initializing) {
+    return (
+      <div className="pm-wrapper">
+        <div className="pm-loading" style={{ minHeight: "200px" }}>
+          <div className="pm-loading-spinner"></div>
+          <span>Loading pool status…</span>
+        </div>
+      </div>
+    );
+  }
 
   // ── OASIS SELECTOR SCREEN ──
   if (!selectedOasis) {
