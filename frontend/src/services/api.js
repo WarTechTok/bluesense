@@ -95,20 +95,31 @@ export async function updateProfile(formData) {
 
 // Get latest reading for a specific oasis
 export async function getLatestReading(oasis) {
-  const url = oasis 
+  // FIX: Added Authorization header — /api/readings/latest requires verifyToken
+  // middleware. Without this token the request returns 401 and the dashboard
+  // silently shows no data even when the ESP32 is sending readings correctly.
+  const token = localStorage.getItem('token');
+  const url = oasis
     ? `${API_BASE_URL}/api/readings/latest?oasis=${oasis}`
     : `${API_BASE_URL}/api/readings/latest`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
   if (!res.ok) throw new Error('Failed to fetch latest reading');
   return res.json();
 }
 
 // Get history readings for a specific oasis
 export async function getHistory(oasis) {
-  const url = oasis 
+  // FIX: Same as above — /api/readings/history also requires verifyToken.
+  // The history chart was never loading because every request was rejected.
+  const token = localStorage.getItem('token');
+  const url = oasis
     ? `${API_BASE_URL}/api/readings/history?oasis=${oasis}`
     : `${API_BASE_URL}/api/readings/history`;
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
   if (!res.ok) throw new Error('Failed to fetch history');
   return res.json();
 }
