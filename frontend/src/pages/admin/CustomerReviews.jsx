@@ -1,16 +1,16 @@
 // frontend/src/pages/admin/CustomerReviews.jsx
 // ============================================
-// ADMIN: Customer Reviews (View Only)
-// View all reviews - no delete, no approve/hide
-// Filters: rating, oasis, package
+// ADMIN: Customer Reviews
+// View all reviews — hide/unhide only, no delete
+// Filters: rating, oasis, package, visibility
 // Search: customer name or review text
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllReviewsAdmin } from '../../services/reviews';
+import { getAllReviewsAdmin, updateReviewStatus } from '../../services/reviews';
 import './CustomerReviews.css';
 
-// ─── Star display ───────────────────────────────────────────────────────────
+// ─── Star display ────────────────────────────────────────────────────────────
 function StarDisplay({ rating }) {
   return (
     <span className="cr-stars" aria-label={`${rating} out of 5 stars`}>
@@ -21,7 +21,7 @@ function StarDisplay({ rating }) {
   );
 }
 
-// ─── Media thumbnails + lightbox ────────────────────────────────────────────
+// ─── Media thumbnails + lightbox ─────────────────────────────────────────────
 function MediaPreview({ photos, video }) {
   const [lightbox, setLightbox] = useState(null); // { url, type }
 
@@ -78,19 +78,21 @@ function MediaPreview({ photos, video }) {
   );
 }
 
-// ─── Main page ───────────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 export default function CustomerReviews() {
-  const [reviews, setReviews]         = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState(null);
+  const [reviews, setReviews]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
+  const [togglingId, setTogglingId] = useState(null); // review id currently being toggled
 
   // Filters
-  const [search, setSearch]           = useState('');
-  const [filterRating, setFilterRating] = useState('');
-  const [filterOasis, setFilterOasis]   = useState('');
+  const [search, setSearch]               = useState('');
+  const [filterRating, setFilterRating]   = useState('');
+  const [filterOasis, setFilterOasis]     = useState('');
   const [filterPackage, setFilterPackage] = useState('');
+  const [filterStatus, setFilterStatus]   = useState(''); // '' | 'approved' | 'hidden'
 
-  // ── Load reviews ─────────────────────────────────────────────────────────
+  // ── Load reviews ──────────────────────────────────────────────────────────
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -110,18 +112,36 @@ export default function CustomerReviews() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Derived data ─────────────────────────────────────────────────────────
+  // ── Toggle hide/unhide ────────────────────────────────────────────────────
+  const handleToggleVisibility = async (review) => {
+    const nextStatus = review.status === 'approved' ? 'hidden' : 'approved';
+    setTogglingId(review._id);
+    try {
+      const data = await updateReviewStatus(review._id, nextStatus);
+      if (data.success) {
+        setReviews((prev) =>
+          prev.map((r) => (r._id === review._id ? { ...r, status: nextStatus } : r))
+        );
+      } else {
+        alert(data.message || 'Failed to update review visibility.');
+      }
+    } catch {
+      alert('Failed to update review visibility. Please try again.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
-  // Unique package list from loaded reviews (for filter dropdown)
+  // ── Derived data ──────────────────────────────────────────────────────────
   const packageOptions = [...new Set(reviews.map((r) => r.package).filter(Boolean))].sort();
 
-  // Apply filters
   const filtered = reviews.filter((r) => {
-    if (filterRating && r.rating !== parseInt(filterRating)) return false;
-    if (filterOasis  && r.oasis !== filterOasis)              return false;
+    if (filterRating  && r.rating !== parseInt(filterRating)) return false;
+    if (filterOasis   && r.oasis !== filterOasis)             return false;
     if (filterPackage && r.package !== filterPackage)         return false;
+    if (filterStatus  && r.status !== filterStatus)           return false;
     if (search) {
-      const q = search.toLowerCase();
+      const q    = search.toLowerCase();
       const name = r.isAnonymous ? 'anonymous' : (r.customerName || '').toLowerCase();
       const text = (r.text || '').toLowerCase();
       if (!name.includes(q) && !text.includes(q)) return false;
@@ -129,21 +149,24 @@ export default function CustomerReviews() {
     return true;
   });
 
-  // Summary stats
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : '—';
+
+  const hiddenCount   = reviews.filter((r) => r.status === 'hidden').length;
+  const visibleCount  = reviews.filter((r) => r.status === 'approved').length;
 
   const clearFilters = () => {
     setSearch('');
     setFilterRating('');
     setFilterOasis('');
     setFilterPackage('');
+    setFilterStatus('');
   };
 
-  const hasFilters = search || filterRating || filterOasis || filterPackage;
+  const hasFilters = search || filterRating || filterOasis || filterPackage || filterStatus;
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="cr-page">
 
@@ -151,7 +174,7 @@ export default function CustomerReviews() {
       <div className="cr-header">
         <div>
           <h1 className="cr-title">Customer Reviews</h1>
-          <p className="cr-subtitle">View and browse all guest reviews</p>
+          <p className="cr-subtitle">Manage visibility of guest reviews</p>
         </div>
       </div>
 
@@ -165,17 +188,13 @@ export default function CustomerReviews() {
           <span className="cr-stat-value">{avgRating}</span>
           <span className="cr-stat-label">Avg Rating</span>
         </div>
-        <div className="cr-stat-card cr-stat-card--blue">
-          <span className="cr-stat-value">
-            {reviews.filter((r) => r.isAnonymous).length}
-          </span>
-          <span className="cr-stat-label">Anonymous</span>
+        <div className="cr-stat-card cr-stat-card--green">
+          <span className="cr-stat-value">{visibleCount}</span>
+          <span className="cr-stat-label">Visible</span>
         </div>
-        <div className="cr-stat-card cr-stat-card--purple">
-          <span className="cr-stat-value">
-            {reviews.filter((r) => (r.photos?.length > 0) || r.video?.url).length}
-          </span>
-          <span className="cr-stat-label">With Media</span>
+        <div className="cr-stat-card cr-stat-card--slate">
+          <span className="cr-stat-value">{hiddenCount}</span>
+          <span className="cr-stat-label">Hidden</span>
         </div>
       </div>
 
@@ -222,6 +241,16 @@ export default function CustomerReviews() {
           {packageOptions.map((p) => (
             <option key={p} value={p}>{p}</option>
           ))}
+        </select>
+
+        <select
+          className="cr-filter-select"
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+        >
+          <option value="">All Status</option>
+          <option value="approved">Visible</option>
+          <option value="hidden">Hidden</option>
         </select>
 
         {hasFilters && (
@@ -272,64 +301,100 @@ export default function CustomerReviews() {
                 <th>Date</th>
                 <th>Oasis</th>
                 <th>Package</th>
+                <th>Status</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((review) => (
-                <tr key={review._id}>
+              {filtered.map((review) => {
+                const isHidden    = review.status === 'hidden';
+                const isToggling  = togglingId === review._id;
 
-                  {/* Customer */}
-                  <td>
-                    <div className="cr-customer">
-                      {review.isAnonymous ? (
-                        <span className="cr-customer-name cr-anon">Anonymous</span>
-                      ) : (
-                        <span className="cr-customer-name">{review.customerName}</span>
-                      )}
-                      {!review.isAnonymous && review.customerEmail && (
-                        <span className="cr-customer-email">{review.customerEmail}</span>
-                      )}
-                    </div>
-                  </td>
+                return (
+                  <tr key={review._id} className={isHidden ? 'cr-row--hidden' : ''}>
 
-                  {/* Rating */}
-                  <td>
-                    <StarDisplay rating={review.rating} />
-                  </td>
+                    {/* Customer */}
+                    <td>
+                      <div className="cr-customer">
+                        {review.isAnonymous ? (
+                          <span className="cr-customer-name cr-anon">Anonymous</span>
+                        ) : (
+                          <span className="cr-customer-name">{review.customerName}</span>
+                        )}
+                        {!review.isAnonymous && review.customerEmail && (
+                          <span className="cr-customer-email">{review.customerEmail}</span>
+                        )}
+                      </div>
+                    </td>
 
-                  {/* Review text */}
-                  <td>
-                    <p className="cr-text-preview">{review.text}</p>
-                  </td>
+                    {/* Rating */}
+                    <td>
+                      <StarDisplay rating={review.rating} />
+                    </td>
 
-                  {/* Media */}
-                  <td>
-                    <MediaPreview photos={review.photos} video={review.video} />
-                  </td>
+                    {/* Review text */}
+                    <td>
+                      <p className="cr-text-preview">{review.text}</p>
+                    </td>
 
-                  {/* Date */}
-                  <td>
-                    <span className="cr-date">
-                      {new Date(review.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
-                  </td>
+                    {/* Media */}
+                    <td>
+                      <MediaPreview photos={review.photos} video={review.video} />
+                    </td>
 
-                  {/* Oasis */}
-                  <td>
-                    <span className="cr-oasis-badge">{review.oasis}</span>
-                  </td>
+                    {/* Date */}
+                    <td>
+                      <span className="cr-date">
+                        {new Date(review.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </span>
+                    </td>
 
-                  {/* Package */}
-                  <td>
-                    <span className="cr-pkg">{review.package}</span>
-                  </td>
+                    {/* Oasis */}
+                    <td>
+                      <span className="cr-oasis-badge">{review.oasis}</span>
+                    </td>
 
-                </tr>
-              ))}
+                    {/* Package */}
+                    <td>
+                      <span className="cr-pkg">{review.package}</span>
+                    </td>
+
+                    {/* Status badge */}
+                    <td>
+                      <span className={`cr-status-badge cr-status-badge--${isHidden ? 'hidden' : 'visible'}`}>
+                        {isHidden ? (
+                          <><i className="fas fa-eye-slash" /> Hidden</>
+                        ) : (
+                          <><i className="fas fa-eye" /> Visible</>
+                        )}
+                      </span>
+                    </td>
+
+                    {/* Action */}
+                    <td>
+                      <button
+                        className={`cr-toggle-btn cr-toggle-btn--${isHidden ? 'show' : 'hide'}`}
+                        onClick={() => handleToggleVisibility(review)}
+                        disabled={isToggling}
+                        aria-label={isHidden ? 'Make visible to customers' : 'Hide from customers'}
+                      >
+                        {isToggling ? (
+                          <span className="cr-btn-spinner" />
+                        ) : isHidden ? (
+                          <><i className="fas fa-eye" /> Unhide</>
+                        ) : (
+                          <><i className="fas fa-eye-slash" /> Hide</>
+                        )}
+                      </button>
+                    </td>
+
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

@@ -48,9 +48,9 @@
   color: #0284c7;
 }
 
-.cr-stat-card--yellow  .cr-stat-value { color: #f59e0b; }
-.cr-stat-card--blue    .cr-stat-value { color: #3b82f6; }
-.cr-stat-card--purple  .cr-stat-value { color: #7c3aed; }
+.cr-stat-card--yellow .cr-stat-value { color: #f59e0b; }
+.cr-stat-card--green  .cr-stat-value { color: #16a34a; }
+.cr-stat-card--slate  .cr-stat-value { color: #64748b; }
 
 .cr-stat-label {
   font-size: 0.8rem;
@@ -180,6 +180,15 @@
   border-bottom: none;
 }
 
+/* Dimmed row for hidden reviews */
+.cr-row--hidden td {
+  opacity: 0.55;
+}
+
+.cr-row--hidden:hover td {
+  opacity: 0.7;
+}
+
 /* ── Cell content ── */
 .cr-customer {
   display: flex;
@@ -287,6 +296,86 @@
 .cr-pkg {
   font-size: 0.82rem;
   color: #475569;
+}
+
+/* ── Status badge ── */
+.cr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cr-status-badge--visible {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.cr-status-badge--hidden {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+/* ── Toggle (hide/unhide) button ── */
+.cr-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  min-width: 90px;
+  justify-content: center;
+}
+
+.cr-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Hide button — muted slate style */
+.cr-toggle-btn--hide {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.cr-toggle-btn--hide:hover:not(:disabled) {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+}
+
+/* Unhide button — green accent */
+.cr-toggle-btn--show {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+.cr-toggle-btn--show:hover:not(:disabled) {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+/* Spinner inside toggle button */
+.cr-btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: cr-spin 0.6s linear infinite;
+  opacity: 0.7;
 }
 
 /* ── Lightbox ── */
