@@ -36,18 +36,18 @@ const PoolMonitoring = () => {
   const [historyFilter, setHistoryFilter] = useState("today");
   const [showHistory, setShowHistory] = useState(false);
   const [selectedChart, setSelectedChart] = useState("ph");
-  
+
   const [staff, setStaff] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
-  const [taskType, setTaskType] = useState('Cleaning');
-  const [taskDescription, setTaskDescription] = useState('');
+  const [taskType, setTaskType] = useState("Cleaning");
+  const [taskDescription, setTaskDescription] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
-    type: 'success',
-    title: '',
-    message: ''
+    type: "success",
+    title: "",
+    message: "",
   });
 
   useEffect(() => {
@@ -88,7 +88,7 @@ const PoolMonitoring = () => {
     try {
       const staffData = await adminApi.getAllStaff();
       const housekeepers = staffData.filter(
-        (s) => s.position === "Housekeeper" || s.role === "housekeeper"
+        (s) => s.position === "Housekeeper" || s.role === "housekeeper",
       );
       setStaff(housekeepers);
     } catch (error) {
@@ -147,13 +147,17 @@ const PoolMonitoring = () => {
   const getStatusInfo = (reading) => {
     if (!reading)
       return { color: "#94a3b8", bg: "#f1f5f9", text: "No Data", icon: "○" };
-    const phBad   = reading.ph < 7.2 || reading.ph > 7.8;
+    const phBad = reading.ph < 7.2 || reading.ph > 7.8;
     const turbBad = reading.turbidity !== "Clear";
-    const tempBad = reading.temperature !== null && reading.temperature !== undefined
-                    && (reading.temperature < 26 || reading.temperature > 28);
+    const tempBad =
+      reading.temperature !== null &&
+      reading.temperature !== undefined &&
+      (reading.temperature < 26 || reading.temperature > 28);
     // FIXED: WHO ORP range is 650–850 mV (750–850 is GOOD, >850 is HIGH)
-    const orpBad  = reading.orp !== null && reading.orp !== undefined
-                    && (reading.orp < 650 || reading.orp > 850);
+    const orpBad =
+      reading.orp !== null &&
+      reading.orp !== undefined &&
+      (reading.orp < 650 || reading.orp > 850);
     if (phBad || turbBad || tempBad || orpBad)
       return {
         color: "#ef4444",
@@ -162,7 +166,13 @@ const PoolMonitoring = () => {
         icon: "⚠",
         isActionNeeded: true,
       };
-    return { color: "#10b981", bg: "#f0fdf4", text: "All Good", icon: "✓", isActionNeeded: false };
+    return {
+      color: "#10b981",
+      bg: "#f0fdf4",
+      text: "All Good",
+      icon: "✓",
+      isActionNeeded: false,
+    };
   };
 
   const statusInfo = getStatusInfo(latestReading);
@@ -210,7 +220,9 @@ const PoolMonitoring = () => {
     if (selectedChart === "ph")
       return item.ph < 7.2 || item.ph > 7.8 ? "#ef4444" : "#0284c7";
     if (selectedChart === "temperature")
-      return item.temperature < 26 || item.temperature > 28 ? "#ef4444" : "#f59e0b";
+      return item.temperature < 26 || item.temperature > 28
+        ? "#ef4444"
+        : "#f59e0b";
     if (selectedChart === "orp")
       return item.orp < 650 || item.orp > 850 ? "#ef4444" : "#9333ea";
     return item.turbidity === 3
@@ -235,29 +247,30 @@ const PoolMonitoring = () => {
     if (!selectedStaff) {
       setMessageModal({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Please select a staff member to assign'
+        type: "error",
+        title: "Error",
+        message: "Please select a staff member to assign",
       });
       return;
     }
 
     setIsAssigning(true);
     try {
-      const staffMember = staff.find(s => s._id === selectedStaff);
-      const normalizedDescription = taskDescription.trim() || `Pool task for ${activeOasis?.label}`;
-      
+      const staffMember = staff.find((s) => s._id === selectedStaff);
+      const normalizedDescription =
+        taskDescription.trim() || `Pool task for ${activeOasis?.label}`;
+
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 1);
-      
+
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
         title: `${taskType} Required - ${activeOasis?.label}`,
         description: `${normalizedDescription}\n\nPool readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, Turbidity ${latestReading?.turbidity}, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}`,
-        priority: 'High',
-        status: 'Pending',
+        priority: "High",
+        status: "Pending",
         taskType,
-        dueDate: dueDate.toISOString()
+        dueDate: dueDate.toISOString(),
       });
 
       if (staffMember?.email) {
@@ -267,28 +280,28 @@ const PoolMonitoring = () => {
           email: staffMember.email,
           subject: `🏊 Pool Maintenance Assignment - ${activeOasis?.label}`,
           message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}. Please check the pool and take necessary corrective actions.`,
-          type: 'Task Assignment'
+          type: "Task Assignment",
         });
       }
 
       setMessageModal({
         isOpen: true,
-        type: 'success',
-        title: 'Success',
-        message: `${staffMember?.name} has been assigned and notified about the pool maintenance issue.`
+        type: "success",
+        title: "Success",
+        message: `${staffMember?.name} has been assigned and notified about the pool maintenance issue.`,
       });
 
       setShowAssignModal(false);
       setSelectedStaff(null);
-      setTaskType('Cleaning');
-      setTaskDescription('');
+      setTaskType("Cleaning");
+      setTaskDescription("");
     } catch (error) {
-      console.error('Error assigning staff:', error);
+      console.error("Error assigning staff:", error);
       setMessageModal({
         isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to assign staff. Please try again.'
+        type: "error",
+        title: "Error",
+        message: "Failed to assign staff. Please try again.",
       });
     } finally {
       setIsAssigning(false);
@@ -464,30 +477,37 @@ const PoolMonitoring = () => {
               </span>
             </div>
           </div>
-          
+
           {statusInfo.isActionNeeded && (
             <button
               className="pm-assign-btn"
               onClick={() => setShowAssignModal(true)}
               style={{
-                position: 'absolute',
-                bottom: '16px',
-                right: '16px',
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '8px 16px',
-                fontSize: '0.9rem',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
+                position: "absolute",
+                bottom: "16px",
+                right: "16px",
+                background: "#ef4444",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                padding: "8px 16px",
+                fontSize: "0.9rem",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                transition: "all 0.2s",
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -567,7 +587,8 @@ const PoolMonitoring = () => {
                 className="pm-reading-value"
                 style={{
                   color:
-                    latestReading?.temperature < 26 || latestReading?.temperature > 28
+                    latestReading?.temperature < 26 ||
+                    latestReading?.temperature > 28
                       ? "#ef4444"
                       : "#f59e0b",
                 }}
@@ -582,7 +603,8 @@ const PoolMonitoring = () => {
               className="pm-reading-status-dot"
               style={{
                 background:
-                  latestReading?.temperature < 26 || latestReading?.temperature > 28
+                  latestReading?.temperature < 26 ||
+                  latestReading?.temperature > 28
                     ? "#ef4444"
                     : "#10b981",
               }}
@@ -657,7 +679,8 @@ const PoolMonitoring = () => {
                 className="pm-reading-value"
                 style={{
                   color:
-                    latestReading?.orp === null || latestReading?.orp === undefined
+                    latestReading?.orp === null ||
+                    latestReading?.orp === undefined
                       ? "#94a3b8"
                       : latestReading.orp < 650 || latestReading.orp > 850
                         ? "#ef4444"
@@ -672,9 +695,11 @@ const PoolMonitoring = () => {
                 {latestReading?.orp !== null && latestReading?.orp !== undefined
                   ? latestReading.orp < 650
                     ? "LOW — under-disinfected"
-                    : latestReading.orp <= 850
-                      ? "GOOD (WHO: 750–850)"
-                      : "HIGH — over-chlorinated"
+                    : latestReading.orp < 750
+                      ? "FAIR (650–749)"
+                      : latestReading.orp <= 850
+                        ? "GOOD (750–850)"
+                        : "HIGH — over-chlorinated"
                   : "WHO range: 650–850 mV"}
               </span>
             </div>
@@ -682,7 +707,8 @@ const PoolMonitoring = () => {
               className="pm-reading-status-dot"
               style={{
                 background:
-                  latestReading?.orp === null || latestReading?.orp === undefined
+                  latestReading?.orp === null ||
+                  latestReading?.orp === undefined
                     ? "#94a3b8"
                     : latestReading.orp < 650 || latestReading.orp > 850
                       ? "#ef4444"
@@ -931,61 +957,91 @@ const PoolMonitoring = () => {
       )}
 
       {showAssignModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }} onClick={() => setShowAssignModal(false)}>
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            maxWidth: '400px',
-            width: '90%',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: '600', color: '#1e293b' }}>👥 Assign Staff Member</h3>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setShowAssignModal(false)}
+        >
+          <div
+            style={{
+              background: "white",
+              borderRadius: "12px",
+              padding: "24px",
+              maxWidth: "400px",
+              width: "90%",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "20px",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1.1rem",
+                  fontWeight: "600",
+                  color: "#1e293b",
+                }}
+              >
+                👥 Assign Staff Member
+              </h3>
               <button
                 onClick={() => setShowAssignModal(false)}
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '1.5rem',
-                  cursor: 'pointer',
-                  color: '#94a3b8'
+                  background: "none",
+                  border: "none",
+                  fontSize: "1.5rem",
+                  cursor: "pointer",
+                  color: "#94a3b8",
                 }}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  color: "#475569",
+                }}
+              >
                 Select Staff Member
               </label>
               <select
-                value={selectedStaff || ''}
+                value={selectedStaff || ""}
                 onChange={(e) => setSelectedStaff(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  fontFamily: 'inherit',
-                  cursor: 'pointer'
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
                 }}
               >
                 <option value="">-- Select a staff member --</option>
-                {staff.map(s => (
+                {staff.map((s) => (
                   <option key={s._id} value={s._id}>
                     {s.name} ({s.position || s.role})
                   </option>
@@ -993,21 +1049,29 @@ const PoolMonitoring = () => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  color: "#475569",
+                }}
+              >
                 Task Type
               </label>
               <select
                 value={taskType}
                 onChange={(e) => setTaskType(e.target.value)}
                 style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  fontFamily: 'inherit',
-                  cursor: 'pointer'
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  cursor: "pointer",
                 }}
               >
                 <option value="Cleaning">🧹 Cleaning</option>
@@ -1019,8 +1083,16 @@ const PoolMonitoring = () => {
               </select>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '600', color: '#475569' }}>
+            <div style={{ marginBottom: "20px" }}>
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontSize: "0.9rem",
+                  fontWeight: "600",
+                  color: "#475569",
+                }}
+              >
                 What specific task should the housekeeper do?
               </label>
               <textarea
@@ -1029,46 +1101,50 @@ const PoolMonitoring = () => {
                 rows="3"
                 placeholder="e.g., Clean the pool area, refill chemicals, and wipe down surfaces"
                 style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '0.9rem',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
+                  width: "100%",
+                  padding: "10px 12px",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "8px",
+                  fontSize: "0.9rem",
+                  fontFamily: "inherit",
+                  resize: "vertical",
                 }}
               />
             </div>
 
             {selectedStaff && (
-              <div style={{
-                background: '#f0f9ff',
-                border: '1px solid #0284c7',
-                borderRadius: '8px',
-                padding: '12px',
-                marginBottom: '20px',
-                fontSize: '0.85rem',
-                color: '#0284c7'
-              }}>
+              <div
+                style={{
+                  background: "#f0f9ff",
+                  border: "1px solid #0284c7",
+                  borderRadius: "8px",
+                  padding: "12px",
+                  marginBottom: "20px",
+                  fontSize: "0.85rem",
+                  color: "#0284c7",
+                }}
+              >
                 <strong>Assignment Details:</strong>
-                <p style={{ margin: '8px 0 0', lineHeight: '1.4' }}>
-                  This staff member will receive an email notification about the pool maintenance issue and the task will be assigned to their dashboard.
+                <p style={{ margin: "8px 0 0", lineHeight: "1.4" }}>
+                  This staff member will receive an email notification about the
+                  pool maintenance issue and the task will be assigned to their
+                  dashboard.
                 </p>
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: "flex", gap: "12px" }}>
               <button
                 onClick={() => setShowAssignModal(false)}
                 style={{
                   flex: 1,
-                  padding: '10px 16px',
-                  background: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  color: '#64748b'
+                  padding: "10px 16px",
+                  background: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  color: "#64748b",
                 }}
               >
                 Cancel
@@ -1078,17 +1154,17 @@ const PoolMonitoring = () => {
                 disabled={isAssigning || !selectedStaff}
                 style={{
                   flex: 1,
-                  padding: '10px 16px',
-                  background: isAssigning ? '#cbd5e1' : '#ef4444',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: isAssigning ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  transition: 'all 0.2s'
+                  padding: "10px 16px",
+                  background: isAssigning ? "#cbd5e1" : "#ef4444",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: isAssigning ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  transition: "all 0.2s",
                 }}
               >
-                {isAssigning ? 'Assigning...' : '✓ Assign Now'}
+                {isAssigning ? "Assigning..." : "✓ Assign Now"}
               </button>
             </div>
           </div>
