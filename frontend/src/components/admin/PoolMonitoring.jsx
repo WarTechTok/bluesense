@@ -29,7 +29,7 @@ const OASIS_OPTIONS = [
 
 const PoolMonitoring = () => {
   const [selectedOasis, setSelectedOasis] = useState(null);
-  const [initializing, setInitializing] = useState(true); // true while we check the DB on mount
+  const [initializing, setInitializing] = useState(true);
   const [latestReading, setLatestReading] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [poolLoading, setPoolLoading] = useState(false);
@@ -37,7 +37,6 @@ const PoolMonitoring = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [selectedChart, setSelectedChart] = useState("ph");
   
-  // Staff assignment states
   const [staff, setStaff] = useState([]);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -51,9 +50,6 @@ const PoolMonitoring = () => {
     message: ''
   });
 
-  // ── On mount: restore active oasis from database ──────────────────
-  // Without this, every page load / tab reopen drops back to the selector
-  // screen even though the ESP32 is still monitoring an oasis.
   useEffect(() => {
     const syncOasisFromDB = async () => {
       try {
@@ -68,7 +64,7 @@ const PoolMonitoring = () => {
       }
     };
     syncOasisFromDB();
-  }, []); // runs once on mount
+  }, []);
 
   const fetchPoolReadings = useCallback(async () => {
     if (!selectedOasis) return;
@@ -88,7 +84,6 @@ const PoolMonitoring = () => {
     }
   }, [selectedOasis]);
 
-  // Fetch staff list — only Housekeepers can be assigned to pool monitoring
   const fetchStaff = useCallback(async () => {
     try {
       const staffData = await adminApi.getAllStaff();
@@ -154,12 +149,11 @@ const PoolMonitoring = () => {
       return { color: "#94a3b8", bg: "#f1f5f9", text: "No Data", icon: "○" };
     const phBad   = reading.ph < 7.2 || reading.ph > 7.8;
     const turbBad = reading.turbidity !== "Clear";
-    // WHO swimming pool temp: 26–28°C (32°C is spa/hot tub threshold, not pool)
     const tempBad = reading.temperature !== null && reading.temperature !== undefined
                     && (reading.temperature < 26 || reading.temperature > 28);
-    // WHO ORP: 650–750 mV. Under 650 = under-disinfected; over 750 = over-chlorinated
+    // FIXED: WHO ORP range is 650–850 mV (750–850 is GOOD, >850 is HIGH)
     const orpBad  = reading.orp !== null && reading.orp !== undefined
-                    && (reading.orp < 650 || reading.orp > 750);
+                    && (reading.orp < 650 || reading.orp > 850);
     if (phBad || turbBad || tempBad || orpBad)
       return {
         color: "#ef4444",
@@ -191,6 +185,7 @@ const PoolMonitoring = () => {
   const getYAxisSteps = () => {
     if (selectedChart === "ph") return [7.0, 7.2, 7.5, 7.8, 8.0];
     if (selectedChart === "temperature") return [20, 24, 26, 28, 32];
+    // FIXED: ORP chart steps show the WHO ranges clearly
     if (selectedChart === "orp") return [400, 650, 750, 850, 1000];
     return [1, 2, 3];
   };
@@ -210,14 +205,14 @@ const PoolMonitoring = () => {
     return item.turbidityLabel;
   };
 
-  // UPDATED: WHO Standards for dot colors (includes ORP)
+  // FIXED: ORP dot color uses 850 as upper threshold
   const getDotColor = (item) => {
     if (selectedChart === "ph")
       return item.ph < 7.2 || item.ph > 7.8 ? "#ef4444" : "#0284c7";
     if (selectedChart === "temperature")
       return item.temperature < 26 || item.temperature > 28 ? "#ef4444" : "#f59e0b";
     if (selectedChart === "orp")
-      return item.orp < 650 || item.orp > 750 ? "#ef4444" : "#9333ea";
+      return item.orp < 650 || item.orp > 850 ? "#ef4444" : "#9333ea";
     return item.turbidity === 3
       ? "#ef4444"
       : item.turbidity === 2
@@ -236,7 +231,6 @@ const PoolMonitoring = () => {
       .join(" ");
   };
 
-  // Staff assignment handler
   const handleAssignStaff = async () => {
     if (!selectedStaff) {
       setMessageModal({
@@ -253,9 +247,8 @@ const PoolMonitoring = () => {
       const staffMember = staff.find(s => s._id === selectedStaff);
       const normalizedDescription = taskDescription.trim() || `Pool task for ${activeOasis?.label}`;
       
-      // Create task assignment
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 1); // Due tomorrow
+      dueDate.setDate(dueDate.getDate() + 1);
       
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
@@ -267,7 +260,6 @@ const PoolMonitoring = () => {
         dueDate: dueDate.toISOString()
       });
 
-      // Send notification to staff
       if (staffMember?.email) {
         await adminApi.sendNotification({
           staffId: selectedStaff,
@@ -303,7 +295,6 @@ const PoolMonitoring = () => {
     }
   };
 
-  // ── INITIALIZING: checking database before rendering anything ──
   if (initializing) {
     return (
       <div className="pm-wrapper">
@@ -315,7 +306,6 @@ const PoolMonitoring = () => {
     );
   }
 
-  // ── OASIS SELECTOR SCREEN ──
   if (!selectedOasis) {
     return (
       <div className="pm-wrapper">
@@ -393,10 +383,8 @@ const PoolMonitoring = () => {
     );
   }
 
-  // ── MONITORING SCREEN ──
   return (
     <div className="pm-wrapper">
-      {/* Header with oasis switcher */}
       <div className="pm-header">
         <div className="pm-header-left">
           <div className="pm-oasis-tag">
@@ -448,7 +436,6 @@ const PoolMonitoring = () => {
         </div>
       </div>
 
-      {/* Pool image hero strip */}
       <div className="pm-pool-hero">
         <img
           src={activeOasis.image}
@@ -478,7 +465,6 @@ const PoolMonitoring = () => {
             </div>
           </div>
           
-          {/* Assign Staff Button - Only show when Action Needed */}
           {statusInfo.isActionNeeded && (
             <button
               className="pm-assign-btn"
@@ -513,7 +499,6 @@ const PoolMonitoring = () => {
         </div>
       </div>
 
-      {/* Live reading cards */}
       {poolLoading ? (
         <div className="pm-loading">
           <div className="pm-loading-spinner"></div>
@@ -521,7 +506,6 @@ const PoolMonitoring = () => {
         </div>
       ) : (
         <div className="pm-readings-grid">
-          {/* pH - UPDATED WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#e0f2fe" }}>
               <svg
@@ -562,7 +546,6 @@ const PoolMonitoring = () => {
             />
           </div>
 
-          {/* Temperature - UPDATED WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#fffbeb" }}>
               <svg
@@ -606,7 +589,6 @@ const PoolMonitoring = () => {
             />
           </div>
 
-          {/* Turbidity - WHO Standard */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#f0fdf4" }}>
               <svg
@@ -653,7 +635,7 @@ const PoolMonitoring = () => {
             />
           </div>
 
-          {/* ORP */}
+          {/* FIXED: ORP Card - WHO range 650-850, GOOD is 750-850 */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#fdf4ff" }}>
               <svg
@@ -677,7 +659,7 @@ const PoolMonitoring = () => {
                   color:
                     latestReading?.orp === null || latestReading?.orp === undefined
                       ? "#94a3b8"
-                      : latestReading.orp < 650 || latestReading.orp > 750
+                      : latestReading.orp < 650 || latestReading.orp > 850
                         ? "#ef4444"
                         : "#9333ea",
                 }}
@@ -690,10 +672,10 @@ const PoolMonitoring = () => {
                 {latestReading?.orp !== null && latestReading?.orp !== undefined
                   ? latestReading.orp < 650
                     ? "LOW — under-disinfected"
-                    : latestReading.orp <= 750
-                      ? "GOOD (WHO: 650–750)"
+                    : latestReading.orp <= 850
+                      ? "GOOD (WHO: 750–850)"
                       : "HIGH — over-chlorinated"
-                  : "WHO range: 650–750 mV"}
+                  : "WHO range: 650–850 mV"}
               </span>
             </div>
             <div
@@ -702,14 +684,13 @@ const PoolMonitoring = () => {
                 background:
                   latestReading?.orp === null || latestReading?.orp === undefined
                     ? "#94a3b8"
-                    : latestReading.orp < 650 || latestReading.orp > 750
+                    : latestReading.orp < 650 || latestReading.orp > 850
                       ? "#ef4444"
                       : "#10b981",
               }}
             />
           </div>
 
-          {/* Last update */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#f8fafc" }}>
               <svg
@@ -741,7 +722,6 @@ const PoolMonitoring = () => {
         </div>
       )}
 
-      {/* Display which oasis is being monitored */}
       <div
         className="pm-oasis-info"
         style={{
@@ -754,7 +734,6 @@ const PoolMonitoring = () => {
         Currently monitoring: <strong>{activeOasis?.label}</strong>
       </div>
 
-      {/* History toggle */}
       <button
         className={`pm-history-toggle ${showHistory ? "active" : ""}`}
         onClick={() => setShowHistory(!showHistory)}
@@ -791,7 +770,6 @@ const PoolMonitoring = () => {
         </svg>
       </button>
 
-      {/* History / Chart */}
       {showHistory && (
         <div className="pm-history">
           <div className="pm-history-controls">
@@ -952,7 +930,6 @@ const PoolMonitoring = () => {
         </div>
       )}
 
-      {/* Staff Assignment Modal */}
       {showAssignModal && (
         <div style={{
           position: 'fixed',
@@ -1118,7 +1095,6 @@ const PoolMonitoring = () => {
         </div>
       )}
 
-      {/* Message Modal */}
       <MessageModal
         isOpen={messageModal.isOpen}
         onClose={() => setMessageModal({ ...messageModal, isOpen: false })}
