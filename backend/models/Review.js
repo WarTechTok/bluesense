@@ -80,6 +80,15 @@ const reviewSchema = new mongoose.Schema({
     enum: ['approved', 'hidden'],
     default: 'approved',
   },
+
+  // Deletion audit log (populated just before hard delete, then document is removed)
+  // These fields are only used if you ever switch to soft-delete; for hard delete
+  // they serve as a pre-delete snapshot written to the server log.
+  deletionAudit: {
+    deletedBy:  { type: String, default: null }, // admin email
+    deleteReason: { type: String, default: null },
+    deletedAt:  { type: Date,   default: null },
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Review', reviewSchema);

@@ -332,6 +332,23 @@
   line-height: 1.5;
 }
 
+.rm-delete-reason-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  background: #fff;
+  margin-bottom: 16px;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.rm-delete-reason-select:focus {
+  border-color: #dc2626;
+}
+
 .rm-confirm-actions {
   display: flex;
   gap: 10px;

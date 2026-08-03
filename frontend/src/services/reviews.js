@@ -84,12 +84,14 @@ export async function updateReviewStatus(id, status) {
 }
 
 // ============================================
-// ADMIN: delete a review
+// ADMIN: delete a review (reason is required)
+// reason: 'pii' | 'legal' | 'fraudulent_booking' | 'data_erasure_request' | 'other'
 // ============================================
-export async function deleteReview(id) {
+export async function deleteReview(id, reason) {
   const res = await fetch(getApiUrl(`/api/reviews/${id}`), {
     method: 'DELETE',
-    headers: getAuthHeaders(),
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
   });
   return res.json();
 }

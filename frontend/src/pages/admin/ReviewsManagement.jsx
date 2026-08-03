@@ -64,6 +64,7 @@ export default function ReviewsManagement() {
   const [filterRating, setFilterRating] = useState('');
   const [search, setSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -103,9 +104,13 @@ export default function ReviewsManagement() {
   };
 
   const handleDelete = async (id) => {
+    if (!deleteReason) {
+      showToast('Please select a reason before deleting.', 'error');
+      return;
+    }
     setActionLoading(id + '-delete');
     try {
-      const res = await deleteReview(id);
+      const res = await deleteReview(id, deleteReason);
       if (res.success) {
         setReviews((prev) => prev.filter((r) => r._id !== id));
         showToast('Review deleted.');
@@ -115,6 +120,7 @@ export default function ReviewsManagement() {
     } finally {
       setActionLoading(null);
       setConfirmDelete(null);
+      setDeleteReason('');
     }
   };
 
@@ -277,7 +283,7 @@ export default function ReviewsManagement() {
                       </button>
                       <button
                         className="rm-btn rm-btn--delete"
-                        onClick={() => setConfirmDelete(review)}
+                        onClick={() => { setConfirmDelete(review); setDeleteReason(''); }}
                         title="Delete review"
                       >
                         Delete
@@ -293,22 +299,34 @@ export default function ReviewsManagement() {
 
       {/* Delete confirmation */}
       {confirmDelete && (
-        <div className="rm-confirm-overlay" onClick={() => setConfirmDelete(null)}>
+        <div className="rm-confirm-overlay" onClick={() => { setConfirmDelete(null); setDeleteReason(''); }}>
           <div className="rm-confirm-box" onClick={(e) => e.stopPropagation()}>
             <h4>Delete Review?</h4>
             <p>
-              This will permanently delete the review from{' '}
+              This will <strong>permanently</strong> delete the review from{' '}
               <strong>{confirmDelete.isAnonymous ? 'Anonymous' : confirmDelete.customerName}</strong>.
-              This cannot be undone.
+              This cannot be undone. Please select a reason — this is logged for accountability.
             </p>
+            <select
+              className="rm-delete-reason-select"
+              value={deleteReason}
+              onChange={(e) => setDeleteReason(e.target.value)}
+            >
+              <option value="">— Select a reason —</option>
+              <option value="pii">Contains personal info (PII)</option>
+              <option value="legal">Defamatory / legal request</option>
+              <option value="fraudulent_booking">Fraudulent booking</option>
+              <option value="data_erasure_request">Customer data erasure request</option>
+              <option value="other">Other</option>
+            </select>
             <div className="rm-confirm-actions">
-              <button className="rm-btn rm-btn--cancel" onClick={() => setConfirmDelete(null)}>
+              <button className="rm-btn rm-btn--cancel" onClick={() => { setConfirmDelete(null); setDeleteReason(''); }}>
                 Cancel
               </button>
               <button
                 className="rm-btn rm-btn--delete"
                 onClick={() => handleDelete(confirmDelete._id)}
-                disabled={actionLoading === confirmDelete._id + '-delete'}
+                disabled={!deleteReason || actionLoading === confirmDelete._id + '-delete'}
               >
                 {actionLoading === confirmDelete._id + '-delete' ? 'Deleting…' : 'Yes, Delete'}
               </button>

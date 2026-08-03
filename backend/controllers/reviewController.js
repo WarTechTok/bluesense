@@ -285,28 +285,53 @@ const updateReviewStatus = async (req, res) => {
 };
 
 // ============================================
-// DELETE REVIEW (admin)
+// DELETE REVIEW (admin) — requires a logged reason
 // DELETE /api/reviews/:id
 // Auth: verifyToken + isAdmin
+// Body: { reason: 'pii' | 'legal' | 'fraudulent_booking' | 'data_erasure_request' | 'other' }
 // ============================================
+const VALID_DELETE_REASONS = [
+  'pii',                  // Review contains personal info (phone, name of others)
+  'legal',                // Defamatory / legally actionable content
+  'fraudulent_booking',   // Booking was fraudulent (e.g. staff-created)
+  'data_erasure_request', // Customer formally requested data removal
+  'other',                // Catch-all — should be rare
+];
+
 const deleteReview = async (req, res) => {
   try {
+    const { reason } = req.body;
+
+    if (!reason || !VALID_DELETE_REASONS.includes(reason)) {
+      return res.status(400).json({
+        success: false,
+        message: `A valid delete reason is required. Allowed values: ${VALID_DELETE_REASONS.join(', ')}.`,
+      });
+    }
+
     const review = await Review.findById(req.params.id);
     if (!review)
       return res
         .status(404)
         .json({ success: false, message: "Review not found." });
 
+    // Structured audit log written before the document is removed
+    const adminEmail = req.user?.email || req.user?._id || 'unknown';
+    console.log(
+      `🗑️ [REVIEW DELETE AUDIT] id=${review._id} | booking=${review.booking} | ` +
+      `customer=${review.customerEmail} | reason=${reason} | deletedBy=${adminEmail} | ` +
+      `at=${new Date().toISOString()}`
+    );
+
     // Cleanup Cloudinary assets
     for (const photo of review.photos) {
-      await deleteFromCloudinary(photo.publicId);
+      if (photo.publicId) await deleteFromCloudinary(photo.publicId);
     }
     if (review.video?.publicId) {
       await deleteFromCloudinary(review.video.publicId);
     }
 
     await review.deleteOne();
-    console.log(`🗑️ Review ${review._id} deleted by admin`);
     res.json({ success: true, message: "Review deleted." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
