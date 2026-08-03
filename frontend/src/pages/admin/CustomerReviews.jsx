@@ -1,23 +1,14 @@
 // frontend/src/pages/admin/CustomerReviews.jsx
 // ============================================
-// ADMIN: Customer Reviews
-// View all reviews with delete (reason required + audit logged)
+// ADMIN: Customer Reviews (View Only)
+// View all reviews - no delete, no approve/hide
 // Filters: rating, oasis, package
 // Search: customer name or review text
 // ============================================
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllReviewsAdmin, deleteReview } from '../../services/reviews';
+import { getAllReviewsAdmin } from '../../services/reviews';
 import './CustomerReviews.css';
-
-// Reason labels shown in the dropdown
-const DELETE_REASONS = [
-  { value: 'pii',                  label: 'Contains personal info (PII)' },
-  { value: 'legal',                label: 'Defamatory / legal request' },
-  { value: 'fraudulent_booking',   label: 'Fraudulent booking' },
-  { value: 'data_erasure_request', label: 'Customer data erasure request' },
-  { value: 'other',                label: 'Other' },
-];
 
 // ─── Star display ───────────────────────────────────────────────────────────
 function StarDisplay({ rating }) {
@@ -94,24 +85,10 @@ export default function CustomerReviews() {
   const [error, setError]             = useState(null);
 
   // Filters
-  const [search, setSearch]                   = useState('');
-  const [filterRating, setFilterRating]       = useState('');
-  const [filterOasis, setFilterOasis]         = useState('');
-  const [filterPackage, setFilterPackage]     = useState('');
-
-  // Delete modal state
-  const [confirmDelete, setConfirmDelete]     = useState(null); // review object
-  const [deleteReason, setDeleteReason]       = useState('');
-  const [deleteLoading, setDeleteLoading]     = useState(false);
-  const [deleteError, setDeleteError]         = useState('');
-
-  // Toast
-  const [toast, setToast] = useState(null);
-
-  const showToast = (msg, type = 'success') => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3500);
-  };
+  const [search, setSearch]           = useState('');
+  const [filterRating, setFilterRating] = useState('');
+  const [filterOasis, setFilterOasis]   = useState('');
+  const [filterPackage, setFilterPackage] = useState('');
 
   // ── Load reviews ─────────────────────────────────────────────────────────
   const load = useCallback(async () => {
@@ -133,43 +110,6 @@ export default function CustomerReviews() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Delete flow ───────────────────────────────────────────────────────────
-  const openDeleteModal = (review) => {
-    setConfirmDelete(review);
-    setDeleteReason('');
-    setDeleteError('');
-  };
-
-  const closeDeleteModal = () => {
-    if (deleteLoading) return; // prevent closing while in-flight
-    setConfirmDelete(null);
-    setDeleteReason('');
-    setDeleteError('');
-  };
-
-  const handleDelete = async () => {
-    if (!deleteReason) {
-      setDeleteError('Please select a reason before deleting.');
-      return;
-    }
-    setDeleteLoading(true);
-    setDeleteError('');
-    try {
-      const res = await deleteReview(confirmDelete._id, deleteReason);
-      if (res.success) {
-        setReviews((prev) => prev.filter((r) => r._id !== confirmDelete._id));
-        showToast('Review deleted and audit log saved.');
-        closeDeleteModal();
-      } else {
-        setDeleteError(res.message || 'Delete failed. Please try again.');
-      }
-    } catch {
-      setDeleteError('Network error. Please try again.');
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
   // ── Derived data ─────────────────────────────────────────────────────────
 
   // Unique package list from loaded reviews (for filter dropdown)
@@ -177,9 +117,9 @@ export default function CustomerReviews() {
 
   // Apply filters
   const filtered = reviews.filter((r) => {
-    if (filterRating  && r.rating !== parseInt(filterRating)) return false;
-    if (filterOasis   && r.oasis !== filterOasis)              return false;
-    if (filterPackage && r.package !== filterPackage)          return false;
+    if (filterRating && r.rating !== parseInt(filterRating)) return false;
+    if (filterOasis  && r.oasis !== filterOasis)              return false;
+    if (filterPackage && r.package !== filterPackage)         return false;
     if (search) {
       const q = search.toLowerCase();
       const name = r.isAnonymous ? 'anonymous' : (r.customerName || '').toLowerCase();
@@ -207,19 +147,11 @@ export default function CustomerReviews() {
   return (
     <div className="cr-page">
 
-      {/* ── Toast ── */}
-      {toast && (
-        <div className={`cr-toast cr-toast--${toast.type}`}>
-          <i className={`fas fa-${toast.type === 'success' ? 'check-circle' : 'exclamation-circle'}`} />
-          {toast.msg}
-        </div>
-      )}
-
       {/* ── Header ── */}
       <div className="cr-header">
         <div>
           <h1 className="cr-title">Customer Reviews</h1>
-          <p className="cr-subtitle">View and manage all guest reviews</p>
+          <p className="cr-subtitle">View and browse all guest reviews</p>
         </div>
       </div>
 
@@ -340,7 +272,6 @@ export default function CustomerReviews() {
                 <th>Date</th>
                 <th>Oasis</th>
                 <th>Package</th>
-                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -397,94 +328,12 @@ export default function CustomerReviews() {
                     <span className="cr-pkg">{review.package}</span>
                   </td>
 
-                  {/* Actions */}
-                  <td>
-                    <button
-                      className="cr-delete-btn"
-                      onClick={() => openDeleteModal(review)}
-                      aria-label={`Delete review from ${review.isAnonymous ? 'Anonymous' : review.customerName}`}
-                      title="Delete review"
-                    >
-                      <i className="fas fa-trash-alt" />
-                    </button>
-                  </td>
-
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-
-      {/* ── Delete confirmation modal ── */}
-      {confirmDelete && (
-        <div
-          className="cr-modal-overlay"
-          onClick={closeDeleteModal}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="cr-delete-modal-title"
-        >
-          <div className="cr-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="cr-modal-header">
-              <i className="fas fa-trash-alt cr-modal-icon" />
-              <h3 id="cr-delete-modal-title">Delete Review?</h3>
-            </div>
-
-            <p className="cr-modal-body">
-              This will <strong>permanently</strong> delete the review from{' '}
-              <strong>
-                {confirmDelete.isAnonymous ? 'Anonymous' : confirmDelete.customerName}
-              </strong>
-              . This action cannot be undone.
-            </p>
-
-            <div className="cr-modal-reason-wrap">
-              <label className="cr-modal-reason-label" htmlFor="cr-delete-reason">
-                Reason for deletion <span className="cr-required">*</span>
-                <span className="cr-modal-reason-hint">This is logged for accountability.</span>
-              </label>
-              <select
-                id="cr-delete-reason"
-                className={`cr-modal-reason-select${deleteError ? ' cr-modal-reason-select--error' : ''}`}
-                value={deleteReason}
-                onChange={(e) => { setDeleteReason(e.target.value); setDeleteError(''); }}
-                disabled={deleteLoading}
-              >
-                <option value="">— Select a reason —</option>
-                {DELETE_REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
-                ))}
-              </select>
-              {deleteError && (
-                <p className="cr-modal-reason-error">{deleteError}</p>
-              )}
-            </div>
-
-            <div className="cr-modal-actions">
-              <button
-                className="cr-modal-btn cr-modal-btn--cancel"
-                onClick={closeDeleteModal}
-                disabled={deleteLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="cr-modal-btn cr-modal-btn--delete"
-                onClick={handleDelete}
-                disabled={!deleteReason || deleteLoading}
-              >
-                {deleteLoading ? (
-                  <><span className="cr-modal-spinner" /> Deleting…</>
-                ) : (
-                  'Yes, Delete'
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
