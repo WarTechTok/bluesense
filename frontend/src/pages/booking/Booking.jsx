@@ -232,6 +232,15 @@ function Booking() {
       if (!formData.fullName?.trim())
         newErrors.fullName = "Full name is required";
       if (!formData.email?.trim()) newErrors.email = "Email is required";
+      // Phone is OPTIONAL — only validate format if user typed something
+      if (formData.phone?.trim()) {
+        const phPhoneRegex = /^(\+?63|0)?9\d{9}$/;
+        if (!phPhoneRegex.test(formData.phone.trim())) {
+          newErrors.phone =
+            "Invalid phone number. Use: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, or 9XXXXXXXXX";
+        }
+      }
+      // Address is OPTIONAL — no validation
       if (!formData.guestCount || formData.guestCount < 1)
         newErrors.guestCount = "Number of guests is required";
 
@@ -317,7 +326,7 @@ function Booking() {
 
       const fd = new FormData();
       fd.append("customerName", formData.fullName);
-      fd.append("customerContact", formData.phone);
+      fd.append("customerContact", formData.phone?.trim() || "");
       fd.append("customerEmail", formData.email);
       fd.append("oasis", selectedOasis);
       fd.append("package", selectedPackage);

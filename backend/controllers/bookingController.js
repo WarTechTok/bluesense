@@ -217,19 +217,19 @@ const createBooking = async (req, res) => {
       });
     }
 
-    if (!trimmedCustomerContact) {
-      return res.status(400).json({
-        success: false,
-        message: "Contact number is required",
-      });
+    // Phone is OPTIONAL — only validate format if the user provided one.
+    // Accepts: 09123456789 | +639123456789 | 639123456789 | 9123456789
+    if (trimmedCustomerContact) {
+      const phPhoneRegex = /^(\+?63|0)?9\d{9}$/;
+      if (!phPhoneRegex.test(trimmedCustomerContact)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Invalid phone number. Accepted formats: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, 9XXXXXXXXX",
+        });
+      }
     }
-
-    if (!/^\+63\d{10}$/.test(trimmedCustomerContact)) {
-      return res.status(400).json({
-        success: false,
-        message: "Contact number must start with +63 and include 10 digits",
-      });
-    }
+    // Address is OPTIONAL — no validation needed
 
     if (!/^[^\s@]+@gmail\.com$/i.test(trimmedCustomerEmail)) {
       return res.status(400).json({
