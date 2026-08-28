@@ -511,7 +511,7 @@ const MaintenanceManagement = () => {
     <div className="management-page">
       {/* Page Header */}
       <div className="page-header">
-        <h1>🔧 Maintenance Management</h1>
+        <h1>🔧 Maintenance</h1>
         <button
           className="btn-primary"
           onClick={() => handleOpenModal()}

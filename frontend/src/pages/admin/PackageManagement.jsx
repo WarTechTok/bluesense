@@ -414,7 +414,7 @@ const PackageManagement = () => {
       <div className="package-hero">
         <div className="package-hero-content">
           <span className="hero-badge">Admin Panel</span>
-          <h1>Package Management</h1>
+          <h1>Packages</h1>
           <p>Manage package prices, descriptions, images, and inclusions</p>
         </div>
       </div>

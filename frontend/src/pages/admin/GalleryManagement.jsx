@@ -475,7 +475,7 @@ const GalleryManagement = () => {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Gallery Management</h1>
+          <h1>Gallery</h1>
           <p className="gm-subtitle">
             {images.length} image{images.length !== 1 ? 's' : ''} total · {activeCount} visible
           </p>

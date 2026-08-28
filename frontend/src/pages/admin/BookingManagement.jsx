@@ -482,7 +482,7 @@ const BookingManagement = () => {
   return (
     <div className="management-page">
       <div className="page-header">
-        <h1>Booking Management</h1>
+        <h1>Bookings</h1>
         <button className="btn-primary" onClick={() => handleOpenModal()}>
           + Add Booking
         </button>

@@ -322,7 +322,7 @@ const InventoryManagement = () => {
   return (
     <div className="management-page">
       <div className="page-header">
-        <h1>Inventory Management</h1>
+        <h1>Inventory</h1>
         <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add Item</button>
       </div>
 
