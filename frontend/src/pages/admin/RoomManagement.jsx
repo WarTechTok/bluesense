@@ -284,7 +284,7 @@ const RoomManagement = () => {
   return (
     <div className="management-page">
       <div className="page-header">
-        <h1>Room</h1>
+        <h1>Rooms</h1>
         <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add Room</button>
       </div>
 
