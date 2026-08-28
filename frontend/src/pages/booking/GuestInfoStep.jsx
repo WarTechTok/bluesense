@@ -115,11 +115,13 @@ const GuestInfoStep = ({
   // isAboveCeiling: true when guest count exceeds base + maxExtraGuests.
   const isAboveCeiling = Number(formData.guestCount) > totalMaxCapacity;
 
-  // WHAT: Is the guest count below the required minimum?
-  const isGuestCountAboveMin = minCapacity === 0 || Number(formData.guestCount) >= minCapacity;
+  // WHAT: Is the guest count a valid positive number?
+  // WHY:  An empty string or 0 must also block confirm, regardless of minCapacity.
+  const guestCountValue = Number(formData.guestCount);
+  const isGuestCountEmpty = formData.guestCount === "" || formData.guestCount === 0 || guestCountValue === 0;
+  const isGuestCountAboveMin = !isGuestCountEmpty && (minCapacity === 0 || guestCountValue >= minCapacity);
 
-  // NEW: Combine both checks to decide if the Confirm button should be disabled.
-  // WHY:  Old code only checked > 100. Now we also block when above the ceiling.
+  // Combine all checks to decide if the Confirm button should be disabled.
   const isConfirmDisabled = isConfirmed || isAboveCeiling || !isGuestCountAboveMin;
 
   // NEW: Will the customer pay an extra guest fee (above base but within ceiling)?
@@ -227,6 +229,13 @@ const GuestInfoStep = ({
               />
             )}
           </div>
+
+          {/* Empty / zero guest count error */}
+          {isGuestCountEmpty && !isConfirmed && (
+            <div style={{ color: "#ef4444", fontSize: "12px", marginTop: "4px" }}>
+              ⚠️ Please enter number of guests.
+            </div>
+          )}
 
           {/* Minimum capacity warning */}
           {minCapacity > 0 && Number(formData.guestCount) < minCapacity && (
