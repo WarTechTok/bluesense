@@ -277,10 +277,6 @@ const BookingSummary = ({
                 <span>Minimum {minCapacity} guests required for this package.</span>
               </div>
             )}
-            <div className="summary-note" style={{ background: '#e0f2fe', color: '#0369a1', marginTop: '12px' }}>
-              <i className="fas fa-calendar-alt"></i>
-              <span>Monday–Thursday rates are lower than Friday–Sunday rates.</span>
-            </div>
           </>
         ) : (
           <div className="summary-empty">
