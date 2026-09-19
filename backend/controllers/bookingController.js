@@ -23,66 +23,10 @@ const Package = require("../models/Package");
 
 const OASIS_CONFIG = {
   "Oasis 1": {
-    maxBookingsPerDay: 6,
-    maxPaxPerDay: 120,
-    sessions: {
-      Day: {
-        maxBookings: 3,
-        maxPax: 60,
-        availablePackages: [
-          "Package 1",
-          "Package 2",
-          "Package 3",
-          "Package 4",
-          "Package 5",
-          "Package 5+",
-        ],
-      },
-      Night: {
-        maxBookings: 3,
-        maxPax: 60,
-        availablePackages: [
-          "Package 1",
-          "Package 2",
-          "Package 3",
-          "Package 4",
-          "Package 5",
-          "Package 5+",
-        ],
-      },
-      "22hrs": {
-        maxBookings: 2,
-        maxPax: 40,
-        availablePackages: [
-          "Package 2",
-          "Package 3",
-          "Package 4",
-          "Package 5",
-          "Package 5+",
-        ],
-      },
-    },
+    sessions: { Day: {}, Night: {}, "22hrs": {} },
   },
   "Oasis 2": {
-    maxBookingsPerDay: 8,
-    maxPaxPerDay: 200,
-    sessions: {
-      Day: {
-        maxBookings: 4,
-        maxPax: 100,
-        availablePackages: ["Package A", "Package B", "Package C"],
-      },
-      Night: {
-        maxBookings: 4,
-        maxPax: 100,
-        availablePackages: ["Package A", "Package B", "Package C"],
-      },
-      "22hrs": {
-        maxBookings: 3,
-        maxPax: 80,
-        availablePackages: ["Package B", "Package C"],
-      },
-    },
+    sessions: { Day: {}, Night: {}, "22hrs": {} },
   },
 };
 
@@ -355,6 +299,10 @@ const createBooking = async (req, res) => {
     // ============================================
     // 2. CHECK SESSION AVAILABILITY FOR THIS PACKAGE
     // ============================================
+    // Session validity is checked against OASIS_CONFIG — only the session
+    // names matter here. Package availability is DB-driven:
+    // any active package in the database is bookable immediately — no more
+    // hardcoded availablePackages lists to maintain.
 
     const sessionConfig = OASIS_CONFIG[oasis]?.sessions[session];
     if (!sessionConfig) {
@@ -364,10 +312,13 @@ const createBooking = async (req, res) => {
       });
     }
 
-    if (!sessionConfig.availablePackages.includes(packageName)) {
+    // Re-use the packageDoc fetched in step 1. If it wasn't found there,
+    // do one more targeted lookup here so the error message is specific.
+    const activePackageDoc = packageDoc ?? await Package.findOne({ oasis, name: packageName });
+    if (!activePackageDoc || activePackageDoc.isActive === false) {
       return res.status(400).json({
         success: false,
-        message: `${packageName} is not available for ${session} session. Available packages: ${sessionConfig.availablePackages.join(", ")}`,
+        message: `${packageName} is not available for booking.`,
       });
     }
 
