@@ -333,6 +333,19 @@
   border-color: #0284c7;
 }
 
+/* Small sort button inside table headers */
+.sort-button {
+  margin-left: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #475569;
+}
+.sort-button:hover {
+  color: #0284c7;
+}
+
 /* ============================================ */
 /* STATS GRID - Dashboard */
 /* ============================================ */

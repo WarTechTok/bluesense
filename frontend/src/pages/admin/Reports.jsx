@@ -16,6 +16,8 @@ const Reports = () => {
   const [reportData, setReportData] = useState(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [reportStatusFilter, setReportStatusFilter] = useState("all");
+  const [dateSortDirection, setDateSortDirection] = useState(null); // 'asc' or 'desc' or null
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportFormat, setExportFormat] = useState("excel");
@@ -108,6 +110,19 @@ const Reports = () => {
     return [];
   }, [reportData, reportType]);
 
+  // Return data sorted according to current sort settings (only applies to booking report)
+  const getSortedData = useCallback(() => {
+    const data = getDataArray();
+    if (reportType !== "booking" || !dateSortDirection) return data;
+
+    const sorted = [...data].sort((a, b) => {
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateSortDirection === "asc" ? aDate - bDate : bDate - aDate;
+    });
+    return sorted;
+  }, [getDataArray, reportType, dateSortDirection]);
+
   // Debug logging
   useEffect(() => {
     console.log("Current state:", { reportType, reportData, dataArray: getDataArray() });
@@ -195,31 +210,42 @@ const Reports = () => {
         
       } else if (reportType === "booking") {
         // Fetch booking report
-        data = await adminApi.getAllBookings();
-        
-        if (!data || !Array.isArray(data)) {
-          data = [];
-        } else {
-          // Show all available bookings (all statuses)
-          // Filter by date range if provided
-          if (queryStartDate && queryEndDate) {
-            const start = new Date(queryStartDate);
-            const end = new Date(queryEndDate);
-            end.setHours(23, 59, 59, 999); // Include end date fully
-            
-            data = data.filter((booking) => {
-              const createdDate = new Date(booking.createdAt);
-              return createdDate >= start && createdDate <= end;
-            });
-          }
-          
-          // Sort by booking number
-          data.sort((a, b) => {
-            const aNum = a.bookingNumber || 0;
-            const bNum = b.bookingNumber || 0;
-            return aNum - bNum;
+        let allBookings = await adminApi.getAllBookings();
+        if (!allBookings || !Array.isArray(allBookings)) {
+          allBookings = [];
+        }
+
+        // Filter by date range if provided (based on createdAt)
+        if (queryStartDate && queryEndDate) {
+          const start = new Date(queryStartDate);
+          const end = new Date(queryEndDate);
+          end.setHours(23, 59, 59, 999); // Include end date fully
+
+          allBookings = allBookings.filter((booking) => {
+            const createdDate = new Date(booking.createdAt);
+            return createdDate >= start && createdDate <= end;
           });
         }
+
+        // Apply status/payment filter when requested
+        if (reportStatusFilter && reportStatusFilter !== "all") {
+          const statusVal = reportStatusFilter;
+          allBookings = allBookings.filter((b) => {
+            // Match booking.status OR paymentStatus (for Paid/Partial/Rejected)
+            if (b.status === statusVal) return true;
+            if ((b.paymentStatus || "").toLowerCase() === statusVal.toLowerCase()) return true;
+            return false;
+          });
+        }
+
+        // Sort by booking number
+        allBookings.sort((a, b) => {
+          const aNum = a.bookingNumber || 0;
+          const bNum = b.bookingNumber || 0;
+          return aNum - bNum;
+        });
+
+        data = allBookings;
         
       } else if (reportType === "inventory") {
         // Fetch inventory report
@@ -313,7 +339,6 @@ const Reports = () => {
         }
         
         exportData = bookingData.map((row) => ({
-          "Booking ID": row.bookingNumber || "N/A",
           "Booking Reference": row.bookingReference || "N/A",
           "Guest Name": row.customerName || "N/A",
           "Contact No.": row.customerContact || "N/A",
@@ -321,6 +346,7 @@ const Reports = () => {
           "Amount": row.totalAmount || 0,
           "Payment Status": row.paymentStatus || "Pending",
           "Booking Date": row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A",
+          "Reservation Date": row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "N/A",
           "Time Slot": row.session || "N/A",
           "No. of Guests": row.pax || 0,
           "Total Paid": row.paymentType === "fullpayment" ? row.totalAmount || 0 : row.downpayment || 0,
@@ -562,6 +588,27 @@ const Reports = () => {
             />
           </div>
 
+          {reportType === "booking" && (
+            <div className="filter-group">
+              <label>Status</label>
+              <select
+                value={reportStatusFilter}
+                onChange={(e) => setReportStatusFilter(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Checked-in">Checked-in</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Paid">Paid</option>
+                <option value="Partial">Partial</option>
+                <option value="Rejected">Rejected</option>
+              </select>
+            </div>
+          )}
+
           <div className="filter-actions">
             <button
               className="btn-primary"
@@ -656,14 +703,23 @@ const Reports = () => {
                 <tr>
                   {reportType === "booking" && (
                     <>
-                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking ID</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking Reference</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Guest Name</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Contact No.</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Pool/Villa Name</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Amount</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Payment Status</th>
-                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking Date</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>
+                        Booking Date
+                        <button
+                          className="sort-button"
+                          onClick={() => setDateSortDirection((d) => (d === "asc" ? "desc" : "asc"))}
+                          title="Toggle sort by booking date"
+                        >
+                          {dateSortDirection === "asc" ? "▲" : "▼"}
+                        </button>
+                      </th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Reservation Date</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Time Slot</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>No. of Guests</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Total Paid</th>
@@ -713,7 +769,7 @@ const Reports = () => {
                 </tr>
               </thead>
               <tbody>
-                {isEmptyData() ? (
+                  {isEmptyData() ? (
                   <tr>
                     <td colSpan={getNoDataColSpan()} className="no-data">
                       {reportType === "sales" 
@@ -722,12 +778,11 @@ const Reports = () => {
                     </td>
                   </tr>
                 ) : (
-                  getDataArray().map((row, idx) => {
+                  getSortedData().map((row, idx) => {
                     return (
                       <tr key={idx}>
                         {reportType === "booking" && (
                           <>
-                            <td><strong>{row.bookingNumber || "N/A"}</strong></td>
                             <td><strong>{row.bookingReference || "N/A"}</strong></td>
                             <td>{row.customerName || "N/A"}</td>
                             <td>{row.customerContact || "N/A"}</td>
@@ -739,6 +794,7 @@ const Reports = () => {
                               </span>
                             </td>
                             <td>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A"}</td>
+                            <td>{row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "N/A"}</td>
                             <td>{row.session || "N/A"}</td>
                             <td>{row.pax || 0}</td>
                             <td className="amount">
