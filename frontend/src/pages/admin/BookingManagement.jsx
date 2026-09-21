@@ -294,6 +294,17 @@ const BookingManagement = () => {
     return sessionMap[session] || session;
   };
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  const totalPages = Math.max(1, Math.ceil(filteredBookings.length / PAGE_SIZE));
+
+  useEffect(() => {
+    // reset to first page when filters/search change
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm, bookings]);
+
   const handleCheckIn = async (id) => {
     showConfirmationModal(
       "Check-in Customer",
@@ -570,39 +581,63 @@ const BookingManagement = () => {
       </div>
 
       <div className="bookings-table-container">
+        {/* Top pagination / summary */}
+        <div className="table-top-controls">
+          <div className="showing-summary">
+            Showing {filteredBookings.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+            -{Math.min(currentPage * PAGE_SIZE, filteredBookings.length)} of {filteredBookings.length}
+          </div>
+          <div className="pagination-controls">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <span className="page-indicator">{currentPage} / {totalPages}</span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+
         <table className="bookings-table">
           <thead>
             <tr>
-              <th style={{ width: "50px" }}>Booking ID</th>
               <th style={{ width: "150px" }}>Booking Reference</th>
               <th>Customer</th>
               <th>Location</th>
               <th>Package</th>
               <th>Session</th>
-              <th>Date</th>
+              <th>Booking Date</th>
+              <th>Reservation Date</th>
               <th>Payment</th>
               <th>Status</th>
               <th style={{ width: "220px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredBookings.map((booking, index) => {
+            {filteredBookings
+              .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+              .map((booking, index) => {
               const actions = getActions(booking);
               const balance = getBalance(booking);
               const displayStatus = booking.displayStatus || booking.status;
 
               return (
                 <tr key={booking._id}>
-                  <td>{index + 1}</td>
                   <td>
-                    {booking.bookingReference ||
-                      booking._id?.slice(-6).toUpperCase()}
+                    {booking.bookingReference || booking._id?.slice(-6).toUpperCase()}
                   </td>
                   <td>{booking.customerName}</td>
                   <td>{booking.oasis}</td>
                   <td>{booking.package}</td>
                   <td>{getSessionDisplay(booking.session)}</td>
-                  <td>{new Date(booking.bookingDate).toLocaleDateString()}</td>
+                  <td>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "-"}</td>
+                  <td>{booking.bookingDate ? new Date(booking.bookingDate).toLocaleDateString() : "-"}</td>
                   <td>
                     {booking.paymentStatus === "Partial" && balance > 0 ? (
                       <span className="status-badge status-partial">
@@ -640,6 +675,28 @@ const BookingManagement = () => {
             })}
           </tbody>
         </table>
+        {/* Bottom pagination controls */}
+        <div className="table-bottom-controls">
+          <div className="showing-summary">
+            Showing {filteredBookings.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+            -{Math.min(currentPage * PAGE_SIZE, filteredBookings.length)} of {filteredBookings.length}
+          </div>
+          <div className="pagination-controls">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Prev
+            </button>
+            <span className="page-indicator">{currentPage} / {totalPages}</span>
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Booking Form Modal */}
