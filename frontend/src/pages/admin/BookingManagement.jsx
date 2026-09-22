@@ -392,6 +392,18 @@ const BookingManagement = () => {
     );
   };
 
+  // Returns true when today >= the booking date (check-in is allowed).
+  // Compares calendar dates only (ignores time) so a booking for "today" is
+  // immediately check-in-able regardless of what hour the admin opens the page.
+  const isBookingDateReached = (bookingDate) => {
+    if (!bookingDate) return true; // if no date, don't block
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const arrival = new Date(bookingDate);
+    arrival.setHours(0, 0, 0, 0);
+    return today >= arrival;
+  };
+
   // ── Action button logic ──────────────────────────────────────────────────
   //
   //  Status       │ Payment  │ Buttons
@@ -446,13 +458,18 @@ const BookingManagement = () => {
 
     // ── STEP 3: Check-in ─────────────────────────────────────────────────
     // Customer arrives at the resort. Moves to Checked-in.
-    // Available for all Confirmed bookings regardless of payment status.
+    // Only allowed on or after the booking date to prevent accidental early check-ins.
     if (status === "Confirmed") {
+      const canCheckIn = isBookingDateReached(booking.bookingDate);
       actions.push({
         label: "Check-in",
         icon: "🏨",
-        onClick: () => handleCheckIn(booking._id),
-        className: "btn-outline-success",
+        onClick: canCheckIn ? () => handleCheckIn(booking._id) : undefined,
+        className: canCheckIn ? "btn-outline-success" : "btn-outline-success btn-disabled",
+        disabled: !canCheckIn,
+        tooltip: !canCheckIn
+          ? `Cannot check in before the booking date (${new Date(booking.bookingDate).toLocaleDateString()})`
+          : undefined,
       });
     }
 
@@ -663,7 +680,9 @@ const BookingManagement = () => {
                       <button
                         key={idx}
                         className={action.className}
-                        onClick={action.onClick}
+                        onClick={action.disabled ? undefined : action.onClick}
+                        disabled={action.disabled}
+                        title={action.tooltip}
                       >
                         <span className="btn-icon">{action.icon}</span>
                         {action.label}

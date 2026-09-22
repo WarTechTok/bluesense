@@ -172,6 +172,18 @@
   color: #059669;
 }
 
+/* ── Disabled button state (e.g. Check-in before booking date) ── */
+.btn-disabled,
+.btn-disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+  background: transparent !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  transform: none !important;
+  pointer-events: auto; /* keep pointer-events so the title tooltip still shows */
+}
+
 .btn-icon {
   font-size: 0.65rem;
 }
