@@ -222,7 +222,7 @@ bookingSchema.index(
   { 
     unique: true,
     partialFilterExpression: {
-      status: { $nin: ['Cancelled', 'Completed', 'Checked-in'] }
+      status: { $in: ['Reserved', 'Pending', 'Confirmed'] }
     },
     name: "no_double_booking"
   }
