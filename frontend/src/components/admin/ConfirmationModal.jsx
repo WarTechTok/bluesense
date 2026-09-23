@@ -13,11 +13,15 @@ function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirm
   }, [isOpen]);
 
   const handleConfirm = async () => {
-    if (onConfirm) {
-      try {
+    try {
+      if (onConfirm) {
         await onConfirm();
-      } catch (error) {
-        console.error('Error in confirmation callback:', error);
+      }
+    } catch (error) {
+      console.error('Error in confirmation callback:', error);
+    } finally {
+      if (onClose) {
+        onClose();
       }
     }
   };

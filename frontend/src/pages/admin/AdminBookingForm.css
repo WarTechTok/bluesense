@@ -260,6 +260,19 @@
   font-size: 0.96rem;
 }
 
+.required-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.required-asterisk {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {
