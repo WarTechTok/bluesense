@@ -92,8 +92,8 @@ const cleanupExpiredReservations = async () => {
 };
 
 // Start the cleanup interval immediately on module load.
-setInterval(cleanupExpiredReservations, 5 * 60 * 1000); // every 5 minutes
-console.log("⏰ Reservation cleanup cron started (runs every 5 minutes)");
+setInterval(cleanupExpiredReservations, 1 * 60 * 1000); // every 1 minute
+console.log("⏰ Reservation cleanup cron started (runs every 1 minute)");
 
 // ============================================
 // RESERVE SLOT — Step 2 Continue button
