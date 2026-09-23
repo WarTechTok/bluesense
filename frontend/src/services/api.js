@@ -148,6 +148,32 @@ export async function confirmBooking(bookingId, formData) {
   return json; // { success, booking }
 }
 
+// ---- Release a Reserved slot (called on in-app Back and beforeunload) ----
+// DELETE /api/bookings/reserve/:id
+// Idempotent: returns { success: true } even if the booking is already gone.
+// Preserves the HTTP status code on the thrown error so callers can inspect it.
+export async function releaseSlot(bookingId) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(
+    `${API_BASE_URL}/api/bookings/reserve/${bookingId}`,
+    {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    }
+  );
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const error = new Error(json.message || 'Failed to release slot');
+    error.status = res.status;
+    error.data   = json;
+    throw error;
+  }
+
+  return json; // { success: true, message }
+}
+
 // ---- Legacy full-create (kept for any other callers) ----
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');

@@ -165,7 +165,7 @@ const reserveSlot = async (req, res) => {
     // The compound unique index provides the race protection here.
     // If the slot is already taken (by a Reserved, Pending, or Confirmed booking),
     // Mongoose throws a duplicate-key error (code 11000) which we convert to a 409.
-    const reservedUntil = new Date(Date.now() + 30 * 60 * 1000); // now + 30 minutes
+    const reservedUntil = new Date(Date.now() + 5 * 60 * 1000); // now + 5 minutes
 
     const reservation = new Booking({
       customerName:    customerName.trim(),
@@ -190,7 +190,7 @@ const reserveSlot = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Slot reserved for 30 minutes. Please complete your booking.",
+      message: "Slot reserved for 5 minutes. Please complete your booking.",
       bookingId: reservation._id,
       reservedUntil,
     });
@@ -198,6 +198,50 @@ const reserveSlot = async (req, res) => {
   } catch (error) {
     // E11000 = MongoDB duplicate key — the slot is already taken
     if (error.code === 11000) {
+      // FIX 6: Before returning 409, check if this is the SAME customer's own reservation.
+      // We must use the parsed selectedDate Date object (built above), NOT the raw string
+      // from req.body.bookingDate — otherwise the query won't match the stored Date.
+      try {
+        const {
+          customerEmail,
+          oasis,
+          package: packageName,
+          session,
+        } = req.body;
+
+        // Re-parse the date the same way as above so the query matches what's stored
+        let selectedDateForLookup;
+        if (typeof req.body.bookingDate === "string") {
+          const [year, month, day] = req.body.bookingDate.split("-");
+          selectedDateForLookup = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
+        } else {
+          selectedDateForLookup = new Date(req.body.bookingDate);
+        }
+
+        const existing = await Booking.findOne({
+          oasis,
+          package:       packageName,
+          session,
+          bookingDate:   selectedDateForLookup,
+          status:        "Reserved",
+          customerEmail: customerEmail.trim(),
+        });
+
+        if (existing) {
+          // Same customer's own reservation — return it so the frontend can reuse it
+          console.log(`♻️  Reusing existing reservation ${existing._id} for ${customerEmail}`);
+          return res.status(200).json({
+            success:      true,
+            bookingId:    existing._id,
+            reservedUntil: existing.reservedUntil,
+            reused:       true,
+          });
+        }
+      } catch (lookupErr) {
+        console.error("Reserve slot: error during reuse lookup:", lookupErr.message);
+        // Fall through to the 409 below
+      }
+
       console.log(`❌ Slot already reserved/booked: ${req.body.oasis} | ${req.body.package} | ${req.body.session} | ${req.body.bookingDate}`);
       return res.status(409).json({
         success: false,
@@ -206,6 +250,45 @@ const reserveSlot = async (req, res) => {
       });
     }
     console.error("Reserve slot error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+// RELEASE SLOT — in-app Back button / beforeunload
+// ============================================
+// DELETE /api/bookings/reserve/:id
+//
+// Deletes a Reserved booking so the slot is freed immediately.
+// Idempotent: returns 200 even if the booking is already gone (already released
+// or cleaned up by cron). Returns 400 if the booking exists but is NOT Reserved
+// — we never delete a Pending/Confirmed booking this way.
+
+const releaseSlot = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      // Already gone (released, expired, or never existed) — idempotent success
+      return res.status(200).json({ success: true, message: "Already released" });
+    }
+
+    if (booking.status !== "Reserved") {
+      // Never release a Pending, Confirmed, etc.
+      return res.status(400).json({
+        success: false,
+        message: `Cannot release a booking with status "${booking.status}".`,
+      });
+    }
+
+    await Booking.findByIdAndDelete(id);
+    console.log(`🔓 Slot released: ${id} | ${booking.oasis} | ${booking.package} | ${booking.session} | ${booking.bookingDate}`);
+
+    return res.status(200).json({ success: true, message: "Slot released successfully." });
+  } catch (error) {
+    console.error("Release slot error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -1398,6 +1481,7 @@ const verifySalesConnection = async (req, res) => {
 
 module.exports = {
   reserveSlot,
+  releaseSlot,
   confirmBooking,
   createBooking,
   getAllBookings,

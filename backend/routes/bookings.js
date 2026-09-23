@@ -4,6 +4,7 @@ const express = require('express');
 const router  = express.Router();
 const {
   reserveSlot,
+  releaseSlot,
   confirmBooking,
   createBooking,
   getAllBookings,
@@ -32,6 +33,11 @@ const { uploadPaymentProof, uploadRefundProof } = require('../middleware/upload'
 
 // POST /api/bookings/reserve — Step 2 Continue (no file upload needed here)
 router.post('/reserve', verifyToken, reserveSlot);
+
+// DELETE /api/bookings/reserve/:id — FIX 2: Release a Reserved slot immediately
+// Called by: in-app Back button (FIX 3) and beforeunload keepalive fetch (FIX 4).
+// Idempotent: returns 200 if already gone. Returns 400 if booking is not Reserved.
+router.delete('/reserve/:id', verifyToken, releaseSlot);
 
 // PATCH /api/bookings/:id/confirm — Step 4 Confirm Booking (uploads payment proof)
 router.patch(
