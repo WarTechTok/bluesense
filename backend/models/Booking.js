@@ -218,7 +218,7 @@ const bookingSchema = new mongoose.Schema({
 // "Cancelled" and "Completed" are still excluded so those slots can be re-booked.
 // "Checked-in" is excluded for the same legacy reason as before.
 bookingSchema.index(
-  { bookingDate: 1, session: 1, oasis: 1, package: 1 },
+  { bookingDate: 1, session: 1, oasis: 1},
   { 
     unique: true,
     partialFilterExpression: {
