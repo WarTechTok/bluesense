@@ -352,7 +352,7 @@ const initializeAutoCompleteJob = () => {
 
       // Find confirmed bookings whose booking date has passed
       const bookingsToComplete = await Booking.find({
-        status: 'Confirmed',
+        status: 'Checked-in',
         bookingDate: { $lt: today }
       });
 
