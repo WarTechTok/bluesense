@@ -1,13 +1,10 @@
 // backend/routes/bookings.js
-// ============================================
-// BOOKING ROUTES (Cloudinary version)
-// Payment proofs and refund proofs go to Cloudinary,
-// NOT local disk. No more ephemeral storage issues.
-// ============================================
 
 const express = require('express');
 const router  = express.Router();
 const {
+  reserveSlot,
+  confirmBooking,
   createBooking,
   getAllBookings,
   getBookingById,
@@ -30,23 +27,27 @@ const { verifyToken, isStaff } = require('../middleware/auth');
 const { uploadPaymentProof, uploadRefundProof } = require('../middleware/upload');
 
 // ============================================
-// PUBLIC ROUTES — no login required
+// PUBLIC ROUTES
 // ============================================
 
-// POST /api/bookings — create booking with optional payment proof
+// POST /api/bookings/reserve — Step 2 Continue (no file upload needed here)
+router.post('/reserve', verifyToken, reserveSlot);
+
+// PATCH /api/bookings/:id/confirm — Step 4 Confirm Booking (uploads payment proof)
+router.patch(
+  '/:id/confirm',
+  verifyToken,
+  uploadPaymentProof,
+  confirmBooking
+);
+
+// POST /api/bookings — legacy full-create (kept for any admin tooling)
 router.post(
   '/',
-  uploadPaymentProof, // multer memoryStorage, field name: 'paymentProof'
+  uploadPaymentProof,
   (req, res, next) => {
     console.log('📥 POST /bookings - Body keys:', Object.keys(req.body));
     console.log('📥 POST /bookings - File exists:', !!req.file);
-    if (req.file) {
-      console.log('📥 File details:', {
-        originalname: req.file.originalname,
-        size:         req.file.size,
-        mimetype:     req.file.mimetype,
-      });
-    }
     next();
   },
   createBooking
@@ -66,11 +67,11 @@ router.get('/',    verifyToken, isStaff, getAllBookings);
 router.get('/:id', getBookingById);
 
 router.put('/:id', verifyToken, isStaff, updateBooking);
-router.patch('/:id/status',  verifyToken, isStaff, updateBookingStatus);
-router.patch('/:id/payment', verifyToken, isStaff, updatePaymentStatus);
-router.patch('/:id/verify',  verifyToken, isStaff, verifyPayment);
-router.patch('/:id/checkin',  verifyToken, isStaff, checkIn);
-router.patch('/:id/checkout', verifyToken, isStaff, checkOut);
+router.patch('/:id/status',       verifyToken, isStaff, updateBookingStatus);
+router.patch('/:id/payment',      verifyToken, isStaff, updatePaymentStatus);
+router.patch('/:id/verify',       verifyToken, isStaff, verifyPayment);
+router.patch('/:id/checkin',      verifyToken, isStaff, checkIn);
+router.patch('/:id/checkout',     verifyToken, isStaff, checkOut);
 router.patch('/:id/delete-proof', verifyToken, isStaff, deletePaymentProof);
 
 router.delete('/:id', verifyToken, isStaff, deleteBooking);
@@ -81,13 +82,8 @@ router.delete('/:id', verifyToken, isStaff, deleteBooking);
 router.get('/admin/sync', verifyToken, isStaff, syncBookingsAndSales);
 
 // ============================================
-// CUSTOMER CANCELLATION — with optional refund proof
+// CUSTOMER CANCELLATION
 // ============================================
-router.post(
-  '/:id/cancel',
-  verifyToken,
-  uploadRefundProof, // multer memoryStorage, field name: 'proof'
-  cancelBooking
-);
+router.post('/:id/cancel', verifyToken, uploadRefundProof, cancelBooking);
 
 module.exports = router;

@@ -56,16 +56,18 @@ const bookingSchema = new mongoose.Schema({
   // Payment
   downpayment: {
     type: Number,
-    required: true
+    // NOTE: Not required at the top level because "Reserved" bookings are created
+    // before the customer reaches the payment step. The confirmBooking controller
+    // validates this before upgrading to "Pending".
   },
   totalAmount: {
     type: Number,
-    required: true
+    // Same as above — not required here; validated on confirm.
   },
   paymentMethod: {
     type: String,
     enum: ["Cash", "GCash", "Maya", "GoTyme", "SeaBank"],
-    required: true
+    // Not required at model level — Reserved bookings don't have payment yet.
   },
   paymentType: {
     type: String,
@@ -97,10 +99,25 @@ const bookingSchema = new mongoose.Schema({
   },
   
   // Status
+  // "Reserved" = internal placeholder, hidden from admin, auto-created on Step 2 Continue.
+  //              Expires after 30 minutes (enforced by cron + reservedUntil field).
+  //              Graduates to "Pending" when customer clicks Confirm Booking on Step 4.
+  // All other statuses = real bookings visible to admin.
   status: {
     type: String,
-    enum: ["Pending", "Confirmed", "Checked-in", "Cancelled", "Completed"],
+    enum: ["Reserved", "Pending", "Confirmed", "Checked-in", "Cancelled", "Completed"],
     default: "Pending"
+  },
+
+  // ============================================
+  // RESERVATION EXPIRY (for "Reserved" status only)
+  // ============================================
+  // Set to now + 30 minutes when a Reserved booking is created.
+  // The cron job in bookingController.js deletes expired Reserved bookings.
+  // Null for all other statuses.
+  reservedUntil: {
+    type: Date,
+    default: null
   },
   
   // Staff who confirmed (if any)
@@ -136,10 +153,9 @@ const bookingSchema = new mongoose.Schema({
   },
   
   // ============================================
-  // CANCELLATION & REFUND FIELDS (NEW)
+  // CANCELLATION & REFUND FIELDS
   // ============================================
   
-  // Cancellation details
   cancellationReason: {
     type: String,
     enum: ['user_cancelled', 'emergency', 'admin_cancelled'],
@@ -158,7 +174,6 @@ const bookingSchema = new mongoose.Schema({
     default: null
   },
   
-  // Refund details
   refundRequested: {
     type: Boolean,
     default: false
@@ -173,7 +188,7 @@ const bookingSchema = new mongoose.Schema({
     default: ''
   },
   refundProof: {
-    type: String,  // URL to uploaded proof image
+    type: String,
     default: null
   },
   refundReviewedAt: {
@@ -194,11 +209,21 @@ const bookingSchema = new mongoose.Schema({
 // ============================================
 // PREVENT DOUBLE BOOKING - Compound Index
 // ============================================
+// IMPORTANT: "Reserved" is included in the blocking set alongside "Pending" and
+// "Confirmed". This is what makes the slot-hold mechanism work atomically —
+// a second customer who clicks Continue on the same date/oasis/package/session
+// will hit a duplicate-key error (409) because the first customer's Reserved
+// booking already occupies the unique index slot.
+//
+// "Cancelled" and "Completed" are still excluded so those slots can be re-booked.
+// "Checked-in" is excluded for the same legacy reason as before.
 bookingSchema.index(
   { bookingDate: 1, session: 1, oasis: 1, package: 1 },
   { 
     unique: true,
-    partialFilterExpression: { status: { $nin: ['Cancelled', 'Completed', 'Checked-in'] } }
+    partialFilterExpression: {
+      status: { $nin: ['Cancelled', 'Completed', 'Checked-in'] }
+    }
   }
 );
 

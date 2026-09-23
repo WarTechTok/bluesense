@@ -1,13 +1,10 @@
 // frontend/src/pages/booking/Booking.jsx
-// ============================================
-// BOOKING PAGE — all prices from API via currentPackage
-// ============================================
 
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
-import { createBooking } from "../../services/api";
+import { reserveSlot, confirmBooking } from "../../services/api";
 import BookingSuccessModal from "../../components/modals/BookingSuccessModal";
 import PendingBookingModal from "../../components/modals/PendingBookingModal";
 import LimitReachedModal from "../../components/modals/LimitReachedModal";
@@ -30,59 +27,57 @@ import "./Booking.css";
 
 function Booking() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showPendingModal, setShowPendingModal] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [step, setStep]                           = useState(1);
+  const [isSubmitting, setIsSubmitting]           = useState(false);
+  const [showSuccessModal, setShowSuccessModal]   = useState(false);
+  const [showPendingModal, setShowPendingModal]   = useState(false);
+  const [showLimitModal, setShowLimitModal]       = useState(false);
   const [showDoubleBookingModal, setShowDoubleBookingModal] = useState(false);
-  const [bookingDetails, setBookingDetails] = useState(null);
-  const [selectedAddons, setSelectedAddons] = useState({});
-  const [infoConfirmed, setInfoConfirmed] = useState(false);
+  const [bookingDetails, setBookingDetails]       = useState(null);
+  const [selectedAddons, setSelectedAddons]       = useState({});
+  const [infoConfirmed, setInfoConfirmed]         = useState(false);
   const [extraGuestWarning, setExtraGuestWarning] = useState("");
-  // Sessions fetched from DB — includes downpaymentAmount set by admin
-  const [sessionData, setSessionData] = useState([]);
+  const [sessionData, setSessionData]             = useState([]);
 
-  // Pre-selected data from navigation state (set by PackageCard → handleBook)
-  const preselectedOasis = location.state?.oasis || null;
-  const preselectedPackage = location.state?.package || null; // full API-transformed object
+  // ---- Stored reservation ID from Step 2 ----
+  // Set when reserveSlot succeeds; used in Step 4 confirmBooking call.
+  const [reservedBookingId, setReservedBookingId] = useState(null);
 
-  const [selectedOasis] = useState(preselectedOasis || "");
+  // ---- Step 2 inline error (409 slot taken) ----
+  const [slotError, setSlotError] = useState("");
+
+  const preselectedOasis   = location.state?.oasis   || null;
+  const preselectedPackage = location.state?.package || null;
+
+  const [selectedOasis]   = useState(preselectedOasis  || "");
   const [selectedPackage] = useState(preselectedPackage?.name || null);
   const [selectedSession, setSelectedSession] = useState(null);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user") || "{}");
 
   const [formData, setFormData] = useState({
-    fullName: loggedInUser.name || "",
-    email: loggedInUser.email || "",
-    phone: loggedInUser.phone || "",
-    guestCount: 1,
+    fullName:        loggedInUser.name  || "",
+    email:           loggedInUser.email || "",
+    phone:           loggedInUser.phone || "",
+    guestCount:      1,
     reservationDate: "",
-    checkoutDate: "",
+    checkoutDate:    "",
     specialRequests: "",
-    paymentMethod: "",
-    paymentType: "downpayment",
-    agreeTerms: false,
-    session: "",
-    paymentProof: null,
+    paymentMethod:   "",
+    paymentType:     "downpayment",
+    agreeTerms:      false,
+    session:         "",
+    paymentProof:    null,
   });
 
   const [errors, setErrors] = useState({});
 
-  // ============================================
-  // currentPackage — SINGLE SOURCE OF TRUTH
-  // This is the API-fetched, transformed package object.
-  // It carries correct pricing, capacity, and sessions from the DB.
-  // All price/capacity calculations MUST read from this object.
-  // ============================================
   const currentPackage = (() => {
     if (!preselectedPackage) return null;
     return {
       ...preselectedPackage,
-      // Ensure sessions field is populated (transformPackageData sets this)
       sessions:
         preselectedPackage.sessions?.length > 0
           ? preselectedPackage.sessions
@@ -90,82 +85,37 @@ function Booking() {
     };
   })();
 
-  // ============================================
-  // CAPACITY (from API)
-  // ============================================
-  const getMaxCapacityForPackage = () =>
-    getMaxCapacityFromPackage(currentPackage);
-  const getMinCapacityForPackage = () =>
-    getMinCapacityFromPackage(currentPackage);
+  const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
+  const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
 
-  // ============================================
-  // PRICING (from API via currentPackage)
-  // ============================================
-
-  // Base package price — reads currentPackage.pricing, NOT hardcoded table
   const calculatePrice = () => {
     if (!selectedSession || !formData.reservationDate) return 0;
-    return getPriceFromPackage(
-      currentPackage,
-      selectedSession,
-      formData.reservationDate,
-      formData.guestCount,
-    );
+    return getPriceFromPackage(currentPackage, selectedSession, formData.reservationDate, formData.guestCount);
   };
 
   const calculateAddonsTotal = () =>
     Object.values(selectedAddons).reduce((sum, price) => sum + price, 0);
 
-  // WHAT: Calculates the total extra-guest charge using the DB fee rate.
-  // WHY:  getExtraGuestCharge() now reads currentPackage.extraGuestFee
-  //       instead of hardcoding 150, so admin changes take effect here.
-  // HOW:  currentPackage comes from the API and includes extraGuestFee.
   const calculateExtraGuestCharges = () =>
     getExtraGuestCharge(currentPackage, formData.guestCount);
 
   const getTotalPrice = () => {
-    const base = calculatePrice();
+    const base       = calculatePrice();
     const extraGuest = calculateExtraGuestCharges();
-    const addons = calculateAddonsTotal();
-    const total = base + extraGuest + addons;
-
-    console.log("💰 Price breakdown:", {
-      base,
-      extraGuest,
-      addons,
-      total,
-      guestCount: formData.guestCount,
-      maxCapacity: getMaxCapacityForPackage(),
-      // WHAT: Log the fee rate so you can debug admin changes in the browser console.
-      // WHY:  Without this you can't tell if the new fee is being read correctly.
-      extraGuestFeeRate: currentPackage?.extraGuestFee ?? 150,
-      package: selectedPackage,
-      session: selectedSession,
-      date: formData.reservationDate,
-    });
-
-    return total;
+    const addons     = calculateAddonsTotal();
+    return base + extraGuest + addons;
   };
 
   const calculateNights = () => 1;
 
-  // Downpayment: prefer DB value set by admin
-  const getDownpayment = () =>
-    getDownpaymentAmount(selectedSession, sessionData);
+  const getDownpayment = () => getDownpaymentAmount(selectedSession, sessionData);
 
-  // ============================================
-  // AVAILABLE SESSIONS (from API)
-  // ============================================
   const getAvailableSessions = () => currentPackage?.sessions || [];
 
-  // ============================================
-  // LIFECYCLE
-  // ============================================
+  // ---- Lifecycle ----
   useEffect(() => {
     if (!preselectedOasis || !preselectedPackage) {
-      const confirm = window.confirm(
-        "Please select a package first. Go to homepage?",
-      );
+      const confirm = window.confirm("Please select a package first. Go to homepage?");
       if (confirm) navigate("/");
     }
   }, [preselectedOasis, preselectedPackage, navigate]);
@@ -175,13 +125,11 @@ function Booking() {
     if (!token) navigate("/login?redirect=/booking");
   }, [navigate]);
 
-  // Fetch session config (downpayment amounts) from DB
   useEffect(() => {
     const fetchSessions = async () => {
       try {
-        const API_BASE_URL =
-          process.env.REACT_APP_API_URL || "http://localhost:8080";
-        const res = await fetch(`${API_BASE_URL}/api/admin/sessions`);
+        const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+        const res  = await fetch(`${API_BASE_URL}/api/admin/sessions`);
         const data = await res.json();
         if (Array.isArray(data)) setSessionData(data);
       } catch (err) {
@@ -191,13 +139,13 @@ function Booking() {
     fetchSessions();
   }, []);
 
-  // ============================================
-  // HANDLERS
-  // ============================================
+  // ---- Handlers ----
   const handleSessionSelect = (session) => {
     setSelectedSession(session);
     setFormData((prev) => ({ ...prev, session }));
     if (errors.session) setErrors((prev) => ({ ...prev, session: "" }));
+    // Clear slot error when user picks a different session
+    setSlotError("");
   };
 
   const handleChange = (e) => {
@@ -205,16 +153,15 @@ function Booking() {
     const newValue = type === "checkbox" ? checked : value;
     setFormData((prev) => ({ ...prev, [name]: newValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    // Clear slot error if date changes
+    if (name === "reservationDate") setSlotError("");
 
-    // Update extra-guest warning using API capacity and DB fee rate
     if (name === "guestCount") {
-      const maxCap = getMaxCapacityForPackage();
-      const guests = parseInt(value) || 0;
+      const maxCap  = getMaxCapacityForPackage();
+      const guests  = parseInt(value) || 0;
       if (guests > maxCap && maxCap > 0) {
-        const extra = guests - maxCap;
-        // WHAT: Read the fee rate from currentPackage instead of hardcoding 150.
-        // WHY:  The warning message should show the actual rate the admin set.
-        const feeRate = currentPackage?.extraGuestFee ?? 150;
+        const extra    = guests - maxCap;
+        const feeRate  = currentPackage?.extraGuestFee ?? 150;
         const extraCost = extra * feeRate;
         setExtraGuestWarning(
           `ℹ️ +${extra} guest(s) beyond standard capacity. Additional ₱${feeRate}/guest = ₱${extraCost.toLocaleString()} will be added to your total.`,
@@ -229,41 +176,30 @@ function Booking() {
     const newErrors = {};
 
     if (step === 1) {
-      if (!formData.fullName?.trim())
-        newErrors.fullName = "Full name is required";
-      if (!formData.email?.trim()) newErrors.email = "Email is required";
-      // Phone is OPTIONAL — only validate format if user typed something
+      if (!formData.fullName?.trim())  newErrors.fullName  = "Full name is required";
+      if (!formData.email?.trim())     newErrors.email     = "Email is required";
       if (formData.phone?.trim()) {
         const phPhoneRegex = /^(\+?63|0)?9\d{9}$/;
-        if (!phPhoneRegex.test(formData.phone.trim())) {
-          newErrors.phone =
-            "Invalid phone number. Use: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, or 9XXXXXXXXX";
-        }
+        if (!phPhoneRegex.test(formData.phone.trim()))
+          newErrors.phone = "Invalid phone number. Use: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, or 9XXXXXXXXX";
       }
-      // Address is OPTIONAL — no validation
       if (!formData.guestCount || formData.guestCount < 1)
         newErrors.guestCount = "Number of guests is required";
-
       const minCap = getMinCapacityForPackage();
-
       if (minCap > 0 && formData.guestCount < minCap)
         newErrors.guestCount = `Minimum ${minCap} guests required for this package`;
-      // No upper block — guests above maxCapacity are allowed; extra charge is added to total
       if (!infoConfirmed)
         newErrors.confirmInfo = "Please confirm your information first";
     }
 
     if (step === 2) {
-      if (!formData.reservationDate)
-        newErrors.reservationDate = "Reservation date is required";
-      if (!selectedSession) newErrors.session = "Please select a session";
+      if (!formData.reservationDate) newErrors.reservationDate = "Reservation date is required";
+      if (!selectedSession)          newErrors.session          = "Please select a session";
     }
 
     if (step === 3) {
-      if (!formData.paymentMethod)
-        newErrors.paymentMethod = "Please select a payment method";
-      if (!formData.paymentType)
-        newErrors.paymentType = "Please select a payment type";
+      if (!formData.paymentMethod) newErrors.paymentMethod = "Please select a payment method";
+      if (!formData.paymentType)   newErrors.paymentType   = "Please select a payment type";
       if (
         formData.paymentMethod &&
         formData.paymentMethod !== "cash" &&
@@ -279,18 +215,54 @@ function Booking() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
+  // ---- Step 2 Continue: validate then call reserveSlot ----
+  const handleNext = async () => {
     if (step === 1 && !infoConfirmed) {
-      setErrors({
-        ...errors,
-        confirmInfo: "Please confirm your information first",
-      });
+      setErrors({ ...errors, confirmInfo: "Please confirm your information first" });
       return;
     }
-    if (validateStep()) {
-      setStep(step + 1);
-      window.scrollTo(0, 0);
+
+    if (!validateStep()) return;
+
+    // ---- Reserve the slot when leaving Step 2 ----
+    if (step === 2) {
+      setIsSubmitting(true);
+      setSlotError("");
+      try {
+        const result = await reserveSlot({
+          customerName:    formData.fullName,
+          customerEmail:   formData.email,
+          customerContact: formData.phone?.trim() || "",
+          oasis:           selectedOasis,
+          package:         selectedPackage,
+          session:         selectedSession,
+          bookingDate:     formData.reservationDate,
+          pax:             Number(formData.guestCount),
+          specialRequests: formData.specialRequests || "",
+        });
+
+        setReservedBookingId(result.bookingId);
+        console.log(`✅ Slot reserved: ${result.bookingId} until ${result.reservedUntil}`);
+
+        // Advance to Step 3
+        setStep(3);
+        window.scrollTo(0, 0);
+      } catch (error) {
+        if (error.status === 409) {
+          // Show inline error — no modal, no page change, no refresh needed
+          setSlotError("This date and session is already reserved. Please select another date or session.");
+        } else {
+          setSlotError(error?.data?.message || error?.message || "Failed to reserve slot. Please try again.");
+        }
+      } finally {
+        setIsSubmitting(false);
+      }
+      return; // don't fall through to the generic setStep below
     }
+
+    // Steps 1, 3 — just advance
+    setStep(step + 1);
+    window.scrollTo(0, 0);
   };
 
   const handlePrev = () => {
@@ -303,64 +275,52 @@ function Booking() {
     setShowLimitModal(false);
     navigate("/my-bookings");
   };
+
   const handleDoubleBookingClose = () => {
     setShowDoubleBookingModal(false);
     setStep(2);
     window.scrollTo(0, 0);
   };
 
+  // ---- Step 4 Confirm Booking: call confirmBooking with stored booking ID ----
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep()) return;
+
+    if (!reservedBookingId) {
+      // Safety guard — should never happen in normal flow
+      alert("Reservation not found. Please go back to Step 2 and try again.");
+      setStep(2);
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const mapPaymentMethod = (m) =>
-        ({
-          cash: "Cash",
-          gcash: "GCash",
-          maya: "Maya",
-          seabank: "SeaBank",
-          gotyme: "GoTyme",
-        })[m] || m;
+        ({ cash: "Cash", gcash: "GCash", maya: "Maya", seabank: "SeaBank", gotyme: "GoTyme" })[m] || m;
 
       const fd = new FormData();
-      fd.append("customerName", formData.fullName);
-      fd.append("customerContact", formData.phone?.trim() || "");
-      fd.append("customerEmail", formData.email);
-      fd.append("oasis", selectedOasis);
-      fd.append("package", selectedPackage);
-      fd.append("session", selectedSession);
-      fd.append("bookingDate", formData.reservationDate);
-      fd.append("pax", Number(formData.guestCount));
-      fd.append("totalPrice", getTotalPrice());
-      fd.append("downpayment", getDownpayment());
-      fd.append("paymentType", formData.paymentType);
+      fd.append("totalPrice",    getTotalPrice());
+      fd.append("downpayment",   getDownpayment());
+      fd.append("paymentType",   formData.paymentType);
       fd.append("paymentMethod", mapPaymentMethod(formData.paymentMethod));
-      fd.append("specialRequests", formData.specialRequests || "");
-      fd.append("addons", JSON.stringify(selectedAddons || {}));
-      if (formData.paymentProof)
-        fd.append("paymentProof", formData.paymentProof);
+      fd.append("addons",        JSON.stringify(selectedAddons || {}));
+      fd.append("pax",           Number(formData.guestCount));
+      if (formData.paymentProof) fd.append("paymentProof", formData.paymentProof);
 
-      console.log(
-        "📤 Submitting booking — total:",
-        getTotalPrice(),
-        "down:",
-        getDownpayment(),
-      );
+      console.log("📤 Confirming booking:", reservedBookingId, "— total:", getTotalPrice());
 
-      const result = await createBooking(fd);
+      const result = await confirmBooking(reservedBookingId, fd);
 
       if (result.booking) {
         setBookingDetails({
-          bookingId:
-            result.booking.bookingReference ||
-            result.booking._id?.slice(-6).toUpperCase(),
-          oasis: selectedOasis,
-          package: selectedPackage,
-          session: selectedSession,
-          checkIn: new Date(formData.reservationDate).toLocaleDateString(),
-          guests: formData.guestCount,
+          bookingId:   result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase(),
+          oasis:       selectedOasis,
+          package:     selectedPackage,
+          session:     selectedSession,
+          checkIn:     new Date(formData.reservationDate).toLocaleDateString(),
+          guests:      formData.guestCount,
           totalAmount: getTotalPrice(),
           downpayment: getDownpayment(),
           paymentType: formData.paymentType,
@@ -370,22 +330,22 @@ function Booking() {
         alert(result.message || "Something went wrong. Please try again.");
       }
     } catch (error) {
-      const msg =
-        error?.data?.message || error?.message || "Failed to submit booking.";
+      const msg    = error?.data?.message || error?.message || "Failed to submit booking.";
       const status = error?.status;
-      if (status === 409 || msg.includes("already booked")) {
+
+      if (status === 410 || msg.includes("expired")) {
+        // Reservation expired — send back to Step 2
+        setReservedBookingId(null);
+        alert("Your reservation has expired (30 minutes). Please select your date again.");
+        setStep(2);
+        window.scrollTo(0, 0);
+      } else if (status === 409 || msg.includes("already booked")) {
         setShowDoubleBookingModal(true);
-      } else if (
-        msg.includes("pending booking") ||
-        msg.includes("complete your payment first")
-      ) {
+      } else if (msg.includes("pending booking") || msg.includes("complete your payment first")) {
         setShowPendingModal(true);
-      } else if (
-        msg.includes("2 upcoming bookings") ||
-        msg.includes("booking limit")
-      ) {
+      } else if (msg.includes("2 upcoming bookings") || msg.includes("booking limit")) {
         setShowLimitModal(true);
-      } else if (!msg.includes("already have a booking on this date")) {
+      } else {
         alert(msg);
       }
     } finally {
@@ -393,15 +353,13 @@ function Booking() {
     }
   };
 
-  // Derived values passed to child components
+  // ---- Derived values ----
   const pricePerNight = calculatePrice();
-  const totalPrice = getTotalPrice();
-  const nights = calculateNights();
-  const downpayment = getDownpayment();
+  const totalPrice    = getTotalPrice();
+  const nights        = calculateNights();
+  const downpayment   = getDownpayment();
 
-  // ============================================
-  // GUARD: no package selected
-  // ============================================
+  // ---- Guard ----
   if (!preselectedOasis || !preselectedPackage) {
     return (
       <div className="booking-page">
@@ -410,9 +368,7 @@ function Booking() {
           <div className="booking-hero-content">
             <h1>No Package Selected</h1>
             <p>Please select a package from our Oasis pages first.</p>
-            <a href="/" className="hero-btn">
-              Go to Homepage
-            </a>
+            <a href="/" className="hero-btn">Go to Homepage</a>
           </div>
         </div>
         <Footer />
@@ -428,9 +384,7 @@ function Booking() {
         <div className="booking-hero-content">
           <span className="hero-badge">Secure Your Stay</span>
           <h1>Complete Your Reservation</h1>
-          <p>
-            {selectedOasis} - {selectedPackage}
-          </p>
+          <p>{selectedOasis} - {selectedPackage}</p>
         </div>
       </div>
 
@@ -454,6 +408,7 @@ function Booking() {
           <div className="booking-form-wrapper">
             <StepIndicator currentStep={step} />
             <form className="booking-form" onSubmit={handleSubmit}>
+
               {step === 1 && (
                 <>
                   <div className="selected-info">
@@ -478,25 +433,39 @@ function Booking() {
                     selectedPackageObj={currentPackage}
                   />
                   {errors.confirmInfo && (
-                    <span className="error-message confirm-error">
-                      {errors.confirmInfo}
-                    </span>
+                    <span className="error-message confirm-error">{errors.confirmInfo}</span>
                   )}
                 </>
               )}
 
               {step === 2 && (
-                <DateStep
-                  formData={formData}
-                  errors={errors}
-                  handleChange={handleChange}
-                  selectedOasis={selectedOasis}
-                  selectedPackage={selectedPackage}
-                  onSessionSelect={handleSessionSelect}
-                  selectedSession={selectedSession}
-                  availableSessions={getAvailableSessions()}
-                  packageData={currentPackage}
-                />
+                <>
+                  <DateStep
+                    formData={formData}
+                    errors={errors}
+                    handleChange={handleChange}
+                    selectedOasis={selectedOasis}
+                    selectedPackage={selectedPackage}
+                    onSessionSelect={handleSessionSelect}
+                    selectedSession={selectedSession}
+                    availableSessions={getAvailableSessions()}
+                    packageData={currentPackage}
+                  />
+                  {/* Inline 409 error — shown directly on this step, no modal */}
+                  {slotError && (
+                    <div className="slot-error-message" style={{
+                      marginTop: "12px",
+                      padding: "12px 16px",
+                      background: "#fef2f2",
+                      border: "1px solid #fca5a5",
+                      borderRadius: "8px",
+                      color: "#dc2626",
+                      fontSize: "14px",
+                    }}>
+                      ⚠️ {slotError}
+                    </div>
+                  )}
+                </>
               )}
 
               {step === 3 && (
@@ -537,11 +506,7 @@ function Booking() {
 
               <div className="form-navigation">
                 {step > 1 && (
-                  <button
-                    type="button"
-                    className="btn-prev"
-                    onClick={handlePrev}
-                  >
+                  <button type="button" className="btn-prev" onClick={handlePrev}>
                     <i className="fas fa-arrow-left"></i> Back
                   </button>
                 )}
@@ -550,24 +515,20 @@ function Booking() {
                     type="button"
                     className={`btn-next ${step === 1 && !infoConfirmed ? "disabled" : ""}`}
                     onClick={handleNext}
-                    disabled={step === 1 && !infoConfirmed}
+                    disabled={(step === 1 && !infoConfirmed) || isSubmitting}
                   >
-                    Continue <i className="fas fa-arrow-right"></i>
+                    {step === 2 && isSubmitting ? (
+                      <><i className="fas fa-spinner fa-spin"></i> Checking availability...</>
+                    ) : (
+                      <>Continue <i className="fas fa-arrow-right"></i></>
+                    )}
                   </button>
                 ) : (
-                  <button
-                    type="submit"
-                    className="btn-submit"
-                    disabled={isSubmitting}
-                  >
+                  <button type="submit" className="btn-submit" disabled={isSubmitting}>
                     {isSubmitting ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin"></i> Processing...
-                      </>
+                      <><i className="fas fa-spinner fa-spin"></i> Processing...</>
                     ) : (
-                      <>
-                        <i className="fas fa-check-circle"></i> Confirm Booking
-                      </>
+                      <><i className="fas fa-check-circle"></i> Confirm Booking</>
                     )}
                   </button>
                 )}

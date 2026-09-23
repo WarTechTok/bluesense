@@ -1,185 +1,190 @@
 // src/services/api.js
-// ============================================
-// NETWORK CONFIG - Uses environment variable
-// ============================================
 
-// Get API URL from environment variable (set in .env file or Vercel/Render dashboard)
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
-
-// Log which URL is being used (helps with debugging)
 console.log(`🔗 API Base URL: ${API_BASE_URL}`);
 
 // ============================================
-// AUTHENTICATION API CALLS
+// AUTH
 // ============================================
 
-// Login user
 export async function login(email, password) {
   const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
   return res.json();
 }
 
-// Register user
 export async function register(userData) {
   const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(userData),
   });
   return res.json();
 }
 
-// Forgot password
 export async function forgotPassword(email) {
   const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
   return res.json();
 }
 
-// Reset password
 export async function resetPassword(token, password) {
   const res = await fetch(`${API_BASE_URL}/api/auth/reset-password/${token}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ password }),
   });
   return res.json();
 }
 
 // ============================================
-// PROFILE API CALLS (Require Token)
+// PROFILE
 // ============================================
 
-// Get user profile
 export async function getProfile() {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
 
-// Update profile with avatar
 export async function updateProfile(formData) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/auth/profile`, {
     method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    },
+    headers: { 'Authorization': `Bearer ${token}` },
     body: formData
   });
   return res.json();
 }
 
 // ============================================
-// SENSOR DATA API CALLS (POOL MONITORING)
+// SENSOR DATA
 // ============================================
 
-// Get latest reading for a specific oasis
 export async function getLatestReading(oasis) {
-  // FIX: Added Authorization header — /api/readings/latest requires verifyToken
-  // middleware. Without this token the request returns 401 and the dashboard
-  // silently shows no data even when the ESP32 is sending readings correctly.
   const token = localStorage.getItem('token');
   const url = oasis
     ? `${API_BASE_URL}/api/readings/latest?oasis=${oasis}`
     : `${API_BASE_URL}/api/readings/latest`;
-  const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
   if (!res.ok) throw new Error('Failed to fetch latest reading');
   return res.json();
 }
 
-// Get history readings for a specific oasis
 export async function getHistory(oasis) {
-  // FIX: Same as above — /api/readings/history also requires verifyToken.
-  // The history chart was never loading because every request was rejected.
   const token = localStorage.getItem('token');
   const url = oasis
     ? `${API_BASE_URL}/api/readings/history?oasis=${oasis}`
     : `${API_BASE_URL}/api/readings/history`;
-  const res = await fetch(url, {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
   if (!res.ok) throw new Error('Failed to fetch history');
   return res.json();
 }
 
 // ============================================
-// BOOKING API CALLS
+// BOOKING
 // ============================================
 
-// Create a new booking (customer submits reservation)
+// ---- Step 2: Reserve a slot (called on Continue click) ----
+// Sends guest info + date/session to POST /api/bookings/reserve.
+// Returns { bookingId, reservedUntil } on success.
+// Throws with error.status === 409 if slot is already taken.
+export async function reserveSlot(data) {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${API_BASE_URL}/api/bookings/reserve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const error = new Error(json.message || 'Failed to reserve slot');
+    error.status = res.status;
+    error.data   = json;
+    throw error;
+  }
+
+  return json; // { success, bookingId, reservedUntil }
+}
+
+// ---- Step 4: Confirm booking (called on Confirm Booking click) ----
+// Sends payment details + proof to PATCH /api/bookings/:id/confirm.
+// Upgrades the Reserved booking to Pending — now visible to admin.
+export async function confirmBooking(bookingId, formData) {
+  const token = localStorage.getItem('token');
+
+  // formData is a FormData instance (contains file + payment fields)
+  const res = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}/confirm`, {
+    method: 'PATCH',
+    headers: {
+      // No Content-Type — let the browser set multipart/form-data with boundary
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const json = await res.json();
+
+  if (!res.ok) {
+    const error = new Error(json.message || 'Failed to confirm booking');
+    error.status = res.status;
+    error.data   = json;
+    throw error;
+  }
+
+  return json; // { success, booking }
+}
+
+// ---- Legacy full-create (kept for any other callers) ----
 export async function createBooking(bookingData) {
   const token = localStorage.getItem('token');
-  
   const isFormData = bookingData instanceof FormData;
   const headers = {};
-  
-  if (!isFormData) {
-    headers['Content-Type'] = 'application/json';
-  }
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  if (token)       headers['Authorization'] = `Bearer ${token}`;
+
   const res = await fetch(`${API_BASE_URL}/api/bookings`, {
     method: 'POST',
     headers,
     body: isFormData ? bookingData : JSON.stringify(bookingData),
   });
-  
+
   const data = await res.json();
-  
   if (!res.ok) {
-    // Preserve status code for error handling (409 for duplicate booking)
     const error = new Error(data.message || 'Booking failed');
     error.status = res.status;
-    error.data = data;
+    error.data   = data;
     throw error;
   }
-  
   return data;
 }
 
-// Get all bookings (staff/admin only)
 export async function getAllBookings() {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/bookings`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
 
-// Get single booking by ID
 export async function getBookingById(id) {
   const res = await fetch(`${API_BASE_URL}/api/bookings/${id}`);
   return res.json();
 }
 
-// Update booking status (staff/admin only)
 export async function updateBookingStatus(id, status, confirmedBy) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/status`, {
@@ -193,7 +198,6 @@ export async function updateBookingStatus(id, status, confirmedBy) {
   return res.json();
 }
 
-// Update payment status (staff/admin only)
 export async function updatePaymentStatus(id, paymentStatus) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/bookings/${id}/payment`, {
@@ -207,54 +211,43 @@ export async function updatePaymentStatus(id, paymentStatus) {
   return res.json();
 }
 
-// Delete booking (staff/admin only)
 export async function deleteBooking(id) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
 
 // ============================================
-// DASHBOARD API CALLS (Admin/Staff)
+// DASHBOARD
 // ============================================
 
-// Get dashboard statistics
 export async function getDashboardStats() {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/stats`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
 
-// Get recent bookings for dashboard
 export async function getRecentBookings(limit = 10) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/admin/dashboard/recent-bookings?limit=${limit}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
 
 // ============================================
-// ROOM MANAGEMENT API CALLS
+// ROOM MANAGEMENT
 // ============================================
 
 export async function getRooms() {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/admin/rooms`, {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }
@@ -289,9 +282,7 @@ export async function deleteRoom(id) {
   const token = localStorage.getItem('token');
   const res = await fetch(`${API_BASE_URL}/api/admin/rooms/${id}`, {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
+    headers: { 'Authorization': `Bearer ${token}` }
   });
   return res.json();
 }

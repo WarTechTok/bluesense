@@ -9,12 +9,6 @@ const Booking = require("../models/Booking");
 const Sale = require("../models/Sale");
 const { uploadPaymentProof, uploadRefundProof, deleteFromCloudinary } = require("../utils/cloudinary");
 
-// NEW IMPORT: Package model — needed to look up maxCapacity, maxExtraGuests,
-// and extraGuestFee from the database instead of a hardcoded map.
-// WHY:  The old PACKAGE_CAPACITY object was hardcoded in this file, meaning
-//       any admin change to package capacity in Package Management had NO effect
-//       on the backend validation. Now we read directly from MongoDB so admin
-//       changes are enforced immediately on new bookings.
 const Package = require("../models/Package");
 
 // ============================================
@@ -29,21 +23,6 @@ const OASIS_CONFIG = {
     sessions: { Day: {}, Night: {}, "22hrs": {} },
   },
 };
-
-// NOTE: The old PACKAGE_CAPACITY hardcoded map has been REMOVED.
-// It used to look like:
-//   const PACKAGE_CAPACITY = {
-//     "Oasis 1": { "Package 1": { base: 20, max: 200 }, ... },
-//     "Oasis 2": { "Package A": { base: 30, max: 200 }, ... },
-//   };
-//
-// WHY REMOVED: Any admin change to maxCapacity or maxExtraGuests in Package
-// Management had zero effect on booking validation because the controller was
-// reading from this static object, not from the database.
-//
-// REPLACED BY: A live MongoDB lookup in createBooking using:
-//   const packageDoc = await Package.findOne({ oasis, name: packageName });
-// This means the admin's settings take effect on the very next booking.
 
 // ============================================
 // HELPER: Generate unique booking reference
@@ -81,8 +60,297 @@ const getDayRange = (date) => {
 };
 
 // ============================================
-// CREATE BOOKING
+// CRON JOB: Auto-delete expired Reserved bookings
 // ============================================
+// WHY: A Reserved booking holds a slot for 30 minutes. If the customer
+//      abandons the flow (closes the tab, goes back, etc.) their Reserved
+//      booking must be cleaned up so the slot becomes available again.
+//
+// HOW: We use setInterval instead of a cron library to avoid adding a
+//      dependency. Runs every 5 minutes. Deletes any booking where:
+//        status === "Reserved" AND reservedUntil < now
+//
+// IMPORTANT: This runs once when the controller module is first loaded
+//            (i.e. when the Express app starts). It will keep running for
+//            the lifetime of the process.
+//
+// If you later add node-cron, replace this with:
+//   cron.schedule('*/5 * * * *', cleanupExpiredReservations);
+
+const cleanupExpiredReservations = async () => {
+  try {
+    const result = await Booking.deleteMany({
+      status: "Reserved",
+      reservedUntil: { $lt: new Date() },
+    });
+    if (result.deletedCount > 0) {
+      console.log(`🧹 Cron: Deleted ${result.deletedCount} expired Reserved booking(s)`);
+    }
+  } catch (err) {
+    console.error("❌ Cron: Error cleaning up expired reservations:", err.message);
+  }
+};
+
+// Start the cleanup interval immediately on module load.
+setInterval(cleanupExpiredReservations, 5 * 60 * 1000); // every 5 minutes
+console.log("⏰ Reservation cleanup cron started (runs every 5 minutes)");
+
+// ============================================
+// RESERVE SLOT — Step 2 Continue button
+// ============================================
+// POST /api/bookings/reserve
+//
+// Creates an internal "Reserved" booking to hold the slot for 30 minutes.
+// This is NOT a real booking and is NOT visible to admin.
+// It graduates to "Pending" only when the customer clicks Confirm Booking (Step 4).
+//
+// Race protection: The compound unique index on { bookingDate, session, oasis, package }
+// with partialFilterExpression { status: { $nin: ['Cancelled','Completed','Checked-in'] }}
+// means only ONE document per slot can exist at a time (Reserved counts as blocking).
+// If two customers click Continue simultaneously, one insert wins and the other gets
+// a duplicate-key error (E11000), which we catch and return as a 409.
+
+const reserveSlot = async (req, res) => {
+  try {
+    const {
+      customerName,
+      customerEmail,
+      customerContact,
+      oasis,
+      package: packageName,
+      session,
+      bookingDate,
+      pax,
+      specialRequests,
+    } = req.body;
+
+    // ---- Basic required-field validation ----
+    if (!customerName?.trim() || !customerEmail?.trim()) {
+      return res.status(400).json({ success: false, message: "Customer name and email are required" });
+    }
+    if (!oasis || !packageName || !session || !bookingDate) {
+      return res.status(400).json({ success: false, message: "Oasis, package, session, and date are required" });
+    }
+
+    // ---- Parse booking date as local midnight ----
+    let selectedDate;
+    if (typeof bookingDate === "string") {
+      const [year, month, day] = bookingDate.split("-");
+      selectedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0, 0);
+    } else {
+      selectedDate = new Date(bookingDate);
+    }
+
+    // ---- Must be at least 1 day in advance ----
+    const minAdvanceDate = new Date();
+    minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
+    minAdvanceDate.setHours(0, 0, 0, 0);
+    if (selectedDate < minAdvanceDate) {
+      return res.status(400).json({ success: false, message: "Bookings must be made at least 1 day in advance." });
+    }
+
+    // ---- Validate session ----
+    const sessionConfig = OASIS_CONFIG[oasis]?.sessions[session];
+    if (!sessionConfig) {
+      return res.status(400).json({ success: false, message: `${session} session is not available for ${oasis}.` });
+    }
+
+    // ---- Validate package is active ----
+    const packageDoc = await Package.findOne({ oasis, name: packageName });
+    if (!packageDoc || packageDoc.isActive === false) {
+      return res.status(400).json({ success: false, message: `${packageName} is not available for booking.` });
+    }
+
+    // ---- Create the Reserved booking ----
+    // The compound unique index provides the race protection here.
+    // If the slot is already taken (by a Reserved, Pending, or Confirmed booking),
+    // Mongoose throws a duplicate-key error (code 11000) which we convert to a 409.
+    const reservedUntil = new Date(Date.now() + 30 * 60 * 1000); // now + 30 minutes
+
+    const reservation = new Booking({
+      customerName:    customerName.trim(),
+      customerEmail:   customerEmail.trim(),
+      customerContact: customerContact?.trim() || "",
+      oasis,
+      package:         packageName,
+      session,
+      bookingDate:     selectedDate,
+      pax:             parseInt(pax) || 1,
+      specialRequests: specialRequests || "",
+      status:          "Reserved",
+      reservedUntil,
+      // Payment fields are intentionally omitted — they are filled in at Step 4
+      // when the customer calls confirmBooking. The model no longer requires them
+      // at schema level to allow this partial creation.
+    });
+
+    await reservation.save();
+
+    console.log(`✅ Slot reserved: ${oasis} | ${packageName} | ${session} | ${bookingDate} until ${reservedUntil.toISOString()}`);
+
+    return res.status(201).json({
+      success: true,
+      message: "Slot reserved for 30 minutes. Please complete your booking.",
+      bookingId: reservation._id,
+      reservedUntil,
+    });
+
+  } catch (error) {
+    // E11000 = MongoDB duplicate key — the slot is already taken
+    if (error.code === 11000) {
+      console.log(`❌ Slot already reserved/booked: ${req.body.oasis} | ${req.body.package} | ${req.body.session} | ${req.body.bookingDate}`);
+      return res.status(409).json({
+        success: false,
+        message: "This date and session is already reserved. Please select another date or session.",
+        error: "SLOT_TAKEN",
+      });
+    }
+    console.error("Reserve slot error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+// CONFIRM BOOKING — Step 4 Confirm Booking button
+// ============================================
+// PATCH /api/bookings/:id/confirm
+//
+// Upgrades the existing Reserved booking to "Pending" with all payment details.
+// This is when the booking first becomes visible to admin.
+//
+// Why we update instead of create:
+//   The slot is already held by the Reserved booking (created at Step 2).
+//   If we deleted + re-created, there would be a brief window where the slot
+//   is free and a race condition could slip through. Updating in-place keeps
+//   the slot continuously held.
+
+const confirmBooking = async (req, res) => {
+  try {
+    console.log("📥 Confirm Booking Request Body:", req.body);
+    console.log("📥 Confirm Booking File:", req.file);
+
+    const { id } = req.params;
+
+    const {
+      totalPrice,
+      downpayment,
+      paymentMethod,
+      paymentType,
+      addons,
+      pax,
+    } = req.body;
+
+    // ---- Find the Reserved booking ----
+    const booking = await Booking.findById(id);
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Reservation not found. Please start over." });
+    }
+
+    if (booking.status !== "Reserved") {
+      // Already confirmed or cancelled — guard against double-submit
+      return res.status(400).json({
+        success: false,
+        message: `Booking is already in "${booking.status}" status. Cannot confirm again.`,
+      });
+    }
+
+    // ---- Check the reservation hasn't expired ----
+    if (booking.reservedUntil && new Date() > booking.reservedUntil) {
+      // The cron might not have fired yet — delete it now and tell the customer to retry
+      await Booking.findByIdAndDelete(id);
+      return res.status(410).json({
+        success: false,
+        message: "Your reservation has expired. Please go back to Step 2 and select your date again.",
+        error: "RESERVATION_EXPIRED",
+      });
+    }
+
+    // ---- Validate payment fields ----
+    if (!paymentMethod) {
+      return res.status(400).json({ success: false, message: "Payment method is required" });
+    }
+    if (!totalPrice || downpayment === undefined || downpayment === null) {
+      return res.status(400).json({ success: false, message: "Total price and downpayment are required" });
+    }
+
+    // ---- Upload payment proof ----
+    let paymentProof = null;
+    if (req.file) {
+      try {
+        const { url } = await uploadPaymentProof(req.file.buffer);
+        paymentProof = url;
+        console.log("✅ Payment proof uploaded to Cloudinary:", url);
+      } catch (uploadErr) {
+        console.error("❌ Cloudinary payment proof upload failed:", uploadErr.message);
+      }
+    }
+
+    // ---- Parse addons ----
+    let parsedAddons = {};
+    try {
+      if (addons && typeof addons === "string") {
+        parsedAddons = JSON.parse(addons);
+      } else if (addons) {
+        parsedAddons = addons;
+      }
+    } catch (e) {
+      console.log("⚠️ Could not parse addons:", e);
+    }
+
+    // ---- Generate booking reference and number ----
+    // These are only assigned when the booking becomes real (Pending).
+    const bookingReference = await generateBookingReference();
+
+    const lastBooking = await Booking.findOne({ bookingNumber: { $exists: true, $ne: null } })
+      .sort({ bookingNumber: -1 })
+      .select("bookingNumber");
+    const nextBookingNumber = (lastBooking?.bookingNumber || 0) + 1;
+
+    // ---- Upgrade Reserved → Pending ----
+    const mapPaymentMethod = (m) =>
+      ({ cash: "Cash", gcash: "GCash", maya: "Maya", seabank: "SeaBank", gotyme: "GoTyme" })[m] || m;
+
+    booking.status           = "Pending";
+    booking.reservedUntil    = null; // no longer needed
+    booking.totalAmount      = parseFloat(totalPrice);
+    booking.downpayment      = paymentType === "fullpayment" ? parseFloat(totalPrice) : parseFloat(downpayment);
+    booking.paymentMethod    = mapPaymentMethod(paymentMethod);
+    booking.paymentType      = paymentType || "downpayment";
+    booking.paymentStatus    = paymentType === "fullpayment" ? "Paid" : "Partial";
+    booking.paymentProof     = paymentProof;
+    booking.addons           = parsedAddons;
+    booking.pax              = parseInt(pax) || booking.pax;
+    booking.bookingReference = bookingReference;
+    booking.bookingNumber    = nextBookingNumber;
+
+    await booking.save();
+
+    console.log(`✅ Booking confirmed (Reserved → Pending):`);
+    console.log(`   - Booking ID:        ${booking._id}`);
+    console.log(`   - Booking Reference: ${booking.bookingReference}`);
+    console.log(`   - Booking Number:    ${booking.bookingNumber}`);
+    console.log(`   - Payment Proof:     ${booking.paymentProof || "NONE"}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Booking submitted successfully. Please wait for staff to verify your payment.",
+      booking,
+    });
+
+  } catch (error) {
+    console.error("Confirm booking error:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ============================================
+// CREATE BOOKING (legacy — kept for any internal/admin use)
+// ============================================
+// NOTE: The customer-facing flow no longer calls this directly.
+// Step 2 calls reserveSlot, Step 4 calls confirmBooking.
+// This function is kept so any admin tooling that calls POST /api/bookings
+// directly continues to work.
 
 const createBooking = async (req, res) => {
   try {
@@ -134,59 +402,30 @@ const createBooking = async (req, res) => {
       console.log("⚠️ Could not parse addons:", e);
     }
 
-    // ============================================
-    // VALIDATE REQUIRED FIELDS
-    // ============================================
-
-    console.log("🔍 Validation check:");
-    console.log(`   customerName: ${customerName}`);
-    console.log(`   customerEmail: ${customerEmail}`);
-    console.log(`   oasis: ${oasis}`);
-    console.log(`   packageName: ${packageName}`);
-    console.log(`   session: ${session}`);
-    console.log(`   bookingDate: ${bookingDate}`);
-    console.log(`   pax: ${pax}`);
-    console.log(`   totalPrice: ${totalPrice}`);
-    console.log(`   downpayment: ${downpayment}`);
-    console.log(`   paymentMethod: ${paymentMethod}`);
-
     const trimmedCustomerName    = customerName?.trim();
     const trimmedCustomerContact = customerContact?.trim();
     const trimmedCustomerEmail   = customerEmail?.trim();
 
     if (!trimmedCustomerName || !trimmedCustomerEmail) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer name and email are required",
-      });
+      return res.status(400).json({ success: false, message: "Customer name and email are required" });
     }
 
-    // Phone is OPTIONAL — only validate format if the user provided one.
-    // Accepts: 09123456789 | +639123456789 | 639123456789 | 9123456789
     if (trimmedCustomerContact) {
       const phPhoneRegex = /^(\+?63|0)?9\d{9}$/;
       if (!phPhoneRegex.test(trimmedCustomerContact)) {
         return res.status(400).json({
           success: false,
-          message:
-            "Invalid phone number. Accepted formats: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, 9XXXXXXXXX",
+          message: "Invalid phone number. Accepted formats: 09XXXXXXXXX, +639XXXXXXXXX, 639XXXXXXXXX, 9XXXXXXXXX",
         });
       }
     }
-    // Address is OPTIONAL — no validation needed
 
     if (!/^[^\s@]+@gmail\.com$/i.test(trimmedCustomerEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: "Email must be a valid Gmail address ending with @gmail.com",
-      });
+      return res.status(400).json({ success: false, message: "Email must be a valid Gmail address ending with @gmail.com" });
     }
 
     if (!oasis || !packageName || !session) {
-      return res.status(400).json({
-        success: false,
-        message: "Oasis, package, and session selection are required",
-      });
+      return res.status(400).json({ success: false, message: "Oasis, package, and session selection are required" });
     }
 
     if (!bookingDate || !pax || !totalPrice || downpayment === undefined || downpayment === null) {
@@ -195,27 +434,16 @@ const createBooking = async (req, res) => {
       if (!pax)          missingFields.push("pax");
       if (!totalPrice)   missingFields.push("totalPrice");
       if (downpayment === undefined || downpayment === null) missingFields.push("downpayment");
-
       return res.status(400).json({
         success: false,
         message: `❌ VALIDATION FAILED - Missing fields: ${missingFields.join(", ")}`,
-        details: {
-          bookingDate:  bookingDate  || "MISSING",
-          pax:          pax          || "MISSING",
-          totalPrice:   totalPrice   || "MISSING",
-          downpayment:  downpayment !== undefined && downpayment !== null ? downpayment : "MISSING",
-        },
       });
     }
 
     if (!paymentMethod) {
-      return res.status(400).json({
-        success: false,
-        message: "Payment method is required",
-      });
+      return res.status(400).json({ success: false, message: "Payment method is required" });
     }
 
-    // Parse booking date correctly as local date (not UTC)
     let selectedDate;
     if (typeof bookingDate === "string") {
       const [year, month, day] = bookingDate.split("-");
@@ -224,54 +452,18 @@ const createBooking = async (req, res) => {
       selectedDate = new Date(bookingDate);
     }
 
-    console.log(`📅 Parsed booking date: ${bookingDate}`);
     const { start, end } = getDayRange(selectedDate);
 
-    // ============================================
-    // 1. VALIDATE PAX AGAINST PACKAGE CAPACITY (DB-DRIVEN)
-    // ============================================
-    // NEW: Fetch the package document from MongoDB instead of reading from
-    // the old hardcoded PACKAGE_CAPACITY map.
-    //
-    // WHAT: Look up the package by oasis + name to get:
-    //   - maxCapacity    (base, included in price)
-    //   - maxExtraGuests (hard ceiling above base; null = no cap)
-    //   - extraGuestFee  (charge per extra guest; default 150)
-    //
-    // WHY:  Admin changes in Package Management now take effect immediately on
-    //       new bookings. Previously, any admin edit was ignored by the backend.
-    //
-    // HOW:  Package.findOne({ oasis, name: packageName }) hits the packages
-    //       collection directly. We only use the capacity fields — not pricing.
-    // ─────────────────────────────────────────────────────────────────────────
     const packageDoc = await Package.findOne({ oasis, name: packageName });
 
     if (packageDoc) {
-      const baseCapacity = packageDoc.maxCapacity;
-
-      // NEW: Read maxExtraGuests from the DB.
-      // WHAT: null means the admin set no cap → no upper limit enforced.
-      //       A number means the hard ceiling is base + maxExtraGuests.
+      const baseCapacity  = packageDoc.maxCapacity;
       const maxExtraGuests = packageDoc.maxExtraGuests ?? null;
-
-      const guestCount = parseInt(pax);
+      const guestCount    = parseInt(pax);
 
       if (maxExtraGuests !== null) {
-        // NEW: Admin has set a cap on extra guests — enforce the hard ceiling.
-        // WHAT: totalMax is the absolute maximum number of guests allowed.
-        // HOW:  totalMax = baseCapacity + maxExtraGuests
-        //       Example: base=20, maxExtraGuests=10 → totalMax=30.
-        //       A booking of 31 pax is rejected with a clear error message.
         const totalMax = baseCapacity + maxExtraGuests;
-
         if (guestCount > totalMax) {
-          // BLOCK: pax exceeds the hard ceiling.
-          // WHAT: Return a 400 error — the booking is not created.
-          // WHY:  This mirrors the frontend block in GuestInfoStep.jsx. The backend
-          //       check is the authoritative one — it protects against bypassed UI.
-          // HOW:  The error message tells the customer the exact ceiling so they
-          //       know what to reduce their count to.
-          console.log(`❌ PAX EXCEEDS MAX: ${guestCount} > ${totalMax} (base ${baseCapacity} + extra ${maxExtraGuests})`);
           return res.status(400).json({
             success: false,
             message: `Maximum ${totalMax} pax allowed for ${packageName} (${baseCapacity} base + ${maxExtraGuests} extra). You have ${guestCount} guests.`,
@@ -279,63 +471,35 @@ const createBooking = async (req, res) => {
         }
       }
 
-      // WHAT: If pax is above base capacity (but within ceiling), log the extra charge.
-      // WHY:  Useful for debugging and audit trail. The actual price validation
-      //       happens on the frontend (BookingSummary); we trust the totalPrice
-      //       sent by the client here.
       if (guestCount > baseCapacity) {
-        const extraGuests = guestCount - baseCapacity;
+        const extraGuests  = guestCount - baseCapacity;
         const feePerPerson = packageDoc.extraGuestFee ?? 150;
         console.log(`✅ ${extraGuests} extra guest(s) for ${packageName}. Extra charge: ₱${extraGuests * feePerPerson}`);
       }
     } else {
-      // Package not found in DB — log a warning but don't block the booking.
-      // WHY:  If somehow the package was deleted between the customer selecting it
-      //       and submitting, we don't want to silently fail. The warning appears
-      //       in the server logs for the admin to investigate.
       console.warn(`⚠️ Package "${packageName}" not found in DB for oasis "${oasis}". Skipping capacity check.`);
     }
 
-    // ============================================
-    // 2. CHECK SESSION AVAILABILITY FOR THIS PACKAGE
-    // ============================================
-    // Session validity is checked against OASIS_CONFIG — only the session
-    // names matter here. Package availability is DB-driven:
-    // any active package in the database is bookable immediately — no more
-    // hardcoded availablePackages lists to maintain.
-
     const sessionConfig = OASIS_CONFIG[oasis]?.sessions[session];
     if (!sessionConfig) {
-      return res.status(400).json({
-        success: false,
-        message: `${session} session is not available for ${oasis}.`,
-      });
+      return res.status(400).json({ success: false, message: `${session} session is not available for ${oasis}.` });
     }
 
-    // Re-use the packageDoc fetched in step 1. If it wasn't found there,
-    // do one more targeted lookup here so the error message is specific.
     const activePackageDoc = packageDoc ?? await Package.findOne({ oasis, name: packageName });
     if (!activePackageDoc || activePackageDoc.isActive === false) {
-      return res.status(400).json({
-        success: false,
-        message: `${packageName} is not available for booking.`,
-      });
+      return res.status(400).json({ success: false, message: `${packageName} is not available for booking.` });
     }
 
-    // ============================================
-    // 3. CHECK FOR DOUBLE BOOKING (SAME DATE + SESSION)
-    // ============================================
-
+    // Double-booking check — excludes Reserved so it doesn't interfere with admin-created bookings
     const exactMatchBooking = await Booking.findOne({
       oasis,
       package: packageName,
-      session: session,
+      session,
       bookingDate: { $gte: start, $lt: end },
       status: { $in: ["Pending", "Confirmed"] },
     });
 
     if (exactMatchBooking) {
-      console.log(`❌ DOUBLE BOOKING DETECTED: ${oasis} - ${packageName} - ${session}`);
       return res.status(409).json({
         success: false,
         message: "This date and session is already booked. Please select another date or session.",
@@ -343,94 +507,67 @@ const createBooking = async (req, res) => {
       });
     }
 
-    // ============================================
-    // 4. CHECK DATE ADVANCE LIMITS
-    // ============================================
-
     const minAdvanceDate = new Date();
     minAdvanceDate.setDate(minAdvanceDate.getDate() + 1);
     minAdvanceDate.setHours(0, 0, 0, 0);
-
     if (selectedDate < minAdvanceDate) {
-      return res.status(400).json({
-        success: false,
-        message: "Bookings must be made at least 1 day in advance.",
-      });
+      return res.status(400).json({ success: false, message: "Bookings must be made at least 1 day in advance." });
     }
 
-    // ============================================
-    // CREATE BOOKING - ALL CHECKS PASSED
-    // ============================================
-
-    let bookingReference;
-    let isUnique = false;
-    while (!isUnique) {
-      bookingReference = await generateBookingReference();
-      const existingRef = await Booking.findOne({ bookingReference });
-      if (!existingRef) {
-        isUnique = true;
-      }
-    }
-
-    const lastBooking = await Booking.findOne()
+    const bookingReference = await generateBookingReference();
+    const lastBooking = await Booking.findOne({ bookingNumber: { $exists: true, $ne: null } })
       .sort({ bookingNumber: -1 })
       .select("bookingNumber");
-
     const nextBookingNumber = (lastBooking?.bookingNumber || 0) + 1;
 
     const newBooking = new Booking({
-      customerName: trimmedCustomerName,
+      customerName:    trimmedCustomerName,
       customerContact: trimmedCustomerContact,
-      customerEmail: trimmedCustomerEmail,
+      customerEmail:   trimmedCustomerEmail,
       oasis,
-      package: packageName,
+      package:         packageName,
       session,
       bookingDate,
       pax,
-      totalAmount: totalPrice,
-      downpayment,
-      addons: parsedAddons || {},
+      totalAmount:     totalPrice,
+      downpayment:     paymentType === "fullpayment" ? parseFloat(totalPrice) : parseFloat(downpayment),
+      addons:          parsedAddons || {},
       specialRequests: specialRequests || "",
       paymentMethod,
-      paymentType: paymentType || "downpayment",
-      paymentProof: paymentProof || null,
-      status: status || "Pending",
-      // Derive paymentStatus from paymentType — never trust the client-supplied value.
-      paymentStatus: paymentType === "fullpayment" ? "Paid" : "Partial",
-      downpayment:   paymentType === "fullpayment" ? parseFloat(totalPrice) : parseFloat(downpayment),
-      bookingReference: bookingReference,
-      bookingNumber: nextBookingNumber,
+      paymentType:     paymentType || "downpayment",
+      paymentProof:    paymentProof || null,
+      status:          status || "Pending",
+      paymentStatus:   paymentType === "fullpayment" ? "Paid" : "Partial",
+      bookingReference,
+      bookingNumber:   nextBookingNumber,
     });
 
     await newBooking.save();
 
     console.log(`✅ Booking created successfully:`);
     console.log(`   - Booking ID: ${newBooking._id}`);
-    console.log(`   - Payment Proof Saved: ${newBooking.paymentProof || "NONE"}`);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Booking submitted successfully. Please wait for staff to verify your payment.",
       booking: newBooking,
     });
   } catch (error) {
     console.error("Create booking error:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(400).json({ success: false, message: error.message });
   }
 };
 
 // ============================================
-// GET ALL BOOKINGS
+// GET ALL BOOKINGS (admin) — filters out Reserved
 // ============================================
 
 const getAllBookings = async (req, res) => {
   console.log("🔴🔴🔴 getAllBookings FUNCTION IS EXECUTING! 🔴🔴🔴");
   try {
-    const bookings = await Booking.find().sort({ createdAt: -1 });
-    console.log(`✅ Found ${bookings.length} bookings`);
+    // "Reserved" bookings are internal placeholders — never shown to admin.
+    const bookings = await Booking.find({ status: { $ne: "Reserved" } }).sort({ createdAt: -1 });
+    console.log(`✅ Found ${bookings.length} bookings (Reserved excluded)`);
 
     const bookingsWithProofs = bookings.filter((b) => b.paymentProof);
     console.log(`📸 ${bookingsWithProofs.length} bookings have payment proofs`);
@@ -456,7 +593,6 @@ const getBookingById = async (req, res) => {
 
     console.log(`📋 Retrieved booking ${req.params.id}:`);
     console.log(`   - Payment Proof: ${booking.paymentProof || "NONE"}`);
-    console.log(`   - Payment Status: ${booking.paymentStatus}`);
     console.log(`   - Status: ${booking.status}`);
 
     res.json(booking);
@@ -523,12 +659,12 @@ const updateBooking = async (req, res) => {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale && booking.totalPrice) {
         const sale = new Sale({
-          booking: id,
-          amount: booking.totalPrice,
-          bookingNumber: booking.bookingNumber || 0,
+          booking:          id,
+          amount:           booking.totalPrice,
+          bookingNumber:    booking.bookingNumber || 0,
           bookingReference: booking.bookingReference,
-          location: booking.oasis,
-          date: new Date(),
+          location:         booking.oasis,
+          date:             new Date(),
         });
         await sale.save();
         console.log(`✅ Sale record created for confirmed booking ${id}`);
@@ -577,12 +713,12 @@ const updateBookingStatus = async (req, res) => {
       const existingSale = await Sale.findOne({ booking: id });
       if (!existingSale) {
         const sale = new Sale({
-          booking: id,
-          amount: booking.totalAmount,
-          bookingNumber: booking.bookingNumber || 0,
+          booking:          id,
+          amount:           booking.totalAmount,
+          bookingNumber:    booking.bookingNumber || 0,
           bookingReference: booking.bookingReference,
-          location: booking.oasis,
-          date: new Date(),
+          location:         booking.oasis,
+          date:             new Date(),
         });
         await sale.save();
         console.log(`✅ Sale record created for ${status} booking ${id} (Booking #${booking.bookingNumber})`);
@@ -620,7 +756,6 @@ const updatePaymentStatus = async (req, res) => {
     }
 
     const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
-
     res.json({ message: `Payment ${paymentStatus}`, booking });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -628,7 +763,7 @@ const updatePaymentStatus = async (req, res) => {
 };
 
 // ============================================
-// GET BOOKINGS BY CUSTOMER EMAIL - public (no auth)
+// GET BOOKINGS BY CUSTOMER EMAIL
 // ============================================
 
 const getBookingsByCustomerEmail = async (req, res) => {
@@ -639,7 +774,12 @@ const getBookingsByCustomerEmail = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const bookings = await Booking.find({ customerEmail: email })
+    // Exclude Reserved bookings from the customer's booking history view
+    // (they are transient and meaningless to display)
+    const bookings = await Booking.find({
+      customerEmail: email,
+      status: { $ne: "Reserved" },
+    })
       .sort({ createdAt: -1 })
       .populate("confirmedBy", "name email");
 
@@ -670,17 +810,11 @@ const deleteBooking = async (req, res) => {
     const deletedSale = await Sale.findOneAndDelete({ booking: id });
     if (deletedSale) {
       console.log(`🗑️ Sale record deleted for booking ${id}`);
-      console.log(`   Booking Reference: ${booking.bookingReference}`);
-      console.log(`   Customer: ${booking.customerName}`);
-      console.log(`   Amount: ₱${booking.totalAmount?.toLocaleString() || "N/A"}`);
     }
 
     const deletedBooking = await Booking.findByIdAndDelete(id);
 
-    console.log(`🗑️ Booking deleted successfully`);
-    console.log(`   Booking #${booking.bookingNumber || "N/A"}`);
-    console.log(`   Reference: ${booking.bookingReference}`);
-    console.log(`   Status: ${booking.status}`);
+    console.log(`🗑️ Booking deleted: #${booking.bookingNumber || "N/A"} | ${booking.bookingReference} | ${booking.status}`);
 
     res.json({
       success: true,
@@ -695,8 +829,12 @@ const deleteBooking = async (req, res) => {
 };
 
 // ============================================
-// GET BOOKED DATES WITH SESSION INFO (with status colors)
+// GET BOOKED DATES WITH SESSION INFO
 // ============================================
+// NOTE: "Reserved" bookings ARE included here so the calendar blocks the slot
+// for other customers browsing (they'll see it grayed out).
+// The "reserved" status is surfaced as "pending" colour-wise (yellow) since
+// from a customer's perspective the slot is simply unavailable.
 
 const getBookedDatesWithSessions = async (req, res) => {
   try {
@@ -713,30 +851,33 @@ const getBookedDatesWithSessions = async (req, res) => {
       return `${year}-${month}-${day}`;
     };
 
+    // Include "Reserved" so the calendar shows the slot as taken.
+    // Exclude Cancelled / Completed / Checked-in (those slots are free).
     const bookings = await Booking.find({
       oasis,
-      status: { $in: ["Confirmed", "Pending"] },
+      status: { $in: ["Reserved", "Pending", "Confirmed"] },
     }).lean();
 
-    console.log(`📅 Found ${bookings.length} bookings for ${oasis}`);
+    console.log(`📅 Found ${bookings.length} bookings for ${oasis} (including Reserved)`);
 
     const bookedDatesMap = {};
 
     bookings.forEach((booking) => {
-      const dateStr   = getLocalDateString(booking.bookingDate);
-      const session   = booking.session || "Day";
+      const dateStr     = getLocalDateString(booking.bookingDate);
+      const session     = booking.session || "Day";
       const isConfirmed = booking.status === "Confirmed";
       const isPending   = booking.status === "Pending";
+      const isReserved  = booking.status === "Reserved";
 
       if (!bookedDatesMap[dateStr]) {
         bookedDatesMap[dateStr] = {
           date: dateStr,
-          Day:    { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
-          Night:  { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
-          "22hrs":{ booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
-          userHasBooking: false,
-          userBookingSession: null,
-          userBookingStatus: null,
+          Day:     { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
+          Night:   { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
+          "22hrs": { booked: false, status: "available", count: 0, names: [], hasConfirmed: false, hasPending: false },
+          userHasBooking:       false,
+          userBookingSession:   null,
+          userBookingStatus:    null,
         };
       }
 
@@ -747,6 +888,10 @@ const getBookedDatesWithSessions = async (req, res) => {
 
         if (isConfirmed) sessionInfo.hasConfirmed = true;
         if (isPending)   sessionInfo.hasPending   = true;
+        // Reserved slots show as "pending" colour to the customer (yellow / unavailable)
+        if (isReserved && !sessionInfo.hasPending && !sessionInfo.hasConfirmed) {
+          sessionInfo.hasPending = true;
+        }
 
         if (sessionInfo.hasConfirmed) {
           sessionInfo.status = "confirmed";
@@ -756,10 +901,12 @@ const getBookedDatesWithSessions = async (req, res) => {
           sessionInfo.booked = true;
         }
 
-        if (email && booking.customerEmail === email) {
-          bookedDatesMap[dateStr].userHasBooking     = true;
-          bookedDatesMap[dateStr].userBookingSession  = session;
-          bookedDatesMap[dateStr].userBookingStatus   = booking.status;
+        // Only surface non-Reserved bookings as the user's own booking
+        // (a Reserved booking by this user is just a transient slot hold)
+        if (email && booking.customerEmail === email && booking.status !== "Reserved") {
+          bookedDatesMap[dateStr].userHasBooking    = true;
+          bookedDatesMap[dateStr].userBookingSession = session;
+          bookedDatesMap[dateStr].userBookingStatus  = booking.status;
           console.log(`✅ User ${email} has ${booking.status} booking on ${dateStr} for ${session} session`);
         }
       }
@@ -777,8 +924,6 @@ const getBookedDatesWithSessions = async (req, res) => {
       }
     });
 
-    console.log("📤 Returning booked dates with status:", Object.keys(bookedDatesMap));
-
     res.json({ success: true, bookedDates: bookedDatesMap });
   } catch (error) {
     console.error("Error fetching booked dates:", error);
@@ -787,13 +932,13 @@ const getBookedDatesWithSessions = async (req, res) => {
 };
 
 // ============================================
-// VERIFY PAYMENT - Admin verifies payment proof and confirms booking
+// VERIFY PAYMENT - Admin verifies payment proof
 // ============================================
 
 const verifyPayment = async (req, res) => {
   try {
-    const { id }    = req.params;
-    const userId    = req.user?.id;
+    const { id }  = req.params;
+    const userId  = req.user?.id;
 
     const booking = await Booking.findById(id);
 
@@ -805,18 +950,18 @@ const verifyPayment = async (req, res) => {
     let isRemainingPayment = false;
 
     if (booking.paymentStatus === "Partial") {
-      paymentStatus = "Paid";
+      paymentStatus      = "Paid";
       isRemainingPayment = true;
     } else {
       paymentStatus = booking.paymentType === "fullpayment" ? "Paid" : "Partial";
     }
 
     const updateFields = {
-      paymentStatus: paymentStatus,
-      status: "Confirmed",
-      paymentVerifiedBy: userId,
-      paymentVerifiedAt: new Date(),
-      confirmedBy: userId,
+      paymentStatus,
+      status:             "Confirmed",
+      paymentVerifiedBy:  userId,
+      paymentVerifiedAt:  new Date(),
+      confirmedBy:        userId,
     };
     if (paymentStatus === "Paid") {
       updateFields.downpayment = booking.totalAmount;
@@ -831,7 +976,7 @@ const verifyPayment = async (req, res) => {
       const remainingBalance = booking.totalAmount - booking.downpayment;
 
       await sendEmail({
-        to: booking.customerEmail,
+        to:      booking.customerEmail,
         subject: isRemainingPayment
           ? "Final Payment Confirmed - Catherine's Oasis"
           : "Booking Confirmed - Catherine's Oasis",
@@ -845,7 +990,6 @@ const verifyPayment = async (req, res) => {
               </div>
               <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
             </div>
-
             <div style="padding: 40px 32px; background: #ffffff;">
               <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">
                 ${isRemainingPayment ? "Payment Complete! 🎉" : "Booking Confirmed! 🎉"}
@@ -856,7 +1000,6 @@ const verifyPayment = async (req, res) => {
                   ? "Your final payment has been verified and your booking is now fully paid."
                   : "Your payment has been verified and your booking is confirmed."}
               </p>
-
               <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
                 <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Details</h3>
                 <table style="width: 100%; border-collapse: collapse;">
@@ -883,11 +1026,9 @@ const verifyPayment = async (req, res) => {
                       </td></tr>
                 </table>
               </div>
-
               <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
                 Please keep this email for your records. Show this confirmation to our staff when you arrive.
               </p>
-
               <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
               <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
                 Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
@@ -920,11 +1061,9 @@ const deletePaymentProof = async (req, res) => {
     const { id } = req.params;
 
     const booking = await Booking.findById(id);
-
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found" });
     }
-
     if (!booking.paymentProof) {
       return res.status(400).json({ success: false, message: "No payment proof to delete" });
     }
@@ -938,12 +1077,7 @@ const deletePaymentProof = async (req, res) => {
       console.warn("⚠️  Could not delete from Cloudinary:", fileDeleteError.message);
     }
 
-    const updatedBooking = await Booking.findByIdAndUpdate(
-      id,
-      { paymentProof: null },
-      { new: true }
-    );
-
+    const updatedBooking = await Booking.findByIdAndUpdate(id, { paymentProof: null }, { new: true });
     res.json({ success: true, message: "Payment proof deleted successfully", booking: updatedBooking });
   } catch (error) {
     console.error("Error deleting payment proof:", error);
@@ -952,7 +1086,7 @@ const deletePaymentProof = async (req, res) => {
 };
 
 // ============================================
-// CANCEL BOOKING - Customer cancels their booking
+// CANCEL BOOKING
 // ============================================
 
 const cancelBooking = async (req, res) => {
@@ -962,19 +1096,15 @@ const cancelBooking = async (req, res) => {
     const proofFile = req.file;
 
     const booking = await Booking.findById(id);
-
     if (!booking) {
       return res.status(404).json({ success: false, message: "Booking not found. Please refresh and try again." });
     }
-
     if (booking.customerEmail !== req.user.email) {
       return res.status(403).json({ success: false, message: "You can only cancel your own bookings." });
     }
-
     if (booking.status === "Cancelled") {
       return res.status(400).json({ success: false, message: "This booking has already been cancelled." });
     }
-
     if (booking.status === "Completed") {
       return res.status(400).json({ success: false, message: "Cannot cancel a completed booking." });
     }
@@ -1019,13 +1149,13 @@ const cancelBooking = async (req, res) => {
 };
 
 // ============================================
-// CHECK-IN - Confirmed → Checked-in
+// CHECK-IN
 // ============================================
 
 const checkIn = async (req, res) => {
   try {
-    const { id }   = req.params;
-    const userId   = req.user?.id;
+    const { id }  = req.params;
+    const userId  = req.user?.id;
 
     const booking = await Booking.findById(id);
     if (!booking)
@@ -1053,7 +1183,7 @@ const checkIn = async (req, res) => {
 };
 
 // ============================================
-// CHECK-OUT - Checked-in → Completed
+// CHECK-OUT
 // ============================================
 
 const checkOut = async (req, res) => {
@@ -1074,9 +1204,9 @@ const checkOut = async (req, res) => {
       booking.paymentStatus = "Paid";
     }
 
-    booking.status       = "Completed";
-    booking.checkedOutBy  = userId;
-    booking.checkedOutAt  = new Date();
+    booking.status      = "Completed";
+    booking.checkedOutBy = userId;
+    booking.checkedOutAt = new Date();
     await booking.save();
 
     const existingSale = await Sale.findOne({ booking: id });
@@ -1110,8 +1240,6 @@ const cleanupOrphanedSales = async (req, res) => {
     console.log("🧹 Starting cleanup of orphaned sales records...");
 
     const allSales = await Sale.find();
-    console.log(`📊 Total sales in database: ${allSales.length}`);
-
     let orphanedCount = 0;
     const orphanedSales = [];
 
@@ -1128,23 +1256,19 @@ const cleanupOrphanedSales = async (req, res) => {
     if (orphanedCount === 0) {
       return res.json({
         success: true,
-        message: "✅ No orphaned sales found. All sales have matching bookings.",
+        message: "✅ No orphaned sales found.",
         totalSales: allSales.length,
         orphanedCount: 0,
       });
     }
 
-    console.log(`🗑️ Found ${orphanedCount} orphaned sales records`);
-
     const result = await Sale.deleteMany({ _id: { $in: orphanedSales } });
-
-    console.log(`✅ Deleted ${result.deletedCount} orphaned sales records`);
 
     res.json({
       success: true,
       message: `✅ Cleanup complete! Deleted ${orphanedCount} orphaned sales records.`,
       totalSales: allSales.length,
-      orphanedCount: orphanedCount,
+      orphanedCount,
       deletedCount: result.deletedCount,
       orphanedSalesIds: orphanedSales,
     });
@@ -1166,33 +1290,26 @@ const syncBookingsAndSales = async (req, res) => {
     let deletedSalesForNonCompleted = 0;
     let issues = [];
 
-    console.log("📋 Step 1: Removing sales with missing bookings...");
     const allSales = await Sale.find();
-
     for (const sale of allSales) {
       if (sale.booking) {
         const booking = await Booking.findById(sale.booking);
         if (!booking) {
           await Sale.findByIdAndDelete(sale._id);
           deletedOrphanedSales++;
-          console.log(`  🗑️ Deleted orphaned sale: ${sale.bookingReference || sale._id}`);
         }
       }
     }
 
-    console.log("\n📋 Step 2: Removing sales for non-completed bookings...");
     const salesForNonCompleted = await Sale.find().populate("booking", "status bookingReference bookingNumber");
-
     for (const sale of salesForNonCompleted) {
       if (sale.booking && sale.booking.status !== "Completed") {
         await Sale.findByIdAndDelete(sale._id);
         deletedSalesForNonCompleted++;
-        console.log(`  🗑️ Deleted sale for ${sale.booking.status} booking: ${sale.booking.bookingReference}`);
       }
     }
 
-    console.log("\n📋 Step 3: Verifying final data state...");
-    const finalBookings = await Booking.find();
+    const finalBookings = await Booking.find({ status: { $ne: "Reserved" } });
     const finalSales    = await Sale.find().populate("booking", "bookingReference status bookingNumber");
 
     for (const sale of finalSales) {
@@ -1207,8 +1324,6 @@ const syncBookingsAndSales = async (req, res) => {
       }
     }
 
-    console.log(`\n✅ Sync Complete!\n`);
-
     res.json({
       success: true,
       message: "✅ Booking and Sales data synchronized successfully!",
@@ -1220,7 +1335,7 @@ const syncBookingsAndSales = async (req, res) => {
         totalDeleted: deletedOrphanedSales + deletedSalesForNonCompleted,
         remainingIssues: issues.length,
       },
-      issues: issues,
+      issues,
     });
   } catch (error) {
     console.error("❌ Error syncing bookings & sales:", error);
@@ -1234,13 +1349,8 @@ const syncBookingsAndSales = async (req, res) => {
 
 const verifySalesConnection = async (req, res) => {
   try {
-    console.log("🔍 Verifying sales and bookings connection...");
-
-    const allBookings = await Booking.find();
+    const allBookings = await Booking.find({ status: { $ne: "Reserved" } });
     const allSales    = await Sale.find();
-
-    console.log(`📊 Total bookings: ${allBookings.length}`);
-    console.log(`💰 Total sales: ${allSales.length}`);
 
     let connectedCount   = 0;
     let orphanedBookings = 0;
@@ -1275,8 +1385,8 @@ const verifySalesConnection = async (req, res) => {
         totalBookings: allBookings.length,
         totalSales: allSales.length,
         connectedPairs: connectedCount,
-        orphanedBookings: orphanedBookings,
-        orphanedSales: orphanedSales,
+        orphanedBookings,
+        orphanedSales,
       },
       issues: issues.slice(0, 50),
     });
@@ -1287,6 +1397,8 @@ const verifySalesConnection = async (req, res) => {
 };
 
 module.exports = {
+  reserveSlot,
+  confirmBooking,
   createBooking,
   getAllBookings,
   getBookingById,
