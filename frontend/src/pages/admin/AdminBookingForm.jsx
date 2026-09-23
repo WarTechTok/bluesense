@@ -236,6 +236,8 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     return tomorrow;
   };
 
+  const getMinimumBookingDateValue = () => formatDateToString(getMinimumDate());
+
   // Convert date to YYYY-MM-DD format
   const formatDateToString = (date) => {
     const year = date.getFullYear();
@@ -572,7 +574,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
           <div className="form-step">
             <h3>Customer Information</h3>
             <div className="form-group">
-              <label>Customer Name *</label>
+              <label className="required-label">
+                Customer Name <span className="required-asterisk">*</span>
+              </label>
               <input
                 type="text"
                 value={formData.customerName}
@@ -583,7 +587,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Contact Number *</label>
+              <label className="required-label">
+                Contact Number <span className="required-asterisk">*</span>
+              </label>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -600,7 +606,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Email *</label>
+              <label className="required-label">
+                Email <span className="required-asterisk">*</span>
+              </label>
               <input
                 type="email"
                 value={formData.customerEmail}
@@ -611,7 +619,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Location *</label>
+              <label className="required-label">
+                Location <span className="required-asterisk">*</span>
+              </label>
               <select
                 value={selectedOasis}
                 onChange={(e) => {
@@ -630,7 +640,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Package *</label>
+              <label className="required-label">
+                Package <span className="required-asterisk">*</span>
+              </label>
               <select
                 value={selectedPackage?.id || ""}
                 onChange={(e) => {
@@ -660,19 +672,23 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
           <div className="form-step">
             <h3>Booking Details</h3>
             <div className="form-group">
-              <label>Reservation Date *</label>
+              <label className="required-label">
+                Reservation Date <span className="required-asterisk">*</span>
+              </label>
               <input
                 type="date"
                 value={formData.reservationDate}
                 onChange={(e) => setFormData({ ...formData, reservationDate: e.target.value })}
-                min={formatDateToString(getMinimumDate())}
+                min={getMinimumBookingDateValue()}
                 className={errors.reservationDate ? 'error' : ''}
               />
               {errors.reservationDate && <span className="error-text">{errors.reservationDate}</span>}
             </div>
 
             <div className="form-group">
-              <label>Session *</label>
+              <label className="required-label">
+                Session <span className="required-asterisk">*</span>
+              </label>
               <select
                 value={selectedSession}
                 onChange={(e) => setSelectedSession(e.target.value)}
@@ -704,7 +720,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Number of Guests *</label>
+              <label className="required-label">
+                Number of Guests <span className="required-asterisk">*</span>
+              </label>
               <div className="pax-input-container">
                 <button
                   type="button"
@@ -817,7 +835,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Payment Method *</label>
+              <label className="required-label">
+                Payment Method <span className="required-asterisk">*</span>
+              </label>
               <select
                 value={formData.paymentMethod}
                 onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}

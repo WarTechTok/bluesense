@@ -461,7 +461,9 @@ const InventoryManagement = () => {
                 </div>
               )}
               <div className="form-group">
-                <label>Item Name *</label>
+                <label className="required-label">
+                  Item Name <span className="required-asterisk">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.item}
@@ -470,7 +472,9 @@ const InventoryManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Quantity *</label>
+                <label className="required-label">
+                  Quantity <span className="required-asterisk">*</span>
+                </label>
                 <input
                   type="number"
                   value={formData.quantity}
@@ -479,7 +483,9 @@ const InventoryManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Unit</label>
+                <label className="required-label">
+                  Unit <span className="required-asterisk">*</span>
+                </label>
                 <input
                   type="text"
                   value={formData.unit}
@@ -488,7 +494,9 @@ const InventoryManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Price Per Unit *</label>
+                <label className="required-label">
+                  Price Per Unit <span className="required-asterisk">*</span>
+                </label>
                 <input
                   type="number"
                   step="0.01"
@@ -554,7 +562,9 @@ const InventoryManagement = () => {
                 <label>Item: {editingItem?.item}</label>
               </div>
               <div className="form-group">
-                <label>Quantity Used *</label>
+                <label className="required-label">
+                  Quantity Used <span className="required-asterisk">*</span>
+                </label>
                 <input
                   type="number"
                   value={usageData.quantityUsed}

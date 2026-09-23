@@ -8,6 +8,7 @@ import './ManagementPages.css';
 import * as adminApi from '../../services/admin';
 
 const SalesTracking = () => {
+  const PAGE_SIZE = 10;
   const [sales, setSales] = useState([]);
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -19,6 +20,10 @@ const SalesTracking = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRangeText, setDateRangeText] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE));
+  const paginatedSales = sales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const fetchSales = useCallback(async () => {
     try {
@@ -65,6 +70,16 @@ const SalesTracking = () => {
   useEffect(() => {
     fetchSales();
   }, [fetchSales]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const handleQuickRange = (days) => {
     const end = new Date();
@@ -175,52 +190,102 @@ const SalesTracking = () => {
             <p>Loading sales data...</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Booking ID</th>
-                  <th>Reference Code</th>
-                  <th>Location</th>
-                  <th>Guest Name</th>
-                  <th>Amount</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sales.length === 0 ? (
-                  <tr className="no-data-row">
-                    <td colSpan="6">
-                      <div className="no-data">
-                        <i className="fas fa-chart-line"></i>
-                        <p>No sales data for this period</p>
-                      </div>
-                    </td>
+          <>
+            <div className="table-top-controls">
+              <div className="showing-summary">
+                Showing {sales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+                -{Math.min(currentPage * PAGE_SIZE, sales.length)} of {sales.length}
+              </div>
+              <div className="pagination-controls">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <span className="page-indicator">{currentPage} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Booking ID</th>
+                    <th>Reference Code</th>
+                    <th>Location</th>
+                    <th>Guest Name</th>
+                    <th>Amount</th>
+                    <th>Date</th>
                   </tr>
-                ) : (
-                  sales.map((sale, idx) => {
-                    const bookingId = sale.bookingNumber || 'N/A';
-                    const referenceCode = sale.referenceCode || 'N/A';
-                    const location = sale.location || 'N/A';
-                    const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
-                    
-                    console.log(`🟢 Rendering sale ${idx + 1}:`, { bookingId, referenceCode, location, customerName, amount: sale.amount });
-                    
-                    return (
-                      <tr key={idx}>
-                        <td className="booking-id">{bookingId}</td>
-                        <td className="reference-code">{referenceCode}</td>
-                        <td className="location">{location}</td>
-                        <td className="customer-name">{customerName}</td>
-                        <td className="amount">{formatCurrency(sale.amount || 0)}</td>
-                        <td className="date">{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {sales.length === 0 ? (
+                    <tr className="no-data-row">
+                      <td colSpan="6">
+                        <div className="no-data">
+                          <i className="fas fa-chart-line"></i>
+                          <p>No sales data for this period</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedSales.map((sale, idx) => {
+                      const bookingId = sale.bookingNumber || 'N/A';
+                      const referenceCode = sale.referenceCode || 'N/A';
+                      const location = sale.location || 'N/A';
+                      const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
+                      
+                      console.log(`🟢 Rendering sale ${idx + 1}:`, { bookingId, referenceCode, location, customerName, amount: sale.amount });
+                      
+                      return (
+                        <tr key={`${bookingId}-${referenceCode}-${idx}`}>
+                          <td className="booking-id">{bookingId}</td>
+                          <td className="reference-code">{referenceCode}</td>
+                          <td className="location">{location}</td>
+                          <td className="customer-name">{customerName}</td>
+                          <td className="amount">{formatCurrency(sale.amount || 0)}</td>
+                          <td className="date">{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="table-bottom-controls">
+              <div className="showing-summary">
+                Showing {sales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+                -{Math.min(currentPage * PAGE_SIZE, sales.length)} of {sales.length}
+              </div>
+              <div className="pagination-controls">
+                <button
+                  type="button"
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <span className="page-indicator">{currentPage} / {totalPages}</span>
+                <button
+                  type="button"
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
