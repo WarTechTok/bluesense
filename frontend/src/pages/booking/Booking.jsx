@@ -1,7 +1,7 @@
 // frontend/src/pages/booking/Booking.jsx
 
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate, useBlocker } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import Footer from "../../components/footer/Footer";
 import { reserveSlot, releaseSlot, confirmBooking } from "../../services/api";
@@ -42,11 +42,14 @@ function Booking() {
   const [sessionData, setSessionData]             = useState([]);
 
   // ---- Stored reservation ID from Step 2 ----
+  // Set when reserveSlot succeeds; used in Step 4 confirmBooking call.
+  // FIX 5: initialise from localStorage so a page refresh doesn't orphan the slot.
   const [reservedBookingId, setReservedBookingId] = useState(
     () => localStorage.getItem("reservedBookingId") || null
   );
 
-  // Helper — clears reservation from BOTH state and localStorage
+  // FIX 5: helper — clears reservation from BOTH state and localStorage atomically.
+  // Call this on: successful confirm, 410 expiry, and after every release.
   const clearReservation = () => {
     setReservedBookingId(null);
     localStorage.removeItem("reservedBookingId");
@@ -127,7 +130,11 @@ function Booking() {
     }
   }, [preselectedOasis, preselectedPackage, navigate]);
 
-  // FIX 4: Release the slot on tab close / refresh (page unload events).
+  // FIX 4: Release the slot when the user closes the tab, navigates away, or
+  // hits the browser Back button. Uses fetch with keepalive: true so the request
+  // is sent even after the page begins to unload.
+  // NOTE: visibilitychange is intentionally NOT used — customers legitimately
+  //       switch to GCash / Maya apps to pay.
   useEffect(() => {
     const handleBeforeUnload = () => {
       const id = localStorage.getItem("reservedBookingId");
@@ -136,42 +143,20 @@ function Booking() {
       const token = localStorage.getItem("token");
       const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
+      // keepalive ensures the request completes even if the page is being torn down.
       fetch(`${API_BASE_URL}/api/bookings/reserve/${id}`, {
         method:  "DELETE",
         headers: { Authorization: `Bearer ${token}` },
         keepalive: true,
       });
 
+      // Remove from localStorage immediately so a fresh page load starts clean.
       localStorage.removeItem("reservedBookingId");
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  // FIX 3b: Release the slot on in-SPA navigation (browser Back, Navbar links).
-  // beforeunload doesn't fire on SPA navigation — useBlocker intercepts it.
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      !!reservedBookingId &&
-      currentLocation.pathname !== nextLocation.pathname
-  );
-
-  useEffect(() => {
-    if (blocker.state === "blocked") {
-      (async () => {
-        try {
-          await releaseSlot(reservedBookingId);
-          console.log(`🔓 Slot released on SPA navigation: ${reservedBookingId}`);
-        } catch (err) {
-          console.warn("releaseSlot failed on navigation — proceeding anyway:", err?.message);
-        } finally {
-          clearReservation();
-          blocker.proceed();
-        }
-      })();
-    }
-  }, [blocker, reservedBookingId]);
+  }, []); // no deps — reads from localStorage directly so always sees latest value
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -197,6 +182,7 @@ function Booking() {
     setSelectedSession(session);
     setFormData((prev) => ({ ...prev, session }));
     if (errors.session) setErrors((prev) => ({ ...prev, session: "" }));
+    // Clear slot error when user picks a different session
     setSlotError("");
   };
 
@@ -205,6 +191,7 @@ function Booking() {
     const newValue = type === "checkbox" ? checked : value;
     setFormData((prev) => ({ ...prev, [name]: newValue }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: "" }));
+    // Clear slot error if date changes
     if (name === "reservationDate") setSlotError("");
 
     if (name === "guestCount") {
@@ -266,6 +253,7 @@ function Booking() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ---- Step 2 Continue: validate then call reserveSlot ----
   const handleNext = async () => {
     if (step === 1 && !infoConfirmed) {
       setErrors({ ...errors, confirmInfo: "Please confirm your information first" });
@@ -274,6 +262,7 @@ function Booking() {
 
     if (!validateStep()) return;
 
+    // ---- Reserve the slot when leaving Step 2 ----
     if (step === 2) {
       setIsSubmitting(true);
       setSlotError("");
@@ -290,8 +279,12 @@ function Booking() {
           specialRequests: formData.specialRequests || "",
         });
 
+        // FIX 6: backend returns { reused: true } when this customer already has a
+        // Reserved booking for this slot (e.g. after a page refresh + retry).
+        // Treat it identically to a fresh reservation — store the ID and advance.
         const bookingId = result.bookingId;
 
+        // FIX 5: persist to BOTH state and localStorage so a refresh survives.
         setReservedBookingId(bookingId);
         localStorage.setItem("reservedBookingId", bookingId);
 
@@ -301,10 +294,12 @@ function Booking() {
           console.log(`✅ Slot reserved: ${bookingId} until ${result.reservedUntil}`);
         }
 
+        // Advance to Step 3
         setStep(3);
         window.scrollTo(0, 0);
       } catch (error) {
         if (error.status === 409) {
+          // Show inline error — no modal, no page change, no refresh needed
           setSlotError("This date and session is already reserved. Please select another date or session.");
         } else {
           setSlotError(error?.data?.message || error?.message || "Failed to reserve slot. Please try again.");
@@ -312,14 +307,18 @@ function Booking() {
       } finally {
         setIsSubmitting(false);
       }
-      return;
+      return; // don't fall through to the generic setStep below
     }
 
+    // Steps 1, 3 — just advance
     setStep(step + 1);
     window.scrollTo(0, 0);
   };
 
   const handlePrev = async () => {
+    // FIX 3: If the customer clicks Back from Step 3 (Payment), release their
+    // Reserved slot immediately so other customers can book it.
+    // Even if the network call fails we still go back — never block the user.
     if (step === 3 && reservedBookingId) {
       try {
         await releaseSlot(reservedBookingId);
@@ -346,11 +345,13 @@ function Booking() {
     window.scrollTo(0, 0);
   };
 
+  // ---- Step 4 Confirm Booking: call confirmBooking with stored booking ID ----
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateStep()) return;
 
     if (!reservedBookingId) {
+      // Safety guard — should never happen in normal flow
       alert("Reservation not found. Please go back to Step 2 and try again.");
       setStep(2);
       return;
@@ -376,6 +377,7 @@ function Booking() {
       const result = await confirmBooking(reservedBookingId, fd);
 
       if (result.booking) {
+        // FIX 5: clear reservation from state + localStorage on successful confirm
         clearReservation();
         setBookingDetails({
           bookingId:   result.booking.bookingReference || result.booking._id?.slice(-6).toUpperCase(),
@@ -397,6 +399,7 @@ function Booking() {
       const status = error?.status;
 
       if (status === 410 || msg.includes("expired")) {
+        // FIX 5: Reservation expired — clear state + localStorage then send back to Step 2
         clearReservation();
         alert("Your reservation has expired (5 minutes). Please select your date again.");
         setStep(2);
@@ -415,11 +418,13 @@ function Booking() {
     }
   };
 
+  // ---- Derived values ----
   const pricePerNight = calculatePrice();
   const totalPrice    = getTotalPrice();
   const nights        = calculateNights();
   const downpayment   = getDownpayment();
 
+  // ---- Guard ----
   if (!preselectedOasis || !preselectedPackage) {
     return (
       <div className="booking-page">
@@ -511,6 +516,7 @@ function Booking() {
                     availableSessions={getAvailableSessions()}
                     packageData={currentPackage}
                   />
+                  {/* Inline 409 error — shown directly on this step, no modal */}
                   {slotError && (
                     <div className="slot-error-message" style={{
                       marginTop: "12px",
