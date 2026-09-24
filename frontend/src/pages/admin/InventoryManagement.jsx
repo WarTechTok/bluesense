@@ -271,7 +271,6 @@ const InventoryManagement = () => {
   };
 
   const columns = [
-    { key: 'itemId', label: 'Item ID' },
     { key: 'item', label: 'Item Name' },
     { key: 'quantity', label: 'Quantity' },
     { key: 'unit', label: 'Unit' },
