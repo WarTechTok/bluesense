@@ -417,7 +417,7 @@ const StaffManagement = () => {
   return (
     <div className="management-page">
       <div className="page-header">
-        <h1>User Management</h1>
+        <h1>Users</h1>
         <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add User</button>
       </div>
 
