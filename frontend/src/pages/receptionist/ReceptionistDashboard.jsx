@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminApi from '../../services/admin';
+import SalesChart from '../../components/admin/SalesChart';
 import '../admin/ManagementPages.css';
 import './ReceptionistDashboard.css';
 
@@ -22,8 +23,6 @@ const ReceptionistDashboard = () => {
   });
 
   const [loading, setLoading] = useState(true);
-  const [recentBookings, setRecentBookings] = useState([]);
-  const [recentSales, setRecentSales] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
@@ -69,11 +68,6 @@ const ReceptionistDashboard = () => {
 
 
 
-      // Get recent bookings (last 5)
-      setRecentBookings(bookings.slice(0, 5));
-      
-      // Get recent sales (last 5)
-      setRecentSales(sales.slice(0, 5));
     } catch (error) {
       console.error('Error loading dashboard:', error);
     } finally {
@@ -147,101 +141,8 @@ const ReceptionistDashboard = () => {
         </div>
       </div>
 
-      {/* Recent Bookings */}
-      <div className="recent-section">
-        <div className="section-header">
-          <h2>Recent Bookings</h2>
-          <button 
-            className="btn-view-all"
-            onClick={() => navigate('/receptionist/bookings')}
-          >
-            View All
-          </button>
-        </div>
-
-        {recentBookings.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-inbox"></i>
-            <p>No bookings yet</p>
-          </div>
-        ) : (
-          <div className="recent-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Booking ID</th>
-                  <th>Customer</th>
-                  <th>Contact</th>
-                  <th>Date</th>
-                  <th>Status</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentBookings.map((booking) => (
-                  <tr key={booking._id}>
-                    <td><strong>{booking.bookingReference || booking._id.slice(0, 8)}</strong></td>
-                    <td>{booking.customerName || 'N/A'}</td>
-                    <td>{booking.customerContact || 'N/A'}</td>
-                    <td>{new Date(booking.bookingDate).toLocaleDateString()}</td>
-                    <td>
-                      <span className={`status-badge ${booking.status?.toLowerCase()}`}>
-                        {booking.status}
-                      </span>
-                    </td>
-                    <td>₱{booking.totalAmount?.toFixed(2) || '0.00'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Recent Sales */}
-      <div className="recent-section">
-        <div className="section-header">
-          <h2>Recent Sales</h2>
-          <button 
-            className="btn-view-all"
-            onClick={() => navigate('/receptionist/sales')}
-          >
-            View All
-          </button>
-        </div>
-
-        {recentSales.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-chart-line"></i>
-            <p>No sales yet</p>
-          </div>
-        ) : (
-          <div className="recent-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>Booking ID</th>
-                  <th>Customer</th>
-                  <th>Package</th>
-                  <th>Date</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentSales.map((sale) => (
-                  <tr key={sale._id}>
-                    <td><strong>{sale.booking?.bookingReference || sale._id.slice(0, 8)}</strong></td>
-                    <td>{sale.booking?.customerName || 'N/A'}</td>
-                    <td>{sale.booking?.packageType || 'N/A'}</td>
-                    <td>{new Date(sale.createdAt).toLocaleDateString()}</td>
-                    <td><strong>₱{sale.totalAmount?.toFixed(2) || '0.00'}</strong></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {/* Sales and booking graphs, matching the Admin Dashboard */}
+      <SalesChart />
 
       {/* Quick Actions */}
       <div className="quick-actions">
