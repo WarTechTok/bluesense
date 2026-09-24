@@ -8,21 +8,89 @@
   max-width: none;
   min-width: 0;
   align-items: center;
+  gap: 16px;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.receptionist-dashboard .stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+.receptionist-dashboard .stat-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  font-size: 1.5rem;
+}
+
+.receptionist-dashboard .stat-icon.bookings {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.receptionist-dashboard .stat-icon.rooms {
+  background: #dbeafe;
+  color: #3b82f6;
+}
+
+.receptionist-dashboard .stat-icon.sales {
+  background: #d1fae5;
+  color: #10b981;
 }
 
 .receptionist-dashboard .stat-content {
   min-width: 0;
-  text-align: center;
+  flex: 1;
+}
+
+.receptionist-dashboard .stat-content h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .receptionist-dashboard .stat-number {
+  margin: 0;
   white-space: nowrap;
-  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.receptionist-dashboard .stat-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.7rem;
+}
+
+.receptionist-dashboard .stat-breakdown .pending {
+  color: #f59e0b;
+}
+
+.receptionist-dashboard .stat-breakdown .confirmed,
+.receptionist-dashboard .stat-breakdown .occupied {
+  color: #3b82f6;
+}
+
+.receptionist-dashboard .stat-breakdown .completed,
+.receptionist-dashboard .stat-breakdown .available {
+  color: #10b981;
 }
 
 .receptionist-dashboard .stat-label {
   display: block;
   white-space: nowrap;
+  font-size: 0.7rem;
+  color: #64748b;
 }
 
 @media (max-width: 768px) {
@@ -32,5 +100,28 @@
 
   .receptionist-dashboard .stat-card {
     max-width: none;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .receptionist-dashboard .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .receptionist-dashboard .stat-content h3 {
+    font-size: 0.75rem;
+  }
+
+  .receptionist-dashboard .stat-number {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .receptionist-dashboard .stat-number {
+    font-size: 1.2rem;
   }
 }
