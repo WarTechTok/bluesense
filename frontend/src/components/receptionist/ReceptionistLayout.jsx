@@ -5,6 +5,7 @@ import { BASE_API } from '../../utils/apiBase';
 import NotificationBell from '../staff/NotificationBell';
 import LogoutConfirmModal from '../modals/LogoutConfirmModal';
 import '../admin/AdminLayout.css';
+import './ReceptionistLayout.css';
 
 /**
  * Receptionist Layout - Similar to Admin Layout but with limited menu
@@ -13,7 +14,6 @@ import '../admin/AdminLayout.css';
 const ReceptionistLayout = ({ children }) => {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
-  const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -60,17 +60,6 @@ const ReceptionistLayout = ({ children }) => {
     return () => {
       document.body.classList.remove('no-navbar');
     };
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.admin-profile')) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
   }, []);
 
   // Receptionist menu - limited to specific pages
@@ -175,6 +164,70 @@ const ReceptionistLayout = ({ children }) => {
             </button>
           ))}
         </nav>
+
+        <div className="sidebar-footer">
+          {sidebarOpen && (
+            <>
+              <div className="sidebar-profile-row">
+                <div className="sidebar-avatar">
+                  {userData?.avatar ? (
+                    <img src={userData.avatar} alt="avatar" />
+                  ) : (
+                    <span>{getInitial}</span>
+                  )}
+                </div>
+                <span className="sidebar-user-name">{userData?.name || 'Receptionist'}</span>
+                <div className="sidebar-bell-wrapper">
+                  <NotificationBell refreshInterval={10000} />
+                </div>
+              </div>
+              <p className="sidebar-user-email">{userData?.email || ''}</p>
+              <button
+                className="sidebar-action-btn edit"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+                <span>Edit Profile</span>
+              </button>
+              <button
+                className="sidebar-action-btn logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+              </button>
+            </>
+          )}
+
+          {!sidebarOpen && (
+            <div className="sidebar-footer-actions-collapsed">
+              <div className="sidebar-avatar sidebar-avatar-collapsed">
+                {userData?.avatar ? (
+                  <img src={userData.avatar} alt="avatar" />
+                ) : (
+                  <span>{getInitial}</span>
+                )}
+              </div>
+              <div className="sidebar-bell-collapsed" title="Notifications">
+                <NotificationBell refreshInterval={10000} />
+              </div>
+              <button
+                className="sidebar-icon-btn"
+                title="Edit Profile"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="fas fa-edit"></i>
+              </button>
+              <button
+                className="sidebar-icon-btn logout"
+                title="Logout"
+                onClick={() => setShowLogoutConfirm(true)}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -194,51 +247,6 @@ const ReceptionistLayout = ({ children }) => {
             <p>Welcome back, {userData?.name || 'Receptionist'}</p>
           </div>
 
-          {/* Notification Bell */}
-          <NotificationBell refreshInterval={10000} />
-
-          {/* Profile Dropdown */}
-          <div className="admin-profile">
-            <button
-              className="profile-btn"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              <span className="admin-name">{userData?.name?.split(' ')[0] || 'Receptionist'}</span>
-              <div className="admin-avatar">
-                {userData?.avatar ? (
-                  <img src={userData.avatar} alt="avatar" />
-                ) : (
-                  <span>{getInitial}</span>
-                )}
-                <span className="avatar-arrow">▼</span>
-              </div>
-            </button>
-
-            {showDropdown && (
-              <div className="admin-dropdown">
-                <button
-                  className="dropdown-item"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowProfileModal(true);
-                  }}
-                >
-                  <i className="fas fa-user"></i>
-                  View Profile
-                </button>
-                <button
-                  className="dropdown-item logout"
-                  onClick={() => {
-                    setShowDropdown(false);
-                    setShowLogoutConfirm(true);
-                  }}
-                >
-                  <i className="fas fa-sign-out-alt"></i>
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="admin-content">{children}</div>

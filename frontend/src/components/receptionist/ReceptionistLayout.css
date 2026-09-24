@@ -1,0 +1,40 @@
+.sidebar-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 4px 8px;
+}
+
+.sidebar-profile-row .sidebar-user-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-bell-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar-bell-wrapper .notification-bell-container,
+.sidebar-bell-collapsed .notification-bell-container {
+  height: 36px;
+}
+
+.sidebar-bell-wrapper .notification-bell,
+.sidebar-bell-collapsed .notification-bell {
+  width: 36px;
+  height: 36px;
+  padding: 6px;
+  font-size: 20px;
+}
+
+.sidebar-avatar-collapsed {
+  margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+  .sidebar-profile-row .sidebar-user-name {
+    max-width: 150px;
+  }
+}
