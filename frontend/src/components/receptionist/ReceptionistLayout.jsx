@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { BASE_API } from '../../utils/apiBase';
-import NotificationBell from '../staff/NotificationBell';
 import LogoutConfirmModal from '../modals/LogoutConfirmModal';
 import '../admin/AdminLayout.css';
 import './ReceptionistLayout.css';
@@ -177,9 +176,6 @@ const ReceptionistLayout = ({ children }) => {
                   )}
                 </div>
                 <span className="sidebar-user-name">{userData?.name || 'Receptionist'}</span>
-                <div className="sidebar-bell-wrapper">
-                  <NotificationBell refreshInterval={10000} />
-                </div>
               </div>
               <p className="sidebar-user-email">{userData?.email || ''}</p>
               <button
@@ -207,9 +203,6 @@ const ReceptionistLayout = ({ children }) => {
                 ) : (
                   <span>{getInitial}</span>
                 )}
-              </div>
-              <div className="sidebar-bell-collapsed" title="Notifications">
-                <NotificationBell refreshInterval={10000} />
               </div>
               <button
                 className="sidebar-icon-btn"
