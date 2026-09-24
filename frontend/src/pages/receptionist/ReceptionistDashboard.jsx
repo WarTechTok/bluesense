@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as adminApi from '../../services/admin';
 import '../admin/ManagementPages.css';
+import './ReceptionistDashboard.css';
 
 /**
  * Receptionist Dashboard
@@ -92,7 +93,7 @@ const ReceptionistDashboard = () => {
   }
 
   return (
-    <div className="management-page">
+    <div className="management-page receptionist-dashboard">
       <div className="page-header">
         <div className="header-content">
           <h1>Receptionist Dashboard</h1>

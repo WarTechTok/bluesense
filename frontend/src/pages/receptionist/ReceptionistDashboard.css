@@ -1,0 +1,36 @@
+.receptionist-dashboard .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 100%;
+  justify-items: stretch;
+}
+
+.receptionist-dashboard .stat-card {
+  max-width: none;
+  min-width: 0;
+  align-items: center;
+}
+
+.receptionist-dashboard .stat-content {
+  min-width: 0;
+  text-align: center;
+}
+
+.receptionist-dashboard .stat-number {
+  white-space: nowrap;
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+}
+
+.receptionist-dashboard .stat-label {
+  display: block;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .receptionist-dashboard .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .receptionist-dashboard .stat-card {
+    max-width: none;
+  }
+}
