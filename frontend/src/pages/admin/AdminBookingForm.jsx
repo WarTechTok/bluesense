@@ -10,8 +10,8 @@ import {
   getPriceFromPackage,
   getExtraGuestCharge,
   getDownpaymentAmount,
-  getMaxCapacityFromPackage,
   getMinCapacityFromPackage,
+  getTotalMaxCapacity,
 } from "../../config/packageData";
 import "./AdminBookingForm.css";
 
@@ -83,7 +83,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   const fetchPackagesForOasis = useCallback(async (oasis) => {
     if (!oasis) {
       setPackages([]);
-      return;
+      return [];
     }
 
     setLoadingPackages(true);
@@ -93,9 +93,11 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         ? (data.Oasis1Packages || [])
         : (data.Oasis2Packages || []);
       setPackages(filteredPackages);
+      return filteredPackages;
     } catch (error) {
       console.error("Error fetching packages:", error);
       setPackages([]);
+      return [];
     } finally {
       setLoadingPackages(false);
     }
@@ -182,7 +184,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
   useEffect(() => {
     if (editingBooking) {
       setSelectedOasis(editingBooking.oasis);
-      setSelectedSession(editingBooking.session);
       setFormData({
         customerName: editingBooking.customerName || "",
         customerContact: normalizeContactNumber(editingBooking.customerContact || "+639"),
@@ -194,7 +195,18 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         paymentStatus: editingBooking.paymentStatus === "Paid" ? "Paid" : "Partial",
       });
       setStep(1);
-      fetchPackagesForOasis(editingBooking.oasis);
+
+      const restorePackage = async () => {
+        const availablePackages = await fetchPackagesForOasis(editingBooking.oasis);
+        const packageValue = editingBooking.package?.id || editingBooking.package;
+        const matchingPackage = availablePackages.find(
+          (pkg) => pkg.id === packageValue || pkg.name === packageValue,
+        );
+        setSelectedPackage(matchingPackage || null);
+        setSelectedSession(editingBooking.session || "");
+      };
+
+      restorePackage();
     }
   }, [editingBooking, fetchPackagesForOasis]);
 
@@ -282,7 +294,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     fetchBookedSessions();
   }, [formData.reservationDate, selectedOasis, selectedPackage]);
 
-  const getMaxCapacityForPackage = () => getMaxCapacityFromPackage(currentPackage);
+  const getMaxCapacityForPackage = () => getTotalMaxCapacity(currentPackage);
   const getMinCapacityForPackage = () => getMinCapacityFromPackage(currentPackage);
 
   const calculatePrice = () => {
