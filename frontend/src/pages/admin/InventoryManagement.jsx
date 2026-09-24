@@ -318,6 +318,9 @@ const InventoryManagement = () => {
     acc[category] = filteredInventory.filter((item) => (item.category || 'Other') === category);
     return acc;
   }, {});
+  const searchOptions = [...new Set(
+    inventory.flatMap((item) => [item.item, item.itemId].filter(Boolean))
+  )].sort();
 
   return (
     <div className="management-page">
@@ -342,7 +345,13 @@ const InventoryManagement = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"
+            list="inventory-search-options"
           />
+          <datalist id="inventory-search-options">
+            {searchOptions.map((option) => (
+              <option key={option} value={option} />
+            ))}
+          </datalist>
           {searchTerm && (
             <button className="clear-search-btn" onClick={() => setSearchTerm("")}>
               <i className="fas fa-times"></i>
@@ -412,7 +421,9 @@ const InventoryManagement = () => {
               <div className="inventory-category-card-body">
                 {items.length > 0 ? (
                   <DataTable
-                    columns={columns}
+                    columns={category === 'Chemical'
+                      ? columns
+                      : columns.filter((column) => column.key !== 'expirationDate')}
                     data={items}
                     onEdit={handleOpenModal}
                     onDelete={handleDelete}
@@ -510,7 +521,14 @@ const InventoryManagement = () => {
                 <label>Category</label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  onChange={(e) => {
+                    const category = e.target.value;
+                    setFormData({
+                      ...formData,
+                      category,
+                      expirationDate: category === 'Chemical' ? formData.expirationDate : ''
+                    });
+                  }}
                 >
                   <option value="Chemical">Chemical</option>
                   <option value="Appliance">Appliance</option>
@@ -533,14 +551,17 @@ const InventoryManagement = () => {
                   onChange={(e) => setFormData({ ...formData, arrivalDate: e.target.value })}
                 />
               </div>
-              <div className="form-group">
-                <label>Expiration Date</label>
-                <input
-                  type="date"
-                  value={formData.expirationDate}
-                  onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
-                />
-              </div>
+              {formData.category === 'Chemical' && (
+                <div className="form-group">
+                  <label>Expiration Date</label>
+                  <input
+                    type="date"
+                    value={formData.expirationDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setFormData({ ...formData, expirationDate: e.target.value })}
+                  />
+                </div>
+              )}
             </form>
           </div>
           <div className="modal-footer">
