@@ -594,7 +594,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                placeholder="+639XXXXXXXXX"
+                placeholder="639XXXXXXXXX"
                 value={formData.customerContact}
                 onChange={(e) => {
                   const normalizedContact = normalizeContactNumber(e.target.value);
