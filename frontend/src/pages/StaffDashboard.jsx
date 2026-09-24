@@ -242,7 +242,7 @@ const StaffDashboard = () => {
           ))}
         </nav>
 
-        {/* Sidebar Footer: Profile → Notification Bell → Logout */}
+        {/* Sidebar Footer: Profile → Logout */}
         <div className="sidebar-footer">
           <div className="sidebar-profile">
             <div className="sidebar-avatar">
@@ -268,10 +268,6 @@ const StaffDashboard = () => {
                 <i className="fas fa-edit"></i>
                 <span>Edit Profile</span>
               </button>
-              {/* Notification Bell — expanded label row */}
-              <div className="sidebar-action-btn sidebar-bell-row">
-                <NotificationBell refreshInterval={10000} sidebarMode={true} />
-              </div>
               <button
                 className="sidebar-action-btn logout"
                 onClick={() => setShowLogoutConfirm(true)}
@@ -292,10 +288,6 @@ const StaffDashboard = () => {
               >
                 <i className="fas fa-edit"></i>
               </button>
-              {/* Notification Bell icon-only */}
-              <div className="sidebar-icon-btn sidebar-bell-collapsed" title="Notifications">
-                <NotificationBell refreshInterval={10000} sidebarMode={true} collapsed={true} />
-              </div>
               <button
                 className="sidebar-icon-btn logout"
                 title="Logout"
@@ -325,7 +317,10 @@ const StaffDashboard = () => {
 
       {/* Task Stats - Professional Grid */}
       <div className="stats-section">
-        <h2 className="section-title">Task Overview</h2>
+        <div className="section-title-row">
+          <h2 className="section-title">Task Overview</h2>
+          <NotificationBell refreshInterval={10000} />
+        </div>
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon" style={{ background: '#fef3c7', color: '#f59e0b' }}>
