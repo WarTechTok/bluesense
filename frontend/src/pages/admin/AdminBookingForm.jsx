@@ -536,8 +536,16 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       onBookingCreated();
     } catch (error) {
       console.error("Error saving booking:", error);
-      const errorMsg = error.message || error.toString();
-      showAlert("Booking Error", `Error saving booking:\n\n${errorMsg}`);
+      const responseData = error.responseData || error.response?.data;
+      const rawMessage = responseData?.message || error.message || error.toString();
+      const isDuplicateBooking =
+        responseData?.error === "DUPLICATE_BOOKING" ||
+        rawMessage.includes("E11000") ||
+        rawMessage.includes("no_double_booking");
+      const errorMsg = isDuplicateBooking
+        ? "This date and session is already booked. Please choose another date or session."
+        : rawMessage;
+      showAlert("Booking Not Saved", errorMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -773,7 +781,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
               </div>
               {errors.guestCount && <span className="error-text">{errors.guestCount}</span>}
               {currentPackage && (
-                <small>Capacity: {getMinCapacityForPackage() > 0 ? `${getMinCapacityForPackage()}-` : ""}${getMaxCapacityForPackage()} pax</small>
+                <small>Capacity: {getMinCapacityForPackage() > 0 ? `${getMinCapacityForPackage()}-` : ""}{getMaxCapacityForPackage()} pax</small>
               )}
             </div>
 

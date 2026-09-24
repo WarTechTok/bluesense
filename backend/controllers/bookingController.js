@@ -576,7 +576,6 @@ const createBooking = async (req, res) => {
     // Double-booking check — excludes Reserved so it doesn't interfere with admin-created bookings
     const exactMatchBooking = await Booking.findOne({
       oasis,
-      package: packageName,
       session,
       bookingDate: { $gte: start, $lt: end },
       status: { $in: ["Pending", "Confirmed"] },
@@ -637,6 +636,13 @@ const createBooking = async (req, res) => {
     });
   } catch (error) {
     console.error("Create booking error:", error);
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "This date and session is already booked. Please select another date or session.",
+        error: "DUPLICATE_BOOKING",
+      });
+    }
     return res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -764,6 +770,13 @@ const updateBooking = async (req, res) => {
     res.json({ message: "Booking updated successfully", booking });
   } catch (error) {
     console.error("Error updating booking:", error);
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "This date and session is already booked. Please select another date or session.",
+        error: "DUPLICATE_BOOKING",
+      });
+    }
     res.status(400).json({ message: error.message });
   }
 };
