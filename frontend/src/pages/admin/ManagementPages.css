@@ -284,6 +284,107 @@
   color: #64748b;
 }
 
+.inventory-category-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.inventory-category-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 96px;
+  padding: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.inventory-category-card:hover,
+.inventory-category-card--active {
+  border-color: #0284c7;
+  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.14);
+  transform: translateY(-2px);
+}
+
+.inventory-category-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.inventory-category-card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.inventory-category-card-content strong {
+  font-size: 1rem;
+}
+
+.inventory-category-card-content span,
+.inventory-table-header span,
+.inventory-table-footer {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.inventory-category-card > i {
+  color: #0284c7;
+}
+
+.inventory-table-section {
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.inventory-table-header,
+.inventory-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+}
+
+.inventory-table-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.inventory-table-header h2 {
+  margin: 0 0 4px;
+  color: #1e293b;
+  font-size: 1.1rem;
+}
+
+.inventory-table-footer {
+  justify-content: flex-end;
+  border-top: 1px solid #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .inventory-category-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-table-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 /* ============================================ */
 /* FILTER SECTION */
 /* ============================================ */

@@ -15,6 +15,7 @@ const InventoryManagement = () => {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [expandedCategory, setExpandedCategory] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUsageModalOpen, setIsUsageModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -321,6 +322,19 @@ const InventoryManagement = () => {
   const searchOptions = [...new Set(
     inventory.flatMap((item) => [item.item, item.itemId].filter(Boolean))
   )].sort();
+  const activeCategory = expandedCategory || (selectedCategory !== 'All' ? selectedCategory : 'Chemical');
+  const activeItems = groupedInventory[activeCategory] || [];
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(activeItems.length / pageSize));
+  const paginatedItems = activeItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedDate, selectedCategory, expandedCategory]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   return (
     <div className="management-page">
@@ -397,48 +411,78 @@ const InventoryManagement = () => {
         </div>
       </div>
 
-      {categoryOrder.filter((category) => selectedCategory === 'All' || selectedCategory === category).map((category) => {
+      <div className="inventory-category-cards">
+        {categoryOrder.filter((category) => selectedCategory === 'All' || selectedCategory === category).map((category) => {
         const items = groupedInventory[category] || [];
-        const isExpanded = expandedCategory === category;
         const title = category === 'Chemical' ? '🧪 Chemicals' : category === 'Appliance' ? '🔧 Appliances' : '📦 Other Items';
-        const emptyMessage = `No ${category === 'Chemical' ? 'chemical' : category === 'Appliance' ? 'appliance' : 'other'} items in this view.`;
+        const isActive = activeCategory === category;
 
         return (
-          <div key={category} className="inventory-category-card">
+          <button
+            key={category}
+            type="button"
+            className={`inventory-category-card${isActive ? ' inventory-category-card--active' : ''}`}
+            onClick={() => {
+              setExpandedCategory(category);
+              setCurrentPage(1);
+            }}
+          >
+            <span className="inventory-category-icon">{title.split(' ')[0]}</span>
+            <span className="inventory-category-card-content">
+              <strong>{title.slice(title.indexOf(' ') + 1)}</strong>
+              <span>{items.length} item(s)</span>
+            </span>
+            <i className="fas fa-arrow-right" />
+          </button>
+        );
+        })}
+      </div>
+
+      <div className="inventory-table-section">
+        <div className="inventory-table-header">
+          <div>
+            <h2>{activeCategory === 'Chemical' ? '🧪 Chemicals' : activeCategory === 'Appliance' ? '🔧 Appliances' : '📦 Other Items'}</h2>
+            <span>{activeItems.length} item(s)</span>
+          </div>
+          <div className="pagination-controls">
             <button
               type="button"
-              className="inventory-category-card-header"
-              onClick={() => setExpandedCategory(isExpanded ? null : category)}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
             >
-              <div>
-                <h3>{title}</h3>
-                <span>{items.length} item(s)</span>
-              </div>
-              <i className={`fas ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}`} />
+              Prev
             </button>
-
-            {isExpanded && (
-              <div className="inventory-category-card-body">
-                {items.length > 0 ? (
-                  <DataTable
-                    columns={category === 'Chemical'
-                      ? columns
-                      : columns.filter((column) => column.key !== 'expirationDate')}
-                    data={items}
-                    onEdit={handleOpenModal}
-                    onDelete={handleDelete}
-                    actions={actions}
-                  />
-                ) : (
-                  <div className="inventory-category-empty">
-                    {emptyMessage}
-                  </div>
-                )}
-              </div>
-            )}
+            <span className="page-indicator">{currentPage} / {totalPages}</span>
+            <button
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
+              Next
+            </button>
           </div>
-        );
-      })}
+        </div>
+
+        {activeItems.length > 0 ? (
+          <DataTable
+            columns={activeCategory === 'Chemical'
+              ? columns
+              : columns.filter((column) => column.key !== 'expirationDate')}
+            data={paginatedItems}
+            onEdit={handleOpenModal}
+            onDelete={handleDelete}
+            actions={actions}
+          />
+        ) : (
+          <div className="inventory-category-empty">
+            No {activeCategory === 'Chemical' ? 'chemical' : activeCategory === 'Appliance' ? 'appliance' : 'other'} items in this view.
+          </div>
+        )}
+        <div className="inventory-table-footer">
+          Showing {activeItems.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}
+          -{Math.min(currentPage * pageSize, activeItems.length)} of {activeItems.length}
+        </div>
+      </div>
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
