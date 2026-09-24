@@ -80,10 +80,12 @@ function MediaPreview({ photos, video }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function CustomerReviews() {
+  const PAGE_SIZE = 10;
   const [reviews, setReviews]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [togglingId, setTogglingId] = useState(null); // review id currently being toggled
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Filters
   const [search, setSearch]               = useState('');
@@ -148,6 +150,20 @@ export default function CustomerReviews() {
     }
     return true;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedReviews = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterRating, filterOasis, filterPackage, filterStatus]);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(page, totalPages));
+  }, [totalPages]);
 
   const avgRating = reviews.length
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
@@ -306,7 +322,7 @@ export default function CustomerReviews() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((review) => {
+              {paginatedReviews.map((review) => {
                 const isHidden    = review.status === 'hidden';
                 const isToggling  = togglingId === review._id;
 
@@ -397,6 +413,33 @@ export default function CustomerReviews() {
               })}
             </tbody>
           </table>
+          {filtered.length > 0 && (
+            <div className="cr-pagination">
+              <span>
+                Showing {(currentPage - 1) * PAGE_SIZE + 1}
+                -{Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length}
+              </span>
+              <div className="cr-pagination-controls">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                  disabled={currentPage === 1}
+                  aria-label="Previous page"
+                >
+                  Previous
+                </button>
+                <span>Page {currentPage} of {totalPages}</span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next page"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

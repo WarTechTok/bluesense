@@ -180,6 +180,43 @@
   border-bottom: none;
 }
 
+/* ── Pagination ── */
+.cr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid #e2e8f0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.cr-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cr-pagination-controls button {
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.cr-pagination-controls button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.cr-pagination-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 /* Dimmed row for hidden reviews */
 .cr-row--hidden td {
   opacity: 0.55;
@@ -504,5 +541,14 @@
 
   .cr-table-wrap {
     font-size: 0.8rem;
+  }
+
+  .cr-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cr-pagination-controls {
+    justify-content: space-between;
   }
 }

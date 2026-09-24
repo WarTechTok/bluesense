@@ -227,16 +227,12 @@ const Reports = () => {
           });
         }
 
-        // Apply status/payment filter when requested
-        if (reportStatusFilter && reportStatusFilter !== "all") {
-          const statusVal = reportStatusFilter;
-          allBookings = allBookings.filter((b) => {
-            // Match booking.status OR paymentStatus (for Paid/Partial/Rejected)
-            if (b.status === statusVal) return true;
-            if ((b.paymentStatus || "").toLowerCase() === statusVal.toLowerCase()) return true;
-            return false;
-          });
-        }
+        const allowedStatuses = ["completed", "cancelled"];
+        allBookings = allBookings.filter((booking) => {
+          const status = (booking.status || "").toLowerCase();
+          return allowedStatuses.includes(status) &&
+            (reportStatusFilter === "all" || status === reportStatusFilter.toLowerCase());
+        });
 
         // Sort by booking number
         allBookings.sort((a, b) => {
@@ -318,7 +314,6 @@ const Reports = () => {
         }
         
         exportData = salesData.map((row) => ({
-          "Booking ID": row.bookingNumber || row.booking?.bookingNumber || "N/A",
           "Reference Code": row.referenceCode || row.booking?.bookingReference || row.bookingReference || "N/A",
           "Location": row.location || row.booking?.oasis || "N/A",
           "Guest Name": row.booking?.customerName || row.customerName || row.guestName || "N/A",
@@ -539,7 +534,7 @@ const Reports = () => {
   // Helper function to get colSpan for no data message
   const getNoDataColSpan = () => {
     if (reportType === "booking") return "13";
-    if (reportType === "sales") return "6";
+    if (reportType === "sales") return "5";
     if (reportType === "inspection") return "8";
     if (reportType === "pool-monitoring") return "6";
     return "3";
@@ -598,14 +593,8 @@ const Reports = () => {
                 className="filter-select"
               >
                 <option value="all">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Checked-in">Checked-in</option>
                 <option value="Completed">Completed</option>
                 <option value="Cancelled">Cancelled</option>
-                <option value="Paid">Paid</option>
-                <option value="Partial">Partial</option>
-                <option value="Rejected">Rejected</option>
               </select>
             </div>
           )}
@@ -730,7 +719,6 @@ const Reports = () => {
                   )}
                   {reportType === "sales" && (
                     <>
-                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking ID</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Reference Code</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Location</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Guest Name</th>
@@ -821,7 +809,6 @@ const Reports = () => {
                         )}
                         {reportType === "sales" && (
                           <>
-                            <td className="booking-id"><strong>{row.bookingNumber || row.booking?.bookingNumber || "N/A"}</strong></td>
                             <td className="reference-code"><strong>{row.referenceCode || row.booking?.bookingReference || row.bookingReference || "N/A"}</strong></td>
                             <td className="location">{row.location || row.booking?.oasis || "N/A"}</td>
                             <td>{row.booking?.customerName || row.customerName || row.guestName || "N/A"}</td>

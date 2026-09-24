@@ -219,7 +219,6 @@ const SalesTracking = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Booking ID</th>
                     <th>Reference Code</th>
                     <th>Location</th>
                     <th>Guest Name</th>
@@ -230,7 +229,7 @@ const SalesTracking = () => {
                 <tbody>
                   {sales.length === 0 ? (
                     <tr className="no-data-row">
-                      <td colSpan="6">
+                      <td colSpan="5">
                         <div className="no-data">
                           <i className="fas fa-chart-line"></i>
                           <p>No sales data for this period</p>
@@ -239,16 +238,14 @@ const SalesTracking = () => {
                     </tr>
                   ) : (
                     paginatedSales.map((sale, idx) => {
-                      const bookingId = sale.bookingNumber || 'N/A';
                       const referenceCode = sale.referenceCode || 'N/A';
                       const location = sale.location || 'N/A';
                       const customerName = sale.booking?.customerName || sale.reservation?.guestName || 'N/A';
                       
-                      console.log(`🟢 Rendering sale ${idx + 1}:`, { bookingId, referenceCode, location, customerName, amount: sale.amount });
+                      console.log(`🟢 Rendering sale ${idx + 1}:`, { referenceCode, location, customerName, amount: sale.amount });
                       
                       return (
-                        <tr key={`${bookingId}-${referenceCode}-${idx}`}>
-                          <td className="booking-id">{bookingId}</td>
+                        <tr key={`${referenceCode}-${idx}`}>
                           <td className="reference-code">{referenceCode}</td>
                           <td className="location">{location}</td>
                           <td className="customer-name">{customerName}</td>
