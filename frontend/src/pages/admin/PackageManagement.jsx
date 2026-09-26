@@ -31,19 +31,9 @@ const PackageManagement = () => {
     maxCapacity: 20,
     minCapacity: 0,
 
-    // NEW: maxExtraGuests added to form state.
-    // WHAT: Tracks the value the admin types into the Max Extra Guests input.
-    // WHY:  React "controlled inputs" require the value to live in state.
-    //       Without this field in state, the input would be "uncontrolled"
-    //       and the value would NOT be sent to the API when the form is saved.
-    // HOW:  Default is "" (empty string) which we convert to null before
-    //       sending to the API. null in MongoDB means "no cap on extra guests".
-    //       The admin types a number to set a limit (e.g. 10 → max 10 extra guests).
-    maxExtraGuests: "",
-
-    // EXISTING: extraGuestFee stays per-package (not global).
-    // WHAT: The charge in pesos per extra guest above base capacity.
-    // HOW:  Default 150 matches the Package model's default value.
+    // Keep these as string values while the user is typing so they can be
+    // cleared and re-typed without being forced back to 0 or turning into 020.
+    maxExtraGuests: 0,
     extraGuestFee: 150,
 
     inclusions: [],
@@ -132,6 +122,12 @@ const PackageManagement = () => {
   };
 
   // ── Submit ───────────────────────────────────────────────
+  const normalizeNumberField = (value) => {
+    if (value === "" || value === null || value === undefined) return 0;
+    const normalized = Number(String(value).trim());
+    return Number.isFinite(normalized) ? normalized : 0;
+  };
+
   const handleSubmit = async () => {
     if (!formData.name?.trim()) {
       showFeedbackModal("Validation Error", "Package name is required.");
@@ -142,9 +138,8 @@ const PackageManagement = () => {
       const packageData = {
         ...formData,
         image: formData.images[0] || formData.image || "",
-
-        // Convert maxExtraGuests string to integer. Defaults to 0 (no extras).
-        maxExtraGuests: parseInt(formData.maxExtraGuests) || 0,
+        maxExtraGuests: normalizeNumberField(formData.maxExtraGuests),
+        extraGuestFee: normalizeNumberField(formData.extraGuestFee),
       };
 
       if (editingPackage) {
@@ -210,8 +205,6 @@ const PackageManagement = () => {
       minCapacity: pkg.minCapacity || 0,
 
       maxExtraGuests: pkg.maxExtraGuests ?? 0,
-
-      // EXISTING: Pre-fill extraGuestFee from the saved DB value.
       extraGuestFee: pkg.extraGuestFee ?? 150,
 
       inclusions: pkg.inclusions || [],
@@ -656,7 +649,13 @@ const PackageManagement = () => {
                       <input
                         type="number"
                         value={formData.maxExtraGuests}
-                        onChange={(e) => setFormData({ ...formData, maxExtraGuests: parseInt(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          setFormData({
+                            ...formData,
+                            maxExtraGuests: nextValue === "" ? "" : Number(nextValue),
+                          });
+                        }}
                         min="0"
                         placeholder="0"
                       />
@@ -683,9 +682,13 @@ const PackageManagement = () => {
                       <input
                         type="number"
                         value={formData.extraGuestFee}
-                        onChange={(e) =>
-                          setFormData({ ...formData, extraGuestFee: parseInt(e.target.value) || 0 })
-                        }
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          setFormData({
+                            ...formData,
+                            extraGuestFee: nextValue === "" ? "" : Number(nextValue),
+                          });
+                        }}
                         min="0"
                         placeholder="150"
                       />
