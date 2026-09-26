@@ -282,7 +282,7 @@ const Reports = () => {
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
       if (!reportData) {
         showConfirmationModal("No Report", "Please generate a report first", null, "OK");
@@ -449,7 +449,21 @@ const Reports = () => {
       } else if (exportFormat === "pdf") {
         // Use jsPDF + autoTable to create a professional PDF
         try {
+          const fontResponse = await fetch(`${process.env.PUBLIC_URL}/fonts/NotoSans.ttf`);
+          if (!fontResponse.ok) {
+            throw new Error("Unable to load the PDF font.");
+          }
+
+          const fontBytes = new Uint8Array(await fontResponse.arrayBuffer());
+          let fontBinary = "";
+          for (let index = 0; index < fontBytes.length; index += 0x8000) {
+            fontBinary += String.fromCharCode(...fontBytes.subarray(index, index + 0x8000));
+          }
+
           const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+          doc.addFileToVFS("NotoSans.ttf", btoa(fontBinary));
+          doc.addFont("NotoSans.ttf", "NotoSans", "normal");
+          doc.setFont("NotoSans", "normal");
           const margin = 40;
           doc.setFontSize(16);
           doc.setTextColor('#0284c7');
@@ -462,34 +476,22 @@ const Reports = () => {
           if (rangeText) doc.text(rangeText, margin, 68);
 
           const cols = Object.keys(formattedExportData[0] || {});
-          const rows = formattedExportData.map(r => cols.map(c => {
-            const value = (r[c] === null || r[c] === undefined) ? '' : String(r[c]);
-            return moneyColumns.includes(c) ? value.replace('₱', 'P') : value;
-          }));
+          const rows = formattedExportData.map(r => cols.map(c =>
+            (r[c] === null || r[c] === undefined) ? '' : String(r[c])
+          ));
 
           doc.autoTable({
             head: [cols],
             body: rows,
             startY: 80,
             theme: 'striped',
-            headStyles: { fillColor: [2,132,199], textColor: 255, halign: 'left' },
-            styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
+            headStyles: { font: 'NotoSans', fillColor: [2,132,199], textColor: 255, halign: 'left' },
+            styles: { font: 'NotoSans', fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
             columnStyles: cols.reduce((acc, c, i) => { acc[i] = { cellWidth: 'auto' }; return acc; }, {}),
-            didDrawCell: (data) => {
-              if (data.section !== 'body' || !moneyColumns.includes(cols[data.column.index])) return;
-              const value = formattedExportData[data.row.index]?.[cols[data.column.index]];
-              if (typeof value !== 'string' || !value.startsWith('₱')) return;
-
-              const symbolX = data.cell.x + data.cell.padding('left');
-              const symbolY = data.cell.y + data.cell.height / 2;
-              doc.setDrawColor(0);
-              doc.setLineWidth(0.5);
-              doc.line(symbolX, symbolY - 0.8, symbolX + 5.2, symbolY - 0.8);
-              doc.line(symbolX, symbolY + 1, symbolX + 5.2, symbolY + 1);
-            },
             didDrawPage: (data) => {
               const pageCount = doc.internal.getNumberOfPages();
               const pageSize = doc.internal.pageSize;
+              doc.setFont("NotoSans", "normal");
               doc.setFontSize(9);
               doc.setTextColor('#888');
               const footerText = `Generated: ${new Date().toLocaleString()} — Page ${doc.internal.getCurrentPageInfo().pageNumber} of ${pageCount}`;
