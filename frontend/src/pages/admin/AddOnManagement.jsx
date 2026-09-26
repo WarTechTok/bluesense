@@ -27,6 +27,7 @@ const AddOnManagement = () => {
     displayOrder: 1
   });
   const [formErrors, setFormErrors] = useState({});
+  const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
 
   useEffect(() => {
     fetchAddons();
@@ -44,16 +45,25 @@ const AddOnManagement = () => {
     }
   };
 
+  const showFeedbackModal = (title, message, type = 'info') => {
+    setFeedbackModal({ isOpen: true, title, message, type });
+  };
+
+  const closeFeedbackModal = () => {
+    setFeedbackModal({ isOpen: false, title: '', message: '', type: 'info' });
+  };
+
   const validateForm = () => {
     const errors = {};
+    const numericPrice = Number(formData.price);
 
     if (!formData.name || formData.name.trim().length === 0) {
       errors.name = 'Add-on name is required';
     }
 
-    if (formData.price === '' || formData.price === null || formData.price === undefined) {
+    if (formData.price === '' || formData.price === null || formData.price === undefined || !Number.isFinite(numericPrice)) {
       errors.price = 'Price is required';
-    } else if (Number(formData.price) <= 0) {
+    } else if (numericPrice <= 0) {
       errors.price = 'Price must be greater than 0';
     }
 
@@ -76,20 +86,25 @@ const AddOnManagement = () => {
     }
 
     try {
+      const payload = {
+        ...formData,
+        price: Number(formData.price),
+      };
+
       if (editingAddon) {
-        await addonApi.updateAddon(editingAddon._id, formData);
+        await addonApi.updateAddon(editingAddon._id, payload);
       } else {
-        await addonApi.createAddon(formData);
+        await addonApi.createAddon(payload);
       }
 
       setShowModal(false);
       fetchAddons();
       resetForm();
       setFormErrors({});
-      alert(`Add-on ${editingAddon ? "updated" : "created"} successfully!`);
+      showFeedbackModal('Success', `Add-on ${editingAddon ? 'updated' : 'created'} successfully!`);
     } catch (error) {
-      console.error("Error saving add-on:", error);
-      alert("Error saving add-on: " + error.message);
+      console.error('Error saving add-on:', error);
+      showFeedbackModal('Error', `Error saving add-on: ${error.message || 'Please try again.'}`);
     }
   };
 
@@ -294,6 +309,24 @@ const AddOnManagement = () => {
         </div>
       )}
 
+      {/* ── Feedback Modal ── */}
+      {feedbackModal.isOpen && (
+        <div className="modal-overlay" onClick={closeFeedbackModal}>
+          <div className="modal-container" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{feedbackModal.title}</h3>
+              <button className="modal-close" onClick={closeFeedbackModal}>✕</button>
+            </div>
+            <div className="modal-body" style={{ padding: '24px' }}>
+              <p style={{ margin: 0, color: '#1e293b', lineHeight: 1.6 }}>{feedbackModal.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-primary" onClick={closeFeedbackModal}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Add / Edit Modal ── */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -339,7 +372,11 @@ const AddOnManagement = () => {
                       type="number" 
                       value={formData.price} 
                       onChange={(e) => {
-                        setFormData({ ...formData, price: parseInt(e.target.value) || 0 });
+                        const nextValue = e.target.value;
+                        setFormData({
+                          ...formData,
+                          price: nextValue === '' ? '' : Number(nextValue),
+                        });
                         if (formErrors.price) {
                           setFormErrors({ ...formErrors, price: undefined });
                         }
