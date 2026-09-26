@@ -317,7 +317,7 @@ const Reports = () => {
           "Reference Code": row.referenceCode || row.booking?.bookingReference || row.bookingReference || "N/A",
           "Location": row.location || row.booking?.oasis || "N/A",
           "Guest Name": row.booking?.customerName || row.customerName || row.guestName || "N/A",
-          "Amount": row.amount || row.totalAmount || 0,
+          "Amount": toCurrencyNumber(row.amount ?? row.totalAmount),
           "Date": row.date ? new Date(row.date).toLocaleDateString() : "N/A",
         }));
         
@@ -338,14 +338,14 @@ const Reports = () => {
           "Guest Name": row.customerName || "N/A",
           "Contact No.": row.customerContact || "N/A",
           "Pool/Villa Name": row.oasis || "N/A",
-          "Amount": row.totalAmount || 0,
+          "Amount": toCurrencyNumber(row.totalAmount),
           "Payment Status": row.paymentStatus || "Pending",
           "Booking Date": row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A",
           "Reservation Date": row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "N/A",
           "Time Slot": row.session || "N/A",
           "No. of Guests": row.pax || 0,
-          "Total Paid": row.paymentType === "fullpayment" ? row.totalAmount || 0 : row.downpayment || 0,
-          "Balance": row.paymentType === "fullpayment" ? 0 : (row.totalAmount || 0) - (row.downpayment || 0),
+          "Total Paid": toCurrencyNumber(row.paymentType === "fullpayment" ? row.totalAmount : row.downpayment),
+          "Balance": toCurrencyNumber(row.paymentType === "fullpayment" ? 0 : (row.totalAmount || 0) - (row.downpayment || 0)),
           "Status": row.status || "Pending",
         }));
         
@@ -413,16 +413,26 @@ const Reports = () => {
         filename = `pool-monitoring-report-${new Date().toISOString().split("T")[0]}.${formatExtension}`;
       }
 
+      const moneyColumns = reportType === "booking"
+        ? ["Amount", "Total Paid", "Balance"]
+        : reportType === "sales" ? ["Amount"] : [];
+      const formattedExportData = exportData.map((row) =>
+        Object.fromEntries(Object.entries(row).map(([key, value]) => [
+          key,
+          moneyColumns.includes(key) ? formatCurrency(value) : value,
+        ]))
+      );
+
       if (exportFormat === "word") {
         // Word export: create an HTML-based .doc file which Word can open
         const htmlHeader = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${sheetName}</title><style>body{font-family: Arial, Helvetica, sans-serif; color:#111;} table{border-collapse:collapse;width:100%} th,td{border:1px solid #ddd;padding:8px;} th{background:#0284c7;color:#fff;text-align:left}</style></head><body>`;
         const htmlFooter = `</body></html>`;
         let tableHtml = `<h2 style="color:#0284c7">${sheetName}</h2>`;
         tableHtml += `<table><thead><tr>`;
-        const cols = Object.keys(exportData[0] || {});
+        const cols = Object.keys(formattedExportData[0] || {});
         cols.forEach(c => { tableHtml += `<th>${c}</th>`; });
         tableHtml += `</tr></thead><tbody>`;
-        exportData.forEach(row => {
+        formattedExportData.forEach(row => {
           tableHtml += `<tr>`;
           cols.forEach(c => { tableHtml += `<td>${String(row[c] ?? '')}</td>`; });
           tableHtml += `</tr>`;
@@ -451,8 +461,8 @@ const Reports = () => {
           doc.setTextColor('#444');
           if (rangeText) doc.text(rangeText, margin, 68);
 
-          const cols = Object.keys(exportData[0] || {});
-          const rows = exportData.map(r => cols.map(c => (r[c] === null || r[c] === undefined) ? '' : String(r[c])));
+          const cols = Object.keys(formattedExportData[0] || {});
+          const rows = formattedExportData.map(r => cols.map(c => (r[c] === null || r[c] === undefined) ? '' : String(r[c])));
 
           doc.autoTable({
             head: [cols],
@@ -498,6 +508,10 @@ const Reports = () => {
             if (cell) {
               cell.s = cell.s || {};
               cell.s.alignment = { horizontal: "center", vertical: "center" };
+              const headerRef = XLSX.utils.encode_cell({ r: range.s.r, c: col });
+              if (row > range.s.r && moneyColumns.includes(ws[headerRef]?.v)) {
+                cell.z = '"₱"#,##0.00';
+              }
               if (row === range.s.r) {
                 cell.s.font = { ...cell.s.font, bold: true };
               }
@@ -522,7 +536,12 @@ const Reports = () => {
       currency: "PHP",
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }).format(Number(amount || 0));
+    }).format(toCurrencyNumber(amount));
+  };
+
+  const toCurrencyNumber = (amount) => {
+    const value = Number(amount ?? 0);
+    return Number.isFinite(value) ? value : 0;
   };
 
   // Helper function to check if data is empty
