@@ -438,8 +438,8 @@ const Reports = () => {
           tableHtml += `</tr>`;
         });
         tableHtml += `</tbody></table>`;
-        const wordContent = htmlHeader + tableHtml + htmlFooter;
-        const blob = new Blob([wordContent], { type: 'application/msword' });
+        const wordContent = `\uFEFF${htmlHeader}${tableHtml}${htmlFooter}`;
+        const blob = new Blob([wordContent], { type: 'application/msword;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = filename.replace(/\.docx?$|\.pdf$|\.xlsx?$/i, '.doc');
@@ -462,7 +462,10 @@ const Reports = () => {
           if (rangeText) doc.text(rangeText, margin, 68);
 
           const cols = Object.keys(formattedExportData[0] || {});
-          const rows = formattedExportData.map(r => cols.map(c => (r[c] === null || r[c] === undefined) ? '' : String(r[c])));
+          const rows = formattedExportData.map(r => cols.map(c => {
+            const value = (r[c] === null || r[c] === undefined) ? '' : String(r[c]);
+            return moneyColumns.includes(c) ? value.replace('₱', 'P') : value;
+          }));
 
           doc.autoTable({
             head: [cols],
@@ -472,6 +475,18 @@ const Reports = () => {
             headStyles: { fillColor: [2,132,199], textColor: 255, halign: 'left' },
             styles: { fontSize: 9, cellPadding: 6, overflow: 'linebreak' },
             columnStyles: cols.reduce((acc, c, i) => { acc[i] = { cellWidth: 'auto' }; return acc; }, {}),
+            didDrawCell: (data) => {
+              if (data.section !== 'body' || !moneyColumns.includes(cols[data.column.index])) return;
+              const value = formattedExportData[data.row.index]?.[cols[data.column.index]];
+              if (typeof value !== 'string' || !value.startsWith('₱')) return;
+
+              const symbolX = data.cell.x + data.cell.padding('left');
+              const symbolY = data.cell.y + data.cell.height / 2;
+              doc.setDrawColor(0);
+              doc.setLineWidth(0.5);
+              doc.line(symbolX, symbolY - 0.8, symbolX + 5.2, symbolY - 0.8);
+              doc.line(symbolX, symbolY + 1, symbolX + 5.2, symbolY + 1);
+            },
             didDrawPage: (data) => {
               const pageCount = doc.internal.getNumberOfPages();
               const pageSize = doc.internal.pageSize;
@@ -489,7 +504,7 @@ const Reports = () => {
         }
       } else {
         // Create worksheet and workbook
-        const ws = XLSX.utils.json_to_sheet(exportData);
+        const ws = XLSX.utils.json_to_sheet(formattedExportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
@@ -509,9 +524,6 @@ const Reports = () => {
               cell.s = cell.s || {};
               cell.s.alignment = { horizontal: "center", vertical: "center" };
               const headerRef = XLSX.utils.encode_cell({ r: range.s.r, c: col });
-              if (row > range.s.r && moneyColumns.includes(ws[headerRef]?.v)) {
-                cell.z = '"₱"#,##0.00';
-              }
               if (row === range.s.r) {
                 cell.s.font = { ...cell.s.font, bold: true };
               }
