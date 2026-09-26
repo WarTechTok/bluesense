@@ -280,6 +280,21 @@ const login = async (req, res) => {
         { expiresIn: "7d" }
       );
 
+      const fallbackPermissions = {
+        dashboard: true,
+        staffManagement: true,
+        rooms: true,
+        reservations: true,
+        inventory: true,
+        sales: true,
+        reports: true,
+      };
+
+      const normalizedPermissions =
+        staff.role === "admin" && staff.permissions && Object.keys(staff.permissions).length > 0
+          ? staff.permissions
+          : fallbackPermissions;
+
       return res.json({
         message: "Login successful",
         token,
@@ -291,6 +306,7 @@ const login = async (req, res) => {
           role: staff.role,
           position: staff.position,
           status: staff.status,
+          permissions: normalizedPermissions,
         },
       });
     }

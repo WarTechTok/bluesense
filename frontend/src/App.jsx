@@ -213,7 +213,7 @@ function App() {
         <Route
           path="/admin/staff"
           element={
-            <ProtectedRoute allowedRoles={["admin"]}>
+            <ProtectedRoute allowedRoles={["admin"]} requiredPermission="staffManagement">
               <AdminLayout>
                 <StaffManagement />
               </AdminLayout>
