@@ -415,6 +415,75 @@ const confirmBooking = async (req, res) => {
     console.log(`   - Booking Number:    ${booking.bookingNumber}`);
     console.log(`   - Payment Proof:     ${booking.paymentProof || "NONE"}`);
 
+    // ── EMAIL: Booking Received ───────────────────────────────────────────
+    try {
+      const sendEmail = require("../utils/sendEmail");
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      const isDownpayment = booking.paymentType !== "fullpayment";
+      const remainingBalance = booking.totalAmount - booking.downpayment;
+      await sendEmail({
+        to: booking.customerEmail,
+        subject: "Booking Received - Catherine's Oasis",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+              <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+                <img src="${LOGO_URL}" alt="Catherine's Oasis" width="80" height="80"
+                     style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+                     onerror="this.style.display='none'">
+              </div>
+              <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+            </div>
+            <div style="padding: 40px 32px; background: #ffffff;">
+              <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">Booking Received! ⏳</h2>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Hi ${booking.customerName},<br/><br/>
+                We received your booking and payment proof. Our team is reviewing it now.
+              </p>
+              <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
+                <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 45%;">Reference</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.bookingReference}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Venue</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.oasis}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Package</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.package}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Date</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${new Date(booking.bookingDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Session</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.session}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Guests</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.pax} pax</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Amount Paid</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">₱${booking.downpayment.toLocaleString()}</td></tr>
+                  ${isDownpayment && remainingBalance > 0
+                    ? `<tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Remaining Balance</td>
+                           <td style="padding: 8px 0; color: #d97706; font-size: 14px; font-weight: 600;">₱${remainingBalance.toLocaleString()} (payable on-site)</td></tr>`
+                    : ""}
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Status</td>
+                      <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">
+                        <span style="background: #fef9c3; color: #854d0e; padding: 2px 10px; border-radius: 20px;">Pending Review</span>
+                      </td></tr>
+                </table>
+              </div>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+                We'll email you again once your payment is verified. This usually takes a few hours.
+              </p>
+              <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+              <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+              </p>
+            </div>
+          </div>
+        `,
+      });
+      console.log(`✅ Booking received email sent to ${booking.customerEmail}`);
+    } catch (emailError) {
+      console.error("❌ Failed to send booking received email:", emailError.message);
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     return res.status(200).json({
       success: true,
       message: "Booking submitted successfully. Please wait for staff to verify your payment.",
@@ -826,6 +895,76 @@ const updateBookingStatus = async (req, res) => {
       if (deletedSale) {
         console.log(`🗑️ Sale record deleted for cancelled booking ${id}`);
       }
+
+      // ── EMAIL: Booking Cancelled (admin-initiated) ──────────────────────
+      // Guard: only send when this call actually changed status to Cancelled
+      // (currentBooking.status !== "Cancelled" check already passed above).
+      if (currentBooking.status !== "Cancelled") {
+        try {
+          const sendEmail = require("../utils/sendEmail");
+          const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+          await sendEmail({
+            to: booking.customerEmail,
+            subject: "Booking Cancelled - Catherine's Oasis",
+            html: `
+              <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+                <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+                  <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+                    <img src="${LOGO_URL}" alt="Catherine's Oasis" width="80" height="80"
+                         style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+                         onerror="this.style.display='none'">
+                  </div>
+                  <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+                </div>
+                <div style="padding: 40px 32px; background: #ffffff;">
+                  <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">Booking Cancelled</h2>
+                  <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                    Hi ${booking.customerName},<br/><br/>
+                    Your booking has been cancelled.
+                  </p>
+                  <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
+                    <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Details</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 45%;">Reference</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.bookingReference}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Venue</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.oasis}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Package</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.package}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Date</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${new Date(booking.bookingDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Session</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.session}</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Guests</td>
+                          <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.pax} pax</td></tr>
+                      <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Status</td>
+                          <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">
+                            <span style="background: #fee2e2; color: #b91c1c; padding: 2px 10px; border-radius: 20px;">Cancelled</span>
+                          </td></tr>
+                      ${booking.cancellationNote
+                        ? `<tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; vertical-align: top;">Reason</td>
+                               <td style="padding: 8px 0; color: #1e293b; font-size: 14px;">${booking.cancellationNote}</td></tr>`
+                        : ""}
+                    </table>
+                  </div>
+                  <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+                    If you have any questions, please reach out to us.<br/><br/>
+                    Please note: per our policy, downpayments are non-refundable.
+                  </p>
+                  <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+                  <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                    Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+                  </p>
+                </div>
+              </div>
+            `,
+          });
+          console.log(`✅ Cancellation email sent to ${booking.customerEmail}`);
+        } catch (emailError) {
+          console.error("❌ Failed to send cancellation email:", emailError.message);
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────
     }
 
     res.json({ message: `Booking ${status}`, booking });
@@ -1292,6 +1431,69 @@ const checkIn = async (req, res) => {
     await booking.save();
 
     console.log(`✅ Check-in: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
+
+    // ── EMAIL: Checked In ─────────────────────────────────────────────────
+    try {
+      const sendEmail = require("../utils/sendEmail");
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      await sendEmail({
+        to: booking.customerEmail,
+        subject: "Checked In! Enjoy Your Stay - Catherine's Oasis",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+              <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+                <img src="${LOGO_URL}" alt="Catherine's Oasis" width="80" height="80"
+                     style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+                     onerror="this.style.display='none'">
+              </div>
+              <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+            </div>
+            <div style="padding: 40px 32px; background: #ffffff;">
+              <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">You're Checked In! 🏨</h2>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Hi ${booking.customerName},<br/><br/>
+                You're all checked in! We hope you have a wonderful stay at ${booking.oasis}.
+              </p>
+              <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
+                <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Details</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 45%;">Reference</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.bookingReference}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Venue</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.oasis}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Package</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.package}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Date</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${new Date(booking.bookingDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Session</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.session}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Guests</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.pax} pax</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Status</td>
+                      <td style="padding: 8px 0; font-size: 14px; font-weight: 600;">
+                        <span style="background: #dbeafe; color: #1d4ed8; padding: 2px 10px; border-radius: 20px;">Checked In</span>
+                      </td></tr>
+                </table>
+              </div>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+                If you need anything during your stay, feel free to approach our staff.<br/><br/>
+                Enjoy your time at Catherine's Oasis!
+              </p>
+              <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+              <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+              </p>
+            </div>
+          </div>
+        `,
+      });
+      console.log(`✅ Check-in email sent to ${booking.customerEmail}`);
+    } catch (emailError) {
+      console.error("❌ Failed to send check-in email:", emailError.message);
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     res.json({ success: true, message: `${booking.customerName} has been checked in successfully.`, booking });
   } catch (error) {
     console.error("Error during check-in:", error);
@@ -1341,6 +1543,67 @@ const checkOut = async (req, res) => {
     }
 
     console.log(`✅ Check-out: ${booking.customerName} | ${booking.oasis} | ${booking.package}`);
+
+    // ── EMAIL: Thank You / Check-out ──────────────────────────────────────
+    try {
+      const sendEmail = require("../utils/sendEmail");
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      await sendEmail({
+        to: booking.customerEmail,
+        subject: "Thank You for Staying - Catherine's Oasis",
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
+            <div style="background: #f0f9ff; padding: 48px 32px 32px; text-align: center;">
+              <div style="width: 80px; height: 80px; margin: 0 auto 24px;">
+                <img src="${LOGO_URL}" alt="Catherine's Oasis" width="80" height="80"
+                     style="width:80px;height:80px;object-fit:contain;display:block;border-radius:16px;"
+                     onerror="this.style.display='none'">
+              </div>
+              <h1 style="margin: 0; color: #0c4a6e; font-size: 28px; font-weight: 600;">Catherine's Oasis</h1>
+            </div>
+            <div style="padding: 40px 32px; background: #ffffff;">
+              <h2 style="margin: 0 0 8px; color: #0c4a6e; font-size: 22px;">Thank You for Staying! 🌟</h2>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 16px; line-height: 1.6;">
+                Hi ${booking.customerName},<br/><br/>
+                Thank you for staying with us at ${booking.oasis}! We hope you had a wonderful time.
+              </p>
+              <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px;">
+                <h3 style="margin: 0 0 16px; color: #0c4a6e; font-size: 16px; font-weight: 600;">Booking Summary</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px; width: 45%;">Reference</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.bookingReference}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Venue</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.oasis}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Package</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.package}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Date</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${new Date(booking.bookingDate).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Session</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.session}</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Guests</td>
+                      <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600;">${booking.pax} pax</td></tr>
+                  <tr><td style="padding: 8px 0; color: #64748b; font-size: 14px;">Total Paid</td>
+                      <td style="padding: 8px 0; color: #16a34a; font-size: 14px; font-weight: 700;">₱${booking.totalAmount.toLocaleString()} ✓</td></tr>
+                </table>
+              </div>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 14px; line-height: 1.6;">
+                We'd love to hear about your experience — feel free to leave us a review.<br/><br/>
+                We hope to see you again soon!
+              </p>
+              <div style="height: 1px; background: #e2e8f0; margin: 0 0 24px;"></div>
+              <p style="margin: 0; color: #94a3b8; font-size: 13px; text-align: center;">
+                Catherine's Oasis · 1106 Cordero Subdivision, Lambakin, Marilao, Bulacan
+              </p>
+            </div>
+          </div>
+        `,
+      });
+      console.log(`✅ Check-out email sent to ${booking.customerEmail}`);
+    } catch (emailError) {
+      console.error("❌ Failed to send check-out email:", emailError.message);
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     res.json({ success: true, message: `${booking.customerName} has been checked out. Booking completed.`, booking });
   } catch (error) {
     console.error("Error during check-out:", error);
