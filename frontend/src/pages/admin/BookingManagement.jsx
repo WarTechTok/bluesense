@@ -406,15 +406,15 @@ const BookingManagement = () => {
 
   // ── Action button logic ──────────────────────────────────────────────────
   //
-  //  Status       │ Payment  │ Buttons
-  //  ─────────────┼──────────┼──────────────────────────────────────────────
-  //  Pending      │ Partial  │ Verify Downpayment · Cancel
-  //  Confirmed    │ Partial  │ Confirm Fully Paid · Check-in · Cancel
-  //  Confirmed    │ Paid     │ Check-in · Cancel
-  //  Checked-in   │ Partial  │ Check-out (pays remaining on-site)
-  //  Checked-in   │ Paid     │ Check-out
-  //  Completed    │ –        │ (none)
-  //  Cancelled    │ –        │ (none)
+  //  Status       │ Payment  │ paymentType  │ Buttons
+  //  ─────────────┼──────────┼──────────────┼──────────────────────────────
+  //  Pending      │ Pending  │ downpayment  │ Verify Downpayment · Cancel
+  //  Pending      │ Pending  │ fullpayment  │ Verify Full Payment · Cancel
+  //  Confirmed    │ Partial  │ —            │ Verify Final Payment (modal)
+  //  Confirmed    │ Paid     │ —            │ Check-in (date-gated)
+  //  Checked-in   │ Paid     │ —            │ Check-out
+  //  Completed    │ –        │ —            │ (none)
+  //  Cancelled    │ –        │ —            │ (none)
   //
   const getActions = (booking) => {
     const actions = [];
@@ -442,24 +442,24 @@ const BookingManagement = () => {
       });
     }
 
-    // ── STEP 2 (optional): Confirm Fully Paid ───────────────────────────
-    // Booking is Confirmed but customer pays remaining balance ONLINE before
-    // the event date (e.g. books May 20, pays remaining May 19 via GCash).
-    // Admin clicks this to acknowledge; check-in still happens on event day.
-    // → paymentStatus becomes Paid via verifyPayment (handles Partial→Paid).
+    // ── STEP 2 (optional): Verify Final Payment ─────────────────────────
+    // Booking is Confirmed + Partial: customer uploaded proof of remaining balance.
+    // Admin must see the proof in the modal before verifying — never call API directly.
+    // → opens PaymentVerificationModal; modal's Verify button calls handleVerifyPayment
+    //   which hits verifyPayment on the backend (handles Partial → Paid transition).
     if (status === "Confirmed" && paymentStatus === "Partial") {
       actions.push({
-        label: "Confirm Fully Paid",
+        label: "Verify Final Payment",
         icon: "💳",
-        onClick: () => handleConfirmFullyPaid(booking._id),
+        onClick: () => handleOpenPaymentVerification(booking),
         className: "btn-outline-success",
       });
     }
 
     // ── STEP 3: Check-in ─────────────────────────────────────────────────
-    // Customer arrives at the resort. Moves to Checked-in.
-    // Only allowed on or after the booking date to prevent accidental early check-ins.
-    if (status === "Confirmed") {
+    // Only allowed when paymentStatus is Paid AND on/after the booking date.
+    // Prevents check-in while the remaining balance is still unverified.
+    if (status === "Confirmed" && paymentStatus === "Paid") {
       const canCheckIn = isBookingDateReached(booking.bookingDate);
       actions.push({
         label: "Check-in",

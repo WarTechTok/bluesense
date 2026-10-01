@@ -400,7 +400,7 @@ const confirmBooking = async (req, res) => {
     booking.downpayment      = paymentType === "fullpayment" ? parseFloat(totalPrice) : parseFloat(downpayment);
     booking.paymentMethod    = mapPaymentMethod(paymentMethod);
     booking.paymentType      = paymentType || "downpayment";
-    booking.paymentStatus    = paymentType === "fullpayment" ? "Paid" : "Partial";
+    booking.paymentStatus    = "Pending"; // always Pending until admin verifies proof
     booking.paymentProof     = paymentProof;
     booking.addons           = parsedAddons;
     booking.pax              = parseInt(pax) || booking.pax;
@@ -619,7 +619,7 @@ const createBooking = async (req, res) => {
       paymentType:     paymentType || "downpayment",
       paymentProof:    paymentProof || null,
       status:          status || "Pending",
-      paymentStatus:   paymentType === "fullpayment" ? "Paid" : "Partial",
+      paymentStatus:   "Pending", // always Pending until admin verifies proof
       bookingReference,
       bookingNumber:   nextBookingNumber,
     });
@@ -1046,20 +1046,38 @@ const verifyPayment = async (req, res) => {
     let isRemainingPayment = false;
 
     if (booking.paymentStatus === "Partial") {
+      // Second verify: customer paid the remaining balance → fully paid
       paymentStatus      = "Paid";
       isRemainingPayment = true;
+    } else if (booking.paymentStatus === "Pending") {
+      // First verify: check what payment type the customer chose
+      if (booking.paymentType === "fullpayment") {
+        paymentStatus = "Paid";    // full amount confirmed upfront
+      } else {
+        paymentStatus = "Partial"; // downpayment confirmed, balance still owed
+      }
     } else {
-      paymentStatus = booking.paymentType === "fullpayment" ? "Paid" : "Partial";
+      // Guard: unexpected state (e.g. already Paid, or Rejected) — do not re-verify
+      return res.status(400).json({
+        success: false,
+        message: `Cannot verify payment with current status: ${booking.paymentStatus}`,
+      });
     }
 
+    // Build update — only set status/confirmedBy on the FIRST verify.
+    // On the second verify (Partial → Paid) the status is already "Confirmed"; don't overwrite.
     const updateFields = {
       paymentStatus,
-      status:             "Confirmed",
-      paymentVerifiedBy:  userId,
-      paymentVerifiedAt:  new Date(),
-      confirmedBy:        userId,
+      paymentVerifiedBy: userId,
+      paymentVerifiedAt: new Date(),
     };
+    if (!isRemainingPayment) {
+      // First verify: promote to Confirmed and record who approved
+      updateFields.status      = "Confirmed";
+      updateFields.confirmedBy = userId;
+    }
     if (paymentStatus === "Paid") {
+      // Record total as fully paid for accounting
       updateFields.downpayment = booking.totalAmount;
     }
     const updatedBooking = await Booking.findByIdAndUpdate(id, updateFields, { new: true })
@@ -1068,7 +1086,8 @@ const verifyPayment = async (req, res) => {
     const sendEmail = require("../utils/sendEmail");
     const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
     try {
-      const isFullyPaid      = booking.paymentType === "fullpayment" || isRemainingPayment;
+      // isFullyPaid: true when admin just confirmed a fullpayment upfront OR verified final balance
+      const isFullyPaid      = paymentStatus === "Paid";
       const remainingBalance = booking.totalAmount - booking.downpayment;
 
       await sendEmail({
@@ -1264,6 +1283,8 @@ const checkIn = async (req, res) => {
       return res.status(400).json({ success: false, message: "Cannot check in a cancelled booking" });
     if (booking.status !== "Confirmed")
       return res.status(400).json({ success: false, message: "Booking must be Confirmed before check-in. Verify the downpayment first." });
+    if (booking.paymentStatus !== "Paid")
+      return res.status(400).json({ success: false, message: "Cannot check in: final payment has not been verified yet." });
 
     booking.status      = "Checked-in";
     booking.checkedInBy  = userId;
