@@ -26,39 +26,17 @@ const BookingManagement = () => {
     cancelText: "Cancel",
   });
 
-  // Helper function to get display status based on date
-  const getDisplayStatus = useCallback((booking) => {
-    const bookingDate = new Date(booking.bookingDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // If booking date is in the past and status is Confirmed or Pending, show as Completed
-    if (
-      bookingDate < today &&
-      (booking.status === "Confirmed" || booking.status === "Pending")
-    ) {
-      return "Completed";
-    }
-    return booking.status;
-  }, []);
-
   const fetchBookings = useCallback(async () => {
     try {
       const data = await adminApi.getAllBookings();
       console.log("Bookings data:", data);
 
-      // Add displayStatus to each booking
-      const bookingsWithDisplayStatus = data.map((booking) => ({
-        ...booking,
-        displayStatus: getDisplayStatus(booking),
-      }));
-
-      setBookings(bookingsWithDisplayStatus);
+      setBookings(data);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       showConfirmationModal("Error", "Failed to fetch bookings", null, "OK");
     }
-  }, [getDisplayStatus]);
+  }, []);
 
   useEffect(() => {
     fetchBookings();
@@ -69,7 +47,7 @@ const BookingManagement = () => {
 
     if (statusFilter !== "all") {
       filtered = filtered.filter(
-        (b) => b.displayStatus === statusFilter || b.status === statusFilter,
+        (b) => b.status === statusFilter,
       );
     }
 
@@ -580,13 +558,7 @@ const BookingManagement = () => {
         <div className="stat-card">
           <h3>Completed</h3>
           <p className="stat-number">
-            {
-              bookings.filter(
-                (b) =>
-                  b.status === "Completed" ||
-                  (b.displayStatus === "Completed" && b.status !== "Completed"),
-              ).length
-            }
+            {bookings.filter((b) => b.status === "Completed").length}
           </p>
         </div>
         <div className="stat-card">
@@ -642,7 +614,6 @@ const BookingManagement = () => {
               .map((booking, index) => {
               const actions = getActions(booking);
               const balance = getBalance(booking);
-              const displayStatus = booking.displayStatus || booking.status;
 
               return (
                 <tr key={booking._id}>
@@ -670,9 +641,9 @@ const BookingManagement = () => {
                   </td>
                   <td>
                     <span
-                      className={`status-badge status-${displayStatus?.toLowerCase()}`}
+                      className={`status-badge status-${booking.status?.toLowerCase()}`}
                     >
-                      {displayStatus}
+                      {booking.status}
                     </span>
                   </td>
                   <td className="actions-cell">
