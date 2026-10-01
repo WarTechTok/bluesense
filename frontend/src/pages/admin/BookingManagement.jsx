@@ -281,7 +281,7 @@ const BookingManagement = () => {
   useEffect(() => {
     // reset to first page when filters/search change
     setCurrentPage(1);
-  }, [statusFilter, searchTerm, bookings]);
+  }, [statusFilter, searchTerm]);
 
   const handleCheckIn = async (id) => {
     showConfirmationModal(
