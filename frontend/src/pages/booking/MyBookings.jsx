@@ -59,23 +59,15 @@ const MyBookings = () => {
 
       const data = await response.json();
 
-      const processedBookings = data.map((booking) => {
-        const bookingDate = new Date(booking.bookingDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (
-          bookingDate < today &&
-          (booking.status === "Confirmed" || booking.status === "Pending")
-        ) {
-          return { ...booking, displayStatus: "Completed" };
-        }
-        return { ...booking, displayStatus: booking.status };
-      });
+      const processedBookings = data.map((booking) => ({
+        ...booking,
+        displayStatus: booking.status,
+      }));
 
       setBookings(processedBookings);
 
       const completedBookings = processedBookings.filter(
-        (b) => b.displayStatus === "Completed"
+        (b) => b.status === "Completed"
       );
       const reviewChecks = await Promise.all(
         completedBookings.map((b) =>
@@ -244,7 +236,7 @@ const MyBookings = () => {
                       <button className="btn-view" onClick={() => handleViewDetails(booking)}>
                         View Details
                       </button>
-                      {booking.displayStatus === "Completed" &&
+                      {booking.status === "Completed" &&
                         (reviewedIds[booking._id] ? (
                           <span className="btn-reviewed">✓ Reviewed</span>
                         ) : (
@@ -449,7 +441,7 @@ const MyBookings = () => {
             </div>
 
             <div className="modal-footer">
-              {selectedBooking && selectedBooking.displayStatus === "Completed" &&
+              {selectedBooking && selectedBooking.status === "Completed" &&
                 (reviewedIds[selectedBooking._id] ? (
                   <span className="btn-reviewed">✓ Reviewed</span>
                 ) : (
