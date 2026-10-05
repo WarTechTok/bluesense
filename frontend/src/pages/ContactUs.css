@@ -237,31 +237,6 @@
   transform: translateY(-2px);
 }
 
-.call-now-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: 12px;
-  padding: 5px 12px;
-  background: #0284c7;
-  color: #ffffff;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.2s, transform 0.2s;
-  vertical-align: middle;
-}
- 
-.call-now-btn:hover {
-  background: #0369a1;
-  transform: translateY(-1px);
-}
- 
-.call-now-btn i {
-  font-size: 0.8rem;
-}
- 
 
 /* Contact Form */
 .contact-form-section {

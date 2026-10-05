@@ -142,18 +142,8 @@ function ContactUs() {
                   <i className="fas fa-phone-alt"></i>
                   <div>
                     <h3>Phone Number</h3>
-                    <p>
-                      +63 912 345 6789
-                      <a href="tel:+639123456789" className="call-now-btn">
-                        <i className="fas fa-phone-alt"></i> Call Now
-                      </a>
-                    </p>
-                    <p>
-                      +63 987 654 3210
-                      <a href="tel:+639876543210" className="call-now-btn">
-                        <i className="fas fa-phone-alt"></i> Call Now
-                      </a>
-                    </p>
+                    <p>+63 912 345 6789</p>
+                    <p>+63 987 654 3210</p>
                   </div>
                 </div>
                 <div className="info-item">
