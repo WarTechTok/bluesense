@@ -18,6 +18,11 @@ const inspectionRecordSchema = new mongoose.Schema({
     ref: 'Room',
     required: true
   },
+
+  roomStatusBeforeInspection: {
+    type: String,
+    default: null
+  },
   
   inspectedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -43,6 +48,12 @@ const inspectionRecordSchema = new mongoose.Schema({
     type: String,
     enum: ['Poor', 'Fair', 'Good', 'Excellent'],
     default: 'Good'
+  },
+
+  cleaningNeeded: {
+    type: String,
+    enum: ['Yes', 'No'],
+    default: 'No'
   },
   
   electricityStatus: {

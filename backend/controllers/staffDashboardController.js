@@ -598,14 +598,27 @@ exports.deleteInspectionRecord = async (req, res) => {
       return res.status(404).json({ error: 'Inspection not found' });
     }
 
-    // Keep maintenance work intact while removing its link to this report.
-    await Maintenance.updateMany(
-      { inspectionId: inspection._id },
-      { $set: { inspectionId: null } }
-    );
+    const linkedMaintenance = await Maintenance.findOne({ inspectionId: inspection._id }).select('_id');
+    await Maintenance.deleteMany({ inspectionId: inspection._id });
+    await Notification.deleteMany({ 'data.inspectionId': inspection._id });
+
+    const room = await Room.findById(inspection.room);
+    if (linkedMaintenance && room?.status === 'Maintenance') {
+      const otherActiveMaintenance = await Maintenance.exists({
+        room: inspection.room,
+        status: { $nin: ['Completed', 'Cancelled'] }
+      });
+
+      if (!otherActiveMaintenance) {
+        await Room.findByIdAndUpdate(inspection.room, {
+          status: inspection.roomStatusBeforeInspection || 'Available'
+        });
+      }
+    }
+
     await InspectionRecord.deleteOne({ _id: inspection._id });
 
-    return res.json({ success: true, message: 'Inspection deleted successfully' });
+    return res.json({ success: true, message: 'Inspection and linked maintenance deleted successfully' });
   } catch (error) {
     console.error('Error deleting inspection record:', error);
     return res.status(500).json({ error: error.message });
@@ -671,10 +684,12 @@ exports.createInspectionRecord = async (req, res) => {
     // Create inspection record
     const inspection = new InspectionRecord({
       room: roomId,
+      roomStatusBeforeInspection: room.status,
       inspectedBy: staffMongoId,
       cleanliness: condition,
       furnitureCondition: condition,
-      damageFound: damageFound === 'Yes',
+      cleaningNeeded: cleaningNeeded || 'No',
+      damagesFound: damageFound === 'Yes',
       damageDescription: damageDescription || '',
       itemsNeeded: itemsNeeded || '',
       notes: notes || '',

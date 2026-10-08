@@ -175,7 +175,7 @@ const Inspections = () => {
       if (selectedInspection?._id === inspection._id) {
         setSelectedInspection(null);
       }
-      setInspectionMessage('Inspection deleted successfully. Any linked maintenance work was preserved.');
+      setInspectionMessage('Inspection report and linked maintenance task deleted successfully.');
       setTimeout(() => setInspectionMessage(''), 4000);
     } catch (error) {
       setInspectionMessage(error.response?.data?.error || 'Failed to delete inspection. Please try again.');
@@ -186,7 +186,7 @@ const Inspections = () => {
   const confirmDeleteInspection = (inspection) => {
     showConfirmationModal(
       'Delete Inspection?',
-      'This will remove the inspection report. Any linked maintenance work will be kept.',
+      'This will remove the inspection report and its linked maintenance task.',
       () => handleDeleteInspection(inspection),
       'Delete',
       'Cancel'
@@ -308,6 +308,20 @@ const Inspections = () => {
       default:
         return '#6b7280';
     }
+  };
+
+  const getInspectionCondition = (inspection) =>
+    inspection.condition || inspection.cleanliness || inspection.furnitureCondition || 'Not recorded';
+
+  const hasInspectionDamage = (inspection) =>
+    inspection.damageFound === 'Yes' ||
+    inspection.damageFound === true ||
+    inspection.damagesFound === true;
+
+  const getItemsNeeded = (inspection) => {
+    const items = inspection.itemsNeeded;
+    if (Array.isArray(items)) return items.filter(Boolean).join(', ');
+    return items || '';
   };
 
   const getInspectionProofImage = (inspection) => {
@@ -658,6 +672,8 @@ const Inspections = () => {
             {inspections.map((inspection) => {
               const inspectionRoom = inspection.room || inspection.roomId;
               const proofImageUrl = getInspectionProofImage(inspection);
+              const condition = getInspectionCondition(inspection);
+              const damageFound = hasInspectionDamage(inspection);
               return (
               <div key={inspection._id} className="inspection-card">
                 <div className="inspection-header">
@@ -693,10 +709,10 @@ const Inspections = () => {
                     <span
                       className="condition-badge"
                       style={{
-                        backgroundColor: getConditionColor(inspection.condition),
+                        backgroundColor: getConditionColor(condition),
                       }}
                     >
-                      {inspection.condition}
+                      {condition}
                     </span>
                   </div>
                   <div className="stat">
@@ -707,10 +723,10 @@ const Inspections = () => {
                     <label>Damages</label>
                     <span
                       className={`damage-badge ${
-                        inspection.damageFound === 'Yes' ? 'has-damage' : 'no-damage'
+                        damageFound ? 'has-damage' : 'no-damage'
                       }`}
                     >
-                      {inspection.damageFound}
+                      {damageFound ? 'Yes' : 'No'}
                     </span>
                   </div>
                 </div>
@@ -725,7 +741,7 @@ const Inspections = () => {
                   </div>
                 )}
 
-                {inspection.damageFound === 'Yes' && (
+                {damageFound && (
                   <div className="damage-summary">
                     <i className="fas fa-exclamation-triangle"></i>
                     <p>{inspection.damageDescription?.substring(0, 100)}...</p>
@@ -740,40 +756,47 @@ const Inspections = () => {
 
       {/* Inspection Details Modal */}
       {selectedInspection && (
-        <div className="modal-overlay" onClick={() => setSelectedInspection(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="inspection-detail-overlay" onClick={() => setSelectedInspection(null)}>
+          <div className="inspection-detail-modal" onClick={(e) => e.stopPropagation()}>
             <button
-              className="modal-close"
+              className="inspection-detail-close"
               onClick={() => setSelectedInspection(null)}
+              aria-label="Close inspection details"
             >
               ✕
             </button>
-            <h2><i className="fas fa-clipboard-check" style={{ marginRight: '8px', color: '#0284c7' }}></i>Inspection for {(selectedInspection.room || selectedInspection.roomId)?.name}</h2>
-            <div className="modal-details">
-              <div className="detail-section">
+            <h2 className="inspection-detail-title"><i className="fas fa-clipboard-check" style={{ marginRight: '8px', color: '#0284c7' }}></i>Inspection for {(selectedInspection.room || selectedInspection.roomId)?.name}</h2>
+            <div className="inspection-detail-body">
+              {(() => {
+                const condition = getInspectionCondition(selectedInspection);
+                const damageFound = hasInspectionDamage(selectedInspection);
+                const itemsNeeded = getItemsNeeded(selectedInspection);
+                return (
+                  <>
+              <div className="inspection-detail-section">
                 <h4>Room Condition</h4>
                 <p>
                   <strong>Overall:</strong>{' '}
                   <span
                     style={{
-                      color: getConditionColor(selectedInspection.condition),
+                      color: getConditionColor(condition),
                       fontWeight: '600',
                     }}
                   >
-                    {selectedInspection.condition}
+                    {condition}
                   </span>
                 </p>
                 <p>
-                  <strong>Rating:</strong> {selectedInspection.rating}/10
+                  <strong>Rating:</strong> {selectedInspection.rating ?? 'Not recorded'}/10
                 </p>
                 <p>
                   <strong>Cleaning Needed:</strong>{' '}
-                  {selectedInspection.cleaningNeeded}
+                  {selectedInspection.cleaningNeeded || 'Not recorded'}
                 </p>
               </div>
 
-              {selectedInspection.damageFound === 'Yes' && (
-                <div className="detail-section damage-section">
+              {damageFound && (
+                <div className="inspection-detail-section inspection-damage-section">
                   <h4>
                     <i className="fas fa-exclamation-triangle"></i> Damages Found
                   </h4>
@@ -781,15 +804,15 @@ const Inspections = () => {
                 </div>
               )}
 
-              {selectedInspection.itemsNeeded && (
-                <div className="detail-section">
+              {itemsNeeded && (
+                <div className="inspection-detail-section">
                   <h4>Items Needed</h4>
-                  <p>{selectedInspection.itemsNeeded}</p>
+                  <p>{itemsNeeded}</p>
                 </div>
               )}
 
               {selectedInspection.notes && (
-                <div className="detail-section">
+                <div className="inspection-detail-section">
                   <h4>Notes</h4>
                   <p>{selectedInspection.notes}</p>
                 </div>
@@ -798,7 +821,7 @@ const Inspections = () => {
               {(() => {
                 const selectedProofImageUrl = getInspectionProofImage(selectedInspection);
                 return selectedProofImageUrl ? (
-                  <div className="detail-section">
+                  <div className="inspection-detail-section">
                     <h4>Proof Image</h4>
                     <img
                       src={selectedProofImageUrl}
@@ -808,8 +831,11 @@ const Inspections = () => {
                   </div>
                 ) : null;
               })()}
+                  </>
+                );
+              })()}
 
-              <p className="submission-date">
+              <p className="inspection-submission-date">
                 <strong>Submitted:</strong>{' '}
                 {new Date(selectedInspection.createdAt).toLocaleString()}
               </p>

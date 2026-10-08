@@ -367,7 +367,7 @@
 }
 
 /* Modal */
-.modal-overlay {
+.inspection-detail-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -381,7 +381,7 @@
   padding: 16px;
 }
 
-.modal-content {
+.inspection-detail-modal {
   background: white;
   border-radius: 12px;
   padding: 32px;
@@ -393,7 +393,7 @@
   position: relative;
 }
 
-.modal-close {
+.inspection-detail-close {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -411,12 +411,12 @@
   transition: all 0.2s ease;
 }
 
-.modal-close:hover {
+.inspection-detail-close:hover {
   color: #1f2937;
   transform: rotate(90deg);
 }
 
-.modal-content h2 {
+.inspection-detail-title {
   margin: 0 0 24px 0;
   font-size: 1.4rem;
   color: #1f2937;
@@ -425,24 +425,24 @@
   border-bottom: 2px solid #f3f4f6;
 }
 
-.modal-details {
+.inspection-detail-body {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-.detail-section {
+.inspection-detail-section {
   padding: 16px;
   background: #f9fafb;
   border-radius: 10px;
   border-left: 4px solid #0284c7;
 }
 
-.detail-section:last-of-type {
+.inspection-detail-section:last-of-type {
   border-bottom: none;
 }
 
-.detail-section h4 {
+.inspection-detail-section h4 {
   margin: 0 0 12px 0;
   font-size: 0.95rem;
   font-weight: 600;
@@ -451,25 +451,25 @@
   gap: 6px;
 }
 
-.detail-section i {
+.inspection-detail-section i {
   color: #dc2626;
 }
 
-.detail-section p {
+.inspection-detail-section p {
   margin: 8px 0;
   font-size: 14px;
   color: #6b7280;
   line-height: 1.6;
 }
 
-.damage-section {
+.inspection-damage-section {
   background-color: #fef2f2;
   padding: 16px;
   border-radius: 8px;
   border: 1px solid #fecaca;
 }
 
-.submission-date {
+.inspection-submission-date {
   margin-top: 16px !important;
   font-size: 12px !important;
   color: #9ca3af !important;
@@ -497,7 +497,7 @@
     flex-direction: column;
   }
 
-  .modal-content {
+  .inspection-detail-modal {
     padding: 16px;
   }
 
@@ -515,7 +515,7 @@
     grid-template-columns: 1fr;
   }
 
-  .modal-content {
+  .inspection-detail-modal {
     max-width: 90%;
     padding: 20px;
   }
