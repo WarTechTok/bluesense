@@ -234,6 +234,37 @@
   font-weight: 600;
 }
 
+.inspection-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-delete-inspection {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 2px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-delete-inspection:hover {
+  color: #7f1d1d;
+  transform: scale(1.1);
+}
+
+.inspection-message {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 14px;
+}
+
 .inspection-date {
   margin: 4px 0 0 0;
   font-size: 12px;

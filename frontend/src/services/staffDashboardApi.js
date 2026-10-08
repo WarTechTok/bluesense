@@ -230,6 +230,19 @@ export const createInspectionRecord = async (inspectionData) => {
   }
 };
 
+/**
+ * Delete an inspection record created by the authenticated staff member
+ */
+export const deleteInspectionRecord = async (inspectionId) => {
+  try {
+    const res = await apiClient.delete(`/inspections/${inspectionId}`);
+    return res.data;
+  } catch (error) {
+    console.error('Error deleting inspection record:', error);
+    throw error;
+  }
+};
+
 // ============================================
 // ROOMS API
 // ============================================

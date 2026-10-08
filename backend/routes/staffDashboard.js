@@ -103,6 +103,12 @@ router.get('/inspections', authenticate, authorize('staff'), staffDashboardContr
  */
 router.post('/inspections', authenticate, authorize('staff'), uploadInspectionProof, staffDashboardController.createInspectionRecord);
 
+/**
+ * DELETE /api/staff/dashboard/inspections/:inspectionId
+ * Delete an inspection record created by the authenticated staff member
+ */
+router.delete('/inspections/:inspectionId', authenticate, authorize('staff'), staffDashboardController.deleteInspectionRecord);
+
 // ============================================
 // DASHBOARD STATS
 // ============================================

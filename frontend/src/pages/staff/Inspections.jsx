@@ -33,6 +33,7 @@ const Inspections = () => {
   const [inspections, setInspections] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [inspectionMessage, setInspectionMessage] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selectedInspection, setSelectedInspection] = useState(null);
   const [confirmationModal, setConfirmationModal] = useState({
@@ -165,6 +166,31 @@ const Inspections = () => {
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
+  };
+
+  const handleDeleteInspection = async (inspection) => {
+    try {
+      await staffApi.deleteInspectionRecord(inspection._id);
+      setInspections((current) => current.filter((item) => item._id !== inspection._id));
+      if (selectedInspection?._id === inspection._id) {
+        setSelectedInspection(null);
+      }
+      setInspectionMessage('Inspection deleted successfully. Any linked maintenance work was preserved.');
+      setTimeout(() => setInspectionMessage(''), 4000);
+    } catch (error) {
+      setInspectionMessage(error.response?.data?.error || 'Failed to delete inspection. Please try again.');
+      setTimeout(() => setInspectionMessage(''), 5000);
+    }
+  };
+
+  const confirmDeleteInspection = (inspection) => {
+    showConfirmationModal(
+      'Delete Inspection?',
+      'This will remove the inspection report. Any linked maintenance work will be kept.',
+      () => handleDeleteInspection(inspection),
+      'Delete',
+      'Cancel'
+    );
   };
 
   const handleInputChange = (e) => {
@@ -618,6 +644,7 @@ const Inspections = () => {
       {/* Inspections History */}
       <div className="inspections-section">
         <h2>Inspection History</h2>
+        {inspectionMessage && <div className="inspection-message" role="status">{inspectionMessage}</div>}
         {loading ? (
           <div className="loading">Loading inspection records...</div>
         ) : inspections.length === 0 ? (
@@ -640,12 +667,24 @@ const Inspections = () => {
                       {new Date(inspection.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <button
-                    className="btn-view"
-                    onClick={() => setSelectedInspection(inspection)}
-                  >
-                    <i className="fas fa-eye"></i>
-                  </button>
+                  <div className="inspection-card-actions">
+                    <button
+                      className="btn-view"
+                      onClick={() => setSelectedInspection(inspection)}
+                      aria-label="View inspection"
+                      title="View inspection"
+                    >
+                      <i className="fas fa-eye"></i>
+                    </button>
+                    <button
+                      className="btn-delete-inspection"
+                      onClick={() => confirmDeleteInspection(inspection)}
+                      aria-label="Delete inspection"
+                      title="Delete inspection"
+                    >
+                      <i className="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="inspection-stats">

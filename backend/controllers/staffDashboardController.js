@@ -580,6 +580,39 @@ exports.getMyInspections = async (req, res) => {
 };
 
 /**
+ * DELETE /api/staff/dashboard/inspections/:inspectionId
+ * Delete an inspection created by the authenticated staff member
+ */
+exports.deleteInspectionRecord = async (req, res) => {
+  try {
+    const staff = await getStaffDocument(req.user);
+    if (!staff) {
+      return res.status(404).json({ error: 'Staff record not found' });
+    }
+
+    const inspection = await InspectionRecord.findOne({
+      _id: req.params.inspectionId,
+      inspectedBy: staff._id
+    });
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection not found' });
+    }
+
+    // Keep maintenance work intact while removing its link to this report.
+    await Maintenance.updateMany(
+      { inspectionId: inspection._id },
+      { $set: { inspectionId: null } }
+    );
+    await InspectionRecord.deleteOne({ _id: inspection._id });
+
+    return res.json({ success: true, message: 'Inspection deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting inspection record:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * POST /api/staff/dashboard/inspections
  * Create a new inspection record
  * Body: { roomId, condition, cleaningNeeded, damageFound, damageDescription, itemsNeeded, notes, rating }
