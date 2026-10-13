@@ -71,6 +71,8 @@ if (!fs.existsSync(paymentProofDir)) {
 // CORS CONFIGURATION - Allow frontend (Vercel) and ESP32
 // ============================================
 const allowedOrigins = [
+  'https://catherinesoasis.com',
+  'https://www.catherinesoasis.com',
   'https://bluesense-de14.vercel.app',
   'https://bluesense.onrender.com',
   'http://localhost:3000',
@@ -142,7 +144,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Get callback URL from environment or use default
 const getGoogleCallbackUrl = () => {
-  const backendUrl = process.env.BACKEND_URL || 'https://bluesense.onrender.com';
+  const backendUrl = process.env.BACKEND_URL || 'https://bluesense.onrender.com'; // set BACKEND_URL in Render env vars
   return `${backendUrl}/api/auth/google/callback`;
 };
 

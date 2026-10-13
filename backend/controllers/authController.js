@@ -13,7 +13,7 @@ const { uploadAvatar } = require("../utils/cloudinary");
 // ============================================
 // LOGO URL — hosted on Vercel frontend (works in all email clients)
 // ============================================
-const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
 
 // Shared email header HTML used by all transactional emails
 const emailHeader = (logoUrl) => `

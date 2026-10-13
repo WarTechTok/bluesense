@@ -418,7 +418,7 @@ const confirmBooking = async (req, res) => {
     // ── EMAIL: Booking Received ───────────────────────────────────────────
     try {
       const sendEmail = require("../utils/sendEmail");
-      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
       const isDownpayment = booking.paymentType !== "fullpayment";
       const remainingBalance = booking.totalAmount - booking.downpayment;
       await sendEmail({
@@ -902,7 +902,7 @@ const updateBookingStatus = async (req, res) => {
       if (currentBooking.status !== "Cancelled") {
         try {
           const sendEmail = require("../utils/sendEmail");
-          const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+          const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
           await sendEmail({
             to: booking.customerEmail,
             subject: "Booking Cancelled - Catherine's Oasis",
@@ -1223,7 +1223,7 @@ const verifyPayment = async (req, res) => {
       .populate("paymentVerifiedBy", "name email");
 
     const sendEmail = require("../utils/sendEmail");
-    const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+    const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
     try {
       // isFullyPaid: true when admin just confirmed a fullpayment upfront OR verified final balance
       const isFullyPaid      = paymentStatus === "Paid";
@@ -1435,7 +1435,7 @@ const checkIn = async (req, res) => {
     // ── EMAIL: Checked In ─────────────────────────────────────────────────
     try {
       const sendEmail = require("../utils/sendEmail");
-      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
       await sendEmail({
         to: booking.customerEmail,
         subject: "Checked In! Enjoy Your Stay - Catherine's Oasis",
@@ -1547,7 +1547,7 @@ const checkOut = async (req, res) => {
     // ── EMAIL: Thank You / Check-out ──────────────────────────────────────
     try {
       const sendEmail = require("../utils/sendEmail");
-      const LOGO_URL = `${process.env.FRONTEND_URL || "https://bluesense-de14.vercel.app"}/images/logo/Logo-NoBackground.png`;
+      const LOGO_URL = `${process.env.FRONTEND_URL || "https://catherinesoasis.com"}/images/logo/Logo-NoBackground.png`;
       await sendEmail({
         to: booking.customerEmail,
         subject: "Thank You for Staying - Catherine's Oasis",
