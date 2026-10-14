@@ -1279,6 +1279,21 @@
   margin-bottom: 24px;
 }
 
+.inventory-search-container {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.inventory-search-container .search-wrapper {
+  flex: 1 1 320px;
+}
+
+.inventory-search-container .filter-group {
+  flex: 0 1 220px;
+}
+
 .search-wrapper {
   position: relative;
   display: flex;

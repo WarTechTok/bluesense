@@ -322,7 +322,10 @@ const InventoryManagement = () => {
     inventory.flatMap((item) => [item.item, item.itemId].filter(Boolean))
   )].sort();
   const activeCategory = expandedCategory || (selectedCategory !== 'All' ? selectedCategory : 'Chemical');
-  const activeItems = groupedInventory[activeCategory] || [];
+  const showAllSearchResults = selectedCategory === 'All' && searchTerm.trim() !== '';
+  const activeItems = showAllSearchResults
+    ? filteredInventory
+    : groupedInventory[activeCategory] || [];
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(activeItems.length / pageSize));
   const paginatedItems = activeItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -349,7 +352,7 @@ const InventoryManagement = () => {
       )}
 
       {/* Search and Date Filter */}
-      <div className="search-container">
+      <div className="search-container inventory-search-container">
         <div className="search-wrapper">
           <i className="fas fa-search search-icon"></i>
           <input
@@ -440,7 +443,7 @@ const InventoryManagement = () => {
       <div className="inventory-table-section">
         <div className="inventory-table-header">
           <div>
-            <h2>{activeCategory === 'Chemical' ? '🧪 Chemicals' : activeCategory === 'Appliance' ? '🔧 Appliances' : '📦 Other Items'}</h2>
+            <h2>{showAllSearchResults ? 'Search Results' : activeCategory === 'Chemical' ? '🧪 Chemicals' : activeCategory === 'Appliance' ? '🔧 Appliances' : '📦 Other Items'}</h2>
             <span>{activeItems.length} item(s)</span>
           </div>
           <div className="pagination-controls">
@@ -464,7 +467,7 @@ const InventoryManagement = () => {
 
         {activeItems.length > 0 ? (
           <DataTable
-            columns={activeCategory === 'Chemical'
+            columns={showAllSearchResults || activeCategory === 'Chemical'
               ? columns
               : columns.filter((column) => column.key !== 'expirationDate')}
             data={paginatedItems}
@@ -474,7 +477,9 @@ const InventoryManagement = () => {
           />
         ) : (
           <div className="inventory-category-empty">
-            No {activeCategory === 'Chemical' ? 'chemical' : activeCategory === 'Appliance' ? 'appliance' : 'other'} items in this view.
+            {showAllSearchResults
+              ? 'No inventory items match your search.'
+              : `No ${activeCategory === 'Chemical' ? 'chemical' : activeCategory === 'Appliance' ? 'appliance' : 'other'} items in this view.`}
           </div>
         )}
         <div className="inventory-table-footer">
