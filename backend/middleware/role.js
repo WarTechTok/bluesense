@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const Staff = require('../models/Staff');
 
 /**
  * Role-Based Access Control Middleware
@@ -86,4 +87,34 @@ exports.authorize = (...roles) => {
     }
     next();
   };
+};
+
+/**
+ * Allow admins and receptionist staff to access shared read-only reports.
+ */
+exports.authorizeAdminOrReceptionist = async (req, res, next) => {
+  if (req.user.role === 'admin') {
+    return next();
+  }
+
+  if (req.user.role !== 'staff' || !req.user.email) {
+    return res.status(403).json({ error: 'Access denied. Insufficient permissions.' });
+  }
+
+  try {
+    const receptionist = await Staff.exists({
+      email: req.user.email,
+      role: 'staff',
+      position: 'Receptionist'
+    });
+
+    if (!receptionist) {
+      return res.status(403).json({ error: 'Access denied. Receptionist access is required.' });
+    }
+
+    return next();
+  } catch (error) {
+    console.error('Error verifying receptionist report access:', error);
+    return res.status(500).json({ error: 'Unable to verify report access' });
+  }
 };

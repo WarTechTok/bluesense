@@ -394,7 +394,7 @@ const RoomManagement = () => {
           <div className="modal-body">
             <form className="form landscape">
               <div className="form-group">
-                <label>Room Name *</label>
+                <label>Room Name <span className="required-asterisk">*</span></label>
                 <input
                   type="text"
                   value={formData.name}
@@ -403,7 +403,7 @@ const RoomManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Capacity *</label>
+                <label>Capacity <span className="required-asterisk">*</span></label>
                 <input
                   type="number"
                   min="1"
@@ -421,7 +421,7 @@ const RoomManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Status *</label>
+                <label>Status <span className="required-asterisk">*</span></label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -432,7 +432,7 @@ const RoomManagement = () => {
                 </select>
               </div>
               <div className="form-group">
-                <label>Oasis *</label>
+                <label>Oasis <span className="required-asterisk">*</span></label>
                 <select
                   value={formData.oasis}
                   onChange={(e) => setFormData({ ...formData, oasis: e.target.value })}

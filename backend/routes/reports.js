@@ -3,12 +3,12 @@
 // ============================================
 // Multi-format report generation (PDF, Excel, JSON)
 // Supports date range filtering for all reports
-// Admin-only access (except inventory usage for staff)
+// Admin-only access except where a route explicitly allows staff access
 
 const express = require('express');
 const router = express.Router();
 const reportController = require('../controllers/reportController');
-const { authenticate, authorize } = require('../middleware/role');
+const { authenticate, authorize, authorizeAdminOrReceptionist } = require('../middleware/role');
 
 // ============================================
 // GET RESERVATION REPORT - bookings & occupancy data (Admin only)
@@ -32,16 +32,17 @@ router.get('/sales', authenticate, authorize('admin'), reportController.getSales
 router.get('/inventory-usage', authenticate, reportController.getInventoryUsageReport);
 
 // ============================================
-// GET INSPECTION REPORT - room inspection submissions from housekeepers (Admin only)
+// GET INSPECTION REPORT - room inspection submissions from housekeepers
+// Accessible to admins and receptionist staff
 // Query params: startDate, endDate
 // ============================================
-router.get('/inspections', authenticate, authorize('admin'), reportController.getInspectionReport);
+router.get('/inspections', authenticate, authorizeAdminOrReceptionist, reportController.getInspectionReport);
 
-// ============================================
-// GET POOL MONITORING REPORT - water quality history from sensor readings (Admin only)
+// GET POOL MONITORING REPORT - water quality history from sensor readings
+// Accessible to admins and receptionist staff
 // Query params: startDate, endDate, oasis
 // ============================================
-router.get('/pool-monitoring', authenticate, authorize('admin'), reportController.getPoolMonitoringReport);
+router.get('/pool-monitoring', authenticate, authorizeAdminOrReceptionist, reportController.getPoolMonitoringReport);
 
 // ============================================
 // GET STAFF ACTIVITY REPORT - staff performance metrics (Admin only)

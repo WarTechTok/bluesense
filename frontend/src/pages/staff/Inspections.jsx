@@ -291,7 +291,11 @@ const Inspections = () => {
       }
     } catch (error) {
       console.error('Error creating inspection:', error);
-      showConfirmationModal('Error', '❌ Error submitting inspection report', null, 'OK');
+      const errorMessage = error.response?.data?.error
+        || (error.response
+          ? `Request failed (${error.response.status}).`
+          : 'Could not reach the server. Check your connection and try again.');
+      showConfirmationModal('Error', `❌ ${errorMessage}`, null, 'OK');
     }
   };
 

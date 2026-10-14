@@ -535,7 +535,7 @@ const StaffManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Full Name *</label>
+                <label>Full Name <span className="required-asterisk">*</span></label>
                 <input
                   type="text"
                   value={formData.name}
@@ -545,7 +545,7 @@ const StaffManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Email *</label>
+                <label>Email <span className="required-asterisk">*</span></label>
                 <input
                   type="email"
                   value={formData.email}
@@ -555,7 +555,7 @@ const StaffManagement = () => {
                 />
               </div>
               <div className="form-group">
-                <label>Role *</label>
+                <label>Role <span className="required-asterisk">*</span></label>
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -568,7 +568,7 @@ const StaffManagement = () => {
               
               {formData.role === 'staff' ? (
                 <div className="form-group">
-                  <label>Position *</label>
+                  <label>Position <span className="required-asterisk">*</span></label>
                   <select
                     value={formData.position}
                     onChange={(e) => setFormData({ ...formData, position: e.target.value })}
@@ -625,7 +625,7 @@ const StaffManagement = () => {
               {!editingStaff && (
                 <>
                   <div className="form-group">
-                    <label>Password *</label>
+                    <label>Password <span className="required-asterisk">*</span></label>
                     <input
                       type="password"
                       value={formData.password}
@@ -635,7 +635,7 @@ const StaffManagement = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Confirm Password *</label>
+                    <label>Confirm Password <span className="required-asterisk">*</span></label>
                     <input
                       type="password"
                       value={formData.confirmPassword}
@@ -670,7 +670,7 @@ const StaffManagement = () => {
                 <label>User: {editingStaff?.name}</label>
               </div>
               <div className="form-group">
-                <label>New Password *</label>
+                <label>New Password <span className="required-asterisk">*</span></label>
                 <input
                   type="password"
                   value={passwordData.newPassword}

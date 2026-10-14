@@ -341,7 +341,7 @@ const AddOnManagement = () => {
                 <div className="form-section">
                   <h4>Basic Information</h4>
                   <div className="form-group">
-                    <label>Add-on Name *</label>
+                    <label>Add-on Name <span className="required-asterisk">*</span></label>
                     <input 
                       type="text" 
                       value={formData.name} 
@@ -367,7 +367,7 @@ const AddOnManagement = () => {
                   </div>
 
                   <div className="form-group">
-                    <label>Price (₱) *</label>
+                    <label>Price (₱) <span className="required-asterisk">*</span></label>
                     <input 
                       type="number" 
                       value={formData.price} 

@@ -599,14 +599,14 @@ const PackageManagement = () => {
                   <h4>Basic Information</h4>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Oasis *</label>
+                      <label>Oasis <span className="required-asterisk">*</span></label>
                       <select value={formData.oasis} onChange={(e) => setFormData({ ...formData, oasis: e.target.value })}>
                         <option value="Oasis 1">Oasis 1</option>
                         <option value="Oasis 2">Oasis 2</option>
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>Package Name *</label>
+                      <label>Package Name <span className="required-asterisk">*</span></label>
                       <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="e.g., Package 1" />
                     </div>
                   </div>
@@ -616,7 +616,7 @@ const PackageManagement = () => {
                   </div>
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Base Capacity (included in price) *</label>
+                      <label>Base Capacity (included in price) <span className="required-asterisk">*</span></label>
                       {/*
                         EXISTING FIELD — label updated to "Base Capacity" for clarity.
                         WHAT: The number of guests whose cost is already covered by the package price.

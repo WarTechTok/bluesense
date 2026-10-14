@@ -61,6 +61,12 @@ const getStaffId = async (user) => {
   return staff ? staff._id : null;
 };
 
+const getActiveRoomTaskFilter = (staffId, roomId) => {
+  const filter = { staffId, status: 'In Progress' };
+  if (roomId) filter.roomId = roomId;
+  return filter;
+};
+
 /**
  * GET /api/staff/notifications
  * Fetch all notifications for authenticated staff member
@@ -516,10 +522,9 @@ exports.getAssignedRooms = async (req, res) => {
     // actually been started. The room assignment is created on admin-side
     // assignment, but the staff-side room list should be driven by the task's
     // active workflow state.
-    const taskAssignments = await TaskAssignment.find({
-      staffId: staffMongoId,
-      status: 'In Progress'
-    })
+    const taskAssignments = await TaskAssignment.find(
+      getActiveRoomTaskFilter(staffMongoId)
+    )
       .populate('roomId', '_id name capacity price status description')
       .sort({ startedAt: -1 });
 
@@ -643,20 +648,12 @@ exports.createInspectionRecord = async (req, res) => {
       rating
     } = req.body;
 
-    let uploadedPhotoUrl = null;
-    if (req.file) {
-      try {
-        const uploadResult = await uploadToCloud(req.file.buffer);
-        uploadedPhotoUrl = uploadResult.url;
-      } catch (uploadError) {
-        console.error('Error uploading inspection proof image:', uploadError);
-        return res.status(400).json({ error: 'Failed to upload inspection proof image' });
-      }
-    }
-
     // Validation
     if (!roomId) {
       return res.status(400).json({ error: 'Room ID is required' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(roomId)) {
+      return res.status(400).json({ error: 'Invalid room ID' });
     }
 
     // Get staff document
@@ -673,12 +670,24 @@ exports.createInspectionRecord = async (req, res) => {
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // Check if staff is assigned to this room
-    const isAssigned = room.assignedStaff.some(
-      (assignment) => assignment.staffId.toString() === staffMongoId.toString()
+    // The staff room list is derived from in-progress tasks, so use the same
+    // assignment source here instead of Room.assignedStaff.
+    const activeRoomTask = await TaskAssignment.findOne(
+      getActiveRoomTaskFilter(staffMongoId, room._id)
     );
-    if (!isAssigned) {
-      return res.status(403).json({ error: 'You are not assigned to this room' });
+    if (!activeRoomTask) {
+      return res.status(403).json({ error: 'No active task assigns this room to you' });
+    }
+
+    let uploadedPhotoUrl = null;
+    if (req.file) {
+      try {
+        const uploadResult = await uploadToCloud(req.file.buffer);
+        uploadedPhotoUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Error uploading inspection proof image:', uploadError);
+        return res.status(400).json({ error: 'Failed to upload inspection proof image' });
+      }
     }
 
     // Create inspection record

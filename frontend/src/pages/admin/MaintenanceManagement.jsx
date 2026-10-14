@@ -637,7 +637,7 @@ const MaintenanceManagement = () => {
           </div>
           <div className="modal-body" style={{ maxHeight: '600px', overflowY: 'auto' }}>
             <div className="form-group">
-              <label>Title *</label>
+              <label>Title <span className="required-asterisk">*</span></label>
               <input
                 type="text"
                 value={formData.title}
@@ -658,7 +658,7 @@ const MaintenanceManagement = () => {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div className="form-group">
-                <label>Category *</label>
+                <label>Category <span className="required-asterisk">*</span></label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
@@ -668,7 +668,7 @@ const MaintenanceManagement = () => {
               </div>
 
               <div className="form-group">
-                <label>Amount (PHP) *</label>
+                <label>Amount (PHP) <span className="required-asterisk">*</span></label>
                 <input
                   type="number"
                   value={formData.amount}
