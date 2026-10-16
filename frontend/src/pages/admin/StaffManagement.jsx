@@ -303,7 +303,7 @@ const StaffManagement = ({ receptionistMode = false }) => {
         <div style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           gap: '12px'
         }}>
           <div style={{
