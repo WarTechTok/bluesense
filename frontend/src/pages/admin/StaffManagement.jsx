@@ -61,8 +61,8 @@ const StaffManagement = () => {
     if (searchQuery.trim() !== '') {
       const term = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(s => 
-        s.name.toLowerCase().includes(term) ||
-        s.email.toLowerCase().includes(term) ||
+        (s.name || '').toLowerCase().includes(term) ||
+        (s.email || '').toLowerCase().includes(term) ||
         (s.staffId && s.staffId.toLowerCase().includes(term))
       );
     }
@@ -82,7 +82,7 @@ const StaffManagement = () => {
 
   const fetchStaff = async () => {
     try {
-      const data = await adminApi.getAllStaff();
+      const data = await adminApi.getAllUsers();
       setStaff(data);
       setFilteredStaff(data);
     } catch (error) {
@@ -237,7 +237,12 @@ const StaffManagement = () => {
 
   const handleToggleStatus = async (staffMember) => {
     try {
-      if (staffMember.status === 'Active') {
+      if (staffMember.accountType === 'customer') {
+        await adminApi.setCustomerStatus(
+          staffMember._id,
+          staffMember.status === 'Active' ? 'Disabled' : 'Active'
+        );
+      } else if (staffMember.status === 'Active') {
         await adminApi.disableStaffAccount(staffMember._id);
       } else {
         await adminApi.activateStaffAccount(staffMember._id);
@@ -410,7 +415,7 @@ const StaffManagement = () => {
   ];
 
   const actions = [
-    { label: 'Reset Password', type: 'password', handler: handleResetPassword },
+    { label: 'Reset Password', type: 'password', handler: handleResetPassword, condition: (row) => row.accountType !== 'customer' },
     { label: 'Toggle Status', type: 'toggle', handler: handleToggleStatus }
   ];
 
@@ -455,6 +460,7 @@ const StaffManagement = () => {
               <option value="all">All Roles</option>
               <option value="admin">Admin</option>
               <option value="staff">Staff</option>
+              <option value="customer">Customer</option>
             </select>
           </div>
 
@@ -498,6 +504,10 @@ const StaffManagement = () => {
           <p className="stat-number">{filteredStaff.filter(s => s.role === 'staff').length}</p>
         </div>
         <div className="stat-card">
+          <h3>Customers</h3>
+          <p className="stat-number">{filteredStaff.filter(s => s.role === 'customer').length}</p>
+        </div>
+        <div className="stat-card">
           <h3>Active</h3>
           <p className="stat-number">{filteredStaff.filter(s => s.status === 'Active').length}</p>
         </div>
@@ -509,6 +519,8 @@ const StaffManagement = () => {
         data={filteredStaff}
         onEdit={handleOpenModal}
         onDelete={handleDelete}
+        editCondition={(row) => row.accountType !== 'customer'}
+        deleteCondition={(row) => row.accountType !== 'customer'}
         actions={actions}
       />
 

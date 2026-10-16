@@ -7,6 +7,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './ManagementPages.css';
 import * as adminApi from '../../services/admin';
 
+const formatDateInput = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const SalesTracking = () => {
   const PAGE_SIZE = 10;
   const [sales, setSales] = useState([]);
@@ -16,6 +23,7 @@ const SalesTracking = () => {
     return date.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [selectedYear, setSelectedYear] = useState('');
   const [totalSales, setTotalSales] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,6 +32,14 @@ const SalesTracking = () => {
 
   const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE));
   const paginatedSales = sales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: Math.max(0, currentYear - 2015) + 1 }, (_, index) => currentYear - index);
+  const oasisOneSales = sales.filter(sale => sale.location?.toLowerCase() === 'oasis 1').length;
+  const oasisTwoSales = sales.filter(sale => sale.location?.toLowerCase() === 'oasis 2').length;
+  const cashSales = sales.filter(sale => sale.paymentMethod?.toLowerCase() === 'cash').length;
+  const eWalletSales = sales.filter(sale =>
+    ['gcash', 'maya', 'gotyme', 'seabank'].includes(sale.paymentMethod?.toLowerCase())
+  ).length;
 
   const fetchSales = useCallback(async () => {
     try {
@@ -85,8 +101,20 @@ const SalesTracking = () => {
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - days);
+    setSelectedYear('');
     setEndDate(end.toISOString().split('T')[0]);
     setStartDate(start.toISOString().split('T')[0]);
+  };
+
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    if (!year) return;
+
+    const end = Number(year) === currentYear
+      ? new Date()
+      : new Date(Number(year), 11, 31);
+    setStartDate(`${year}-01-01`);
+    setEndDate(formatDateInput(end));
   };
 
   const formatCurrency = (amount) => {
@@ -111,6 +139,19 @@ const SalesTracking = () => {
           <button className="quick-range-btn" onClick={() => handleQuickRange(7)}>Last 7 Days</button>
           <button className="quick-range-btn" onClick={() => handleQuickRange(30)}>Last 30 Days</button>
           <button className="quick-range-btn" onClick={() => handleQuickRange(90)}>Last 90 Days</button>
+          <button className="quick-range-btn" onClick={() => handleYearChange(String(currentYear))}>This Year</button>
+          <div className="date-input-group">
+            <label htmlFor="sales-year-filter">Year:</label>
+            <select
+              id="sales-year-filter"
+              value={selectedYear}
+              onChange={(e) => handleYearChange(e.target.value)}
+              className="date-input"
+            >
+              <option value="">Custom range</option>
+              {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </div>
         </div>
         
         <div className="date-range-picker">
@@ -119,7 +160,10 @@ const SalesTracking = () => {
             <input 
               type="date" 
               value={startDate} 
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setSelectedYear('');
+                setStartDate(e.target.value);
+              }}
               max={endDate}
               className="date-input"
             />
@@ -130,7 +174,10 @@ const SalesTracking = () => {
             <input 
               type="date" 
               value={endDate} 
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setSelectedYear('');
+                setEndDate(e.target.value);
+              }}
               min={startDate}
               max={new Date().toISOString().split('T')[0]}
               className="date-input"
@@ -165,6 +212,38 @@ const SalesTracking = () => {
               {sales.length > 0 ? formatCurrency(totalSales / sales.length) : formatCurrency(0)}
             </div>
             <div className="stat-period">Per transaction</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🏝️</div>
+          <div className="stat-content">
+            <div className="stat-title">Oasis 1 Sales</div>
+            <div className="stat-value">{oasisOneSales}</div>
+            <div className="stat-period">Transactions</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">🏝️</div>
+          <div className="stat-content">
+            <div className="stat-title">Oasis 2 Sales</div>
+            <div className="stat-value">{oasisTwoSales}</div>
+            <div className="stat-period">Transactions</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">📱</div>
+          <div className="stat-content">
+            <div className="stat-title">E-wallet Payments</div>
+            <div className="stat-value">{eWalletSales}</div>
+            <div className="stat-period">Transactions</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon">💵</div>
+          <div className="stat-content">
+            <div className="stat-title">Cash Payments</div>
+            <div className="stat-value">{cashSales}</div>
+            <div className="stat-period">Transactions</div>
           </div>
         </div>
       </div>
@@ -222,6 +301,7 @@ const SalesTracking = () => {
                     <th>Reference Code</th>
                     <th>Location</th>
                     <th>Guest Name</th>
+                    <th>Payment Method</th>
                     <th>Amount</th>
                     <th>Date</th>
                   </tr>
@@ -229,7 +309,7 @@ const SalesTracking = () => {
                 <tbody>
                   {sales.length === 0 ? (
                     <tr className="no-data-row">
-                      <td colSpan="5">
+                      <td colSpan="6">
                         <div className="no-data">
                           <i className="fas fa-chart-line"></i>
                           <p>No sales data for this period</p>
@@ -249,6 +329,7 @@ const SalesTracking = () => {
                           <td className="reference-code">{referenceCode}</td>
                           <td className="location">{location}</td>
                           <td className="customer-name">{customerName}</td>
+                          <td>{sale.paymentMethod || 'N/A'}</td>
                           <td className="amount">{formatCurrency(sale.amount || 0)}</td>
                           <td className="date">{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
                         </tr>

@@ -12,13 +12,13 @@ import './DataTable.css';
 // ============================================
 // ACTION BUTTONS ROW
 // ============================================
-const ActionButtons = ({ row, onEdit, onDelete, onConfirm, onCancel, actions }) => {
+const ActionButtons = ({ row, onEdit, onDelete, onConfirm, onCancel, actions, editCondition, deleteCondition }) => {
   // Disable editing if booking is Confirmed, Cancelled, or Completed
   const isLocked = row.status === 'Confirmed' || row.status === 'Cancelled' || row.status === 'Completed';
 
   return (
     <div className="action-buttons-row">
-      {onEdit && !isLocked && (
+      {onEdit && !isLocked && (!editCondition || editCondition(row)) && (
         <button 
           className="btn-action-icon btn-edit" 
           onClick={() => onEdit(row)}
@@ -28,7 +28,7 @@ const ActionButtons = ({ row, onEdit, onDelete, onConfirm, onCancel, actions }) 
         </button>
       )}
 
-      {onDelete && !isLocked && (
+      {onDelete && !isLocked && (!deleteCondition || deleteCondition(row)) && (
         <button 
           className="btn-action-icon btn-delete" 
           onClick={() => onDelete(row._id)}
@@ -83,7 +83,7 @@ const ActionButtons = ({ row, onEdit, onDelete, onConfirm, onCancel, actions }) 
 //   - onConfirm: Callback function when Confirm button clicked (for Pending status)
 //   - onCancel: Callback function when Cancel button clicked
 //   - actions: Array of custom action button objects
-const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actions = [] }) => {
+const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actions = [], editCondition, deleteCondition }) => {
   return (
     <div className="data-table-wrapper">
       <table className="data-table">
@@ -119,6 +119,8 @@ const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actio
                       onConfirm={onConfirm}
                       onCancel={onCancel}
                       actions={actions}
+                      editCondition={editCondition}
+                      deleteCondition={deleteCondition}
                     />
                   </td>
                 )}

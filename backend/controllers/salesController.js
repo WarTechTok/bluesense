@@ -215,7 +215,7 @@ exports.getSalesByDateRange = async (req, res) => {
     const salesInRange = await Sale.find({
       date: { $gte: start, $lte: end }
     })
-      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount status')
+      .populate('booking', 'bookingNumber bookingReference oasis customerName totalAmount paymentMethod status')
       .populate('reservation', 'room guestName')
       .sort({ date: -1 });
     
@@ -236,6 +236,7 @@ exports.getSalesByDateRange = async (req, res) => {
       referenceCode: sale.bookingReference || sale.booking?.bookingReference || 'N/A',
       location: sale.location || sale.booking?.oasis || 'N/A',
       customerName: sale.booking?.customerName || 'N/A',
+      paymentMethod: sale.booking?.paymentMethod || 'N/A',
       type: sale.booking ? 'Booking' : 'Reservation',
       booking: sale.booking,
       reservation: sale.reservation,

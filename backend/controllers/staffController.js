@@ -23,6 +23,68 @@ exports.getAllStaff = async (req, res) => {
 };
 
 /**
+ * GET /api/admin/staff/users
+ * Get staff and customer accounts for the admin user directory
+ */
+exports.getAllUsers = async (req, res) => {
+  try {
+    const [staff, customers] = await Promise.all([
+      Staff.find().select('-password'),
+      User.find({ role: 'customer' }).select(
+        'name email address avatar googleAvatar isEmailVerified createdAt role'
+      )
+    ]);
+
+    const staffAccounts = staff.map(account => ({
+      ...account.toObject(),
+      status: account.status === 'Active' ? 'Active' : 'Inactive',
+      accountType: 'staff'
+    }));
+    const customerAccounts = customers.map(account => ({
+      _id: account._id,
+      staffId: `CUS-${String(account._id).slice(-6).toUpperCase()}`,
+      name: account.name,
+      email: account.email,
+      role: account.role,
+      position: 'Customer',
+      address: account.address,
+      profilePicture: account.avatar || account.googleAvatar,
+      status: account.status === 'Active' ? 'Active' : 'Inactive',
+      createdAt: account.createdAt,
+      accountType: 'customer'
+    }));
+
+    res.json([...staffAccounts, ...customerAccounts]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * PUT /api/admin/staff/users/:id/status
+ * Update a customer account's login status
+ */
+exports.updateCustomerStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['Active', 'Disabled'].includes(status)) {
+      return res.status(400).json({ error: 'Status must be Active or Disabled' });
+    }
+
+    const customer = await User.findOneAndUpdate(
+      { _id: req.params.id, role: 'customer' },
+      { status },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!customer) return res.status(404).json({ error: 'Customer not found' });
+    res.json(customer);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+/**
  * GET /api/admin/staff/:id
  * Get specific staff member by ID (Admin only)
  */

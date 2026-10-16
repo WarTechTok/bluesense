@@ -63,7 +63,7 @@ const AdminLayout = ({ children }) => {
     { id: 'reviews',     label: 'Customer Reviews',  icon: 'fas fa-star',            path: '/admin/reviews' },
     { id: 'rooms',       label: 'Rooms',             icon: 'fas fa-bed',             path: '/admin/rooms' },
     { id: 'inventory',   label: 'Inventory',         icon: 'fas fa-boxes',           path: '/admin/inventory' },
-    ...(hasStaffAccess ? [{ id: 'staff', label: 'Staff', icon: 'fas fa-users', path: '/admin/staff' }] : []),
+    ...(hasStaffAccess ? [{ id: 'staff', label: 'Users', icon: 'fas fa-users', path: '/admin/staff' }] : []),
     { id: 'sales',       label: 'Sales',             icon: 'fas fa-chart-simple',    path: '/admin/sales' },
     { id: 'maintenance', label: 'Maintenance',       icon: 'fas fa-wrench',          path: '/admin/maintenance' },
     { id: 'reports',     label: 'Reports',           icon: 'fas fa-file-alt',        path: '/admin/reports' },

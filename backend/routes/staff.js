@@ -79,6 +79,10 @@ router.get('/debug/verify-token', authenticate, (req, res) => {
 // ============================================
 router.get('/', authenticate, authorize('admin', 'staff'), staffController.getAllStaff);
 
+// GET ALL USERS - retrieve staff and customer accounts for the admin directory
+router.get('/users', authenticate, authorize('admin'), staffController.getAllUsers);
+router.put('/users/:id/status', authenticate, authorize('admin'), staffController.updateCustomerStatus);
+
 // ============================================
 // GET STAFF BY ID - retrieve staff member details (Admin and Staff/Receptionist)
 // ============================================

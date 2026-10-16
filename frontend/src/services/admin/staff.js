@@ -15,6 +15,26 @@ export const getAllStaff = async () => {
   }
 };
 
+export const getAllUsers = async () => {
+  try {
+    const res = await apiClient.get('/staff/users');
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+};
+
+export const setCustomerStatus = async (id, status) => {
+  try {
+    const res = await apiClient.put(`/staff/users/${id}/status`, { status });
+    return res.data;
+  } catch (error) {
+    console.error('Error updating customer status:', error);
+    throw error;
+  }
+};
+
 export const createStaffAccount = async (staffData) => {
   try {
     const res = await apiClient.post('/staff', staffData);

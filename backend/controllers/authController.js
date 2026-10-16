@@ -323,6 +323,10 @@ const login = async (req, res) => {
         return res.status(400).json({ message: "Invalid email or password" });
       }
 
+      if (user.status === "Disabled") {
+        return res.status(403).json({ message: "This account has been disabled. Please contact support." });
+      }
+
       user.failedAttempts = 0;
       user.lastFailedAttempt = null;
       await user.save();
@@ -526,6 +530,10 @@ const googleLogin = async (req, res) => {
 
     // ── EXISTING USER → log them in immediately ──
     if (user) {
+      if (user.status === "Disabled") {
+        return res.redirect(`${frontendURL}/login?error=account_disabled`);
+      }
+
       if (!user.googleId) user.googleId = id;
       if (!user.avatar) user.googleAvatar = picture;
       await user.save();
