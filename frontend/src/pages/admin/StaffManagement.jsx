@@ -296,18 +296,6 @@ const StaffManagement = ({ receptionistMode = false }) => {
   };
 
   const columns = [
-    {
-      key: 'staffId',
-      label: 'UserID',
-      render: (value) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
-            {value}
-          </span>
-        </div>
-      ),
-      width: '80px'
-    },
     { 
       key: 'profilePicture', 
       label: 'Profile', 
