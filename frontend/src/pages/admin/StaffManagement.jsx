@@ -6,7 +6,7 @@ import * as adminApi from '../../services/admin';
 import { validateStaffMember, validatePasswordReset } from '../../utils/adminValidation';
 import './ManagementPages.css';
 
-const StaffManagement = () => {
+const StaffManagement = ({ receptionistMode = false }) => {
   const [staff, setStaff] = useState([]);
   const [filteredStaff, setFilteredStaff] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -414,16 +414,27 @@ const StaffManagement = () => {
     }
   ];
 
-  const actions = [
-    { label: 'Reset Password', type: 'password', handler: handleResetPassword, condition: (row) => row.accountType !== 'customer' },
-    { label: 'Toggle Status', type: 'toggle', handler: handleToggleStatus }
-  ];
+  const actions = receptionistMode
+    ? [
+        {
+          label: 'Toggle Status',
+          type: 'toggle',
+          handler: handleToggleStatus,
+          condition: (row) => row.accountType === 'customer'
+        }
+      ]
+    : [
+        { label: 'Reset Password', type: 'password', handler: handleResetPassword, condition: (row) => row.accountType !== 'customer' },
+        { label: 'Toggle Status', type: 'toggle', handler: handleToggleStatus }
+      ];
 
   return (
     <div className="management-page">
       <div className="page-header">
         <h1>Users</h1>
-        <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add User</button>
+        {!receptionistMode && (
+          <button className="btn-primary" onClick={() => handleOpenModal()}>+ Add User</button>
+        )}
       </div>
 
       {/* Filters Section */}
@@ -517,10 +528,10 @@ const StaffManagement = () => {
       <DataTable
         columns={columns}
         data={filteredStaff}
-        onEdit={handleOpenModal}
-        onDelete={handleDelete}
-        editCondition={(row) => row.accountType !== 'customer'}
-        deleteCondition={(row) => row.accountType !== 'customer'}
+        onEdit={receptionistMode ? undefined : handleOpenModal}
+        onDelete={receptionistMode ? undefined : handleDelete}
+        editCondition={(row) => !receptionistMode && row.accountType !== 'customer'}
+        deleteCondition={(row) => !receptionistMode && row.accountType !== 'customer'}
         actions={actions}
       />
 

@@ -1,7 +1,7 @@
 // src/components/ProtectedRoute.jsx
 import { Navigate } from 'react-router-dom';
 
-function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
+function ProtectedRoute({ children, allowedRoles, allowedPositions, requiredPermission }) {
   // Get user from localStorage
   const user = JSON.parse(localStorage.getItem('user'));
   const token = localStorage.getItem('token');
@@ -14,6 +14,13 @@ function ProtectedRoute({ children, allowedRoles, requiredPermission }) {
   // If user role is not allowed, redirect to home
   if (!allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
+  }
+
+  if (
+    allowedPositions &&
+    !allowedPositions.some(position => position.toLowerCase() === user.position?.toLowerCase())
+  ) {
+    return <Navigate to={user.role === 'staff' ? '/staff/dashboard' : '/'} replace />;
   }
 
   if (

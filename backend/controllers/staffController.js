@@ -31,7 +31,7 @@ exports.getAllUsers = async (req, res) => {
     const [staff, customers] = await Promise.all([
       Staff.find().select('-password'),
       User.find({ role: 'customer' }).select(
-        'name email address avatar googleAvatar isEmailVerified createdAt role'
+        'name email address avatar googleAvatar isEmailVerified status createdAt role'
       )
     ]);
 

@@ -69,6 +69,7 @@ const ReceptionistLayout = ({ children }) => {
     { id: 'inventory', label: 'Inventory', icon: 'fas fa-boxes', path: '/receptionist/inventory' },
     { id: 'sales', label: 'Sales', icon: 'fas fa-chart-simple', path: '/receptionist/sales' },
     { id: 'reports', label: 'Reports', icon: 'fas fa-file-alt', path: '/receptionist/reports' },
+    { id: 'users', label: 'Users', icon: 'fas fa-users', path: '/receptionist/users' },
   ];
 
   const stopESP32 = async () => {

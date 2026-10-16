@@ -98,7 +98,10 @@ const DataTable = ({ columns, data, onEdit, onDelete, onConfirm, onCancel, actio
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (onEdit || onDelete ? 1 : 0)} className="no-data">
+              <td
+                colSpan={columns.length + (onEdit || onDelete || onConfirm || onCancel || actions.length > 0 ? 1 : 0)}
+                className="no-data"
+              >
                 No data available
               </td>
             </tr>

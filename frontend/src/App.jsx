@@ -369,6 +369,16 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/receptionist/users"
+          element={
+            <ProtectedRoute allowedRoles={["staff"]} allowedPositions={["Receptionist"]}>
+              <ReceptionistLayout>
+                <StaffManagement receptionistMode />
+              </ReceptionistLayout>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

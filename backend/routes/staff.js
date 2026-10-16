@@ -10,7 +10,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const staffController = require('../controllers/staffController');
-const { authenticate, authorize } = require('../middleware/role');
+const { authenticate, authorize, authorizeAdminOrReceptionist } = require('../middleware/role');
 
 // ============================================
 // MULTER CONFIGURATION FOR PROFILE PICTURES
@@ -80,8 +80,8 @@ router.get('/debug/verify-token', authenticate, (req, res) => {
 router.get('/', authenticate, authorize('admin', 'staff'), staffController.getAllStaff);
 
 // GET ALL USERS - retrieve staff and customer accounts for the admin directory
-router.get('/users', authenticate, authorize('admin'), staffController.getAllUsers);
-router.put('/users/:id/status', authenticate, authorize('admin'), staffController.updateCustomerStatus);
+router.get('/users', authenticate, authorizeAdminOrReceptionist, staffController.getAllUsers);
+router.put('/users/:id/status', authenticate, authorizeAdminOrReceptionist, staffController.updateCustomerStatus);
 
 // ============================================
 // GET STAFF BY ID - retrieve staff member details (Admin and Staff/Receptionist)

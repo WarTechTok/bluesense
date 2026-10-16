@@ -17,6 +17,8 @@ const Reports = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reportStatusFilter, setReportStatusFilter] = useState("all");
+  const [reportOasisFilter, setReportOasisFilter] = useState("all");
+  const [reportSourceFilter, setReportSourceFilter] = useState("all");
   const [dateSortDirection, setDateSortDirection] = useState(null); // 'asc' or 'desc' or null
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -234,6 +236,16 @@ const Reports = () => {
             (reportStatusFilter === "all" || status === reportStatusFilter.toLowerCase());
         });
 
+        if (reportOasisFilter !== "all") {
+          allBookings = allBookings.filter((booking) => booking.oasis === reportOasisFilter);
+        }
+
+        if (reportSourceFilter === "unrecorded") {
+          allBookings = allBookings.filter((booking) => !booking.bookingSource);
+        } else if (reportSourceFilter !== "all") {
+          allBookings = allBookings.filter((booking) => booking.bookingSource === reportSourceFilter);
+        }
+
         // Sort by booking number
         allBookings.sort((a, b) => {
           const aNum = a.bookingNumber || 0;
@@ -338,6 +350,7 @@ const Reports = () => {
           "Guest Name": row.customerName || "N/A",
           "Contact No.": row.customerContact || "N/A",
           "Pool/Villa Name": row.oasis || "N/A",
+          "Booking Source": row.bookingSource === "Online" ? "Online Reservation" : row.bookingSource || "Not Recorded",
           "Amount": toCurrencyNumber(row.totalAmount),
           "Payment Status": row.paymentStatus || "Pending",
           "Booking Date": row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A",
@@ -566,7 +579,7 @@ const Reports = () => {
 
   // Helper function to get colSpan for no data message
   const getNoDataColSpan = () => {
-    if (reportType === "booking") return "13";
+    if (reportType === "booking") return "14";
     if (reportType === "sales") return "5";
     if (reportType === "inspection") return "8";
     if (reportType === "pool-monitoring") return "6";
@@ -618,18 +631,45 @@ const Reports = () => {
           </div>
 
           {reportType === "booking" && (
-            <div className="filter-group">
-              <label>Status</label>
-              <select
-                value={reportStatusFilter}
-                onChange={(e) => setReportStatusFilter(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Statuses</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
-              </select>
-            </div>
+            <>
+              <div className="filter-group">
+                <label>Status</label>
+                <select
+                  value={reportStatusFilter}
+                  onChange={(e) => setReportStatusFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Oasis</label>
+                <select
+                  value={reportOasisFilter}
+                  onChange={(e) => setReportOasisFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Oases</option>
+                  <option value="Oasis 1">Oasis 1</option>
+                  <option value="Oasis 2">Oasis 2</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Booking Source</label>
+                <select
+                  value={reportSourceFilter}
+                  onChange={(e) => setReportSourceFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Sources</option>
+                  <option value="Online">Online Reservation</option>
+                  <option value="Walk-in">Walk-in</option>
+                  <option value="unrecorded">Source Not Recorded</option>
+                </select>
+              </div>
+            </>
           )}
 
           <div className="filter-actions">
@@ -730,6 +770,7 @@ const Reports = () => {
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Guest Name</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Contact No.</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Pool/Villa Name</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking Source</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Amount</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Payment Status</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>
@@ -809,6 +850,7 @@ const Reports = () => {
                             <td>{row.customerName || "N/A"}</td>
                             <td>{row.customerContact || "N/A"}</td>
                             <td>{row.oasis || "N/A"}</td>
+                            <td>{row.bookingSource === "Online" ? "Online Reservation" : row.bookingSource || "Not Recorded"}</td>
                             <td className="amount">{formatCurrency(row.totalAmount || 0)}</td>
                             <td>
                               <span className={`status-badge status-${(row.paymentStatus || "pending").toLowerCase()}`}>
