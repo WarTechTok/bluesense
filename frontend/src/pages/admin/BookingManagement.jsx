@@ -13,6 +13,8 @@ const BookingManagement = () => {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [oasisFilter, setOasisFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [verificationModalOpen, setVerificationModalOpen] = useState(false);
   const [selectedBookingForVerification, setSelectedBookingForVerification] =
@@ -51,6 +53,16 @@ const BookingManagement = () => {
       );
     }
 
+    if (oasisFilter !== "all") {
+      filtered = filtered.filter((b) => b.oasis === oasisFilter);
+    }
+
+    if (sourceFilter === "unrecorded") {
+      filtered = filtered.filter((b) => !b.bookingSource);
+    } else if (sourceFilter !== "all") {
+      filtered = filtered.filter((b) => b.bookingSource === sourceFilter);
+    }
+
     if (searchTerm.trim() !== "") {
       const term = searchTerm.toLowerCase().trim();
       filtered = filtered.filter((b) => {
@@ -65,7 +77,7 @@ const BookingManagement = () => {
     }
 
     setFilteredBookings(filtered);
-  }, [bookings, statusFilter, searchTerm]);
+  }, [bookings, statusFilter, oasisFilter, sourceFilter, searchTerm]);
 
   const showConfirmationModal = (
     title,
@@ -281,7 +293,7 @@ const BookingManagement = () => {
   useEffect(() => {
     // reset to first page when filters/search change
     setCurrentPage(1);
-  }, [statusFilter, searchTerm]);
+  }, [statusFilter, oasisFilter, sourceFilter, searchTerm]);
 
   const handleCheckIn = async (id) => {
     showConfirmationModal(
@@ -512,6 +524,33 @@ const BookingManagement = () => {
             </select>
           </div>
 
+          <div className="filter-group">
+            <label>Filter by Oasis:</label>
+            <select
+              value={oasisFilter}
+              onChange={(e) => setOasisFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Oases</option>
+              <option value="Oasis 1">Oasis 1</option>
+              <option value="Oasis 2">Oasis 2</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Booking Source:</label>
+            <select
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Sources</option>
+              <option value="Online">Online Reservation</option>
+              <option value="Walk-in">Walk-in</option>
+              <option value="unrecorded">Source Not Recorded</option>
+            </select>
+          </div>
+
           <div className="filter-group search-group">
             <label>Search:</label>
             <div className="search-wrapper">
@@ -599,6 +638,7 @@ const BookingManagement = () => {
               <th style={{ width: "150px" }}>Booking Reference</th>
               <th>Customer</th>
               <th>Location</th>
+              <th>Booking Source</th>
               <th>Package</th>
               <th>Session</th>
               <th>Booking Date</th>
@@ -622,6 +662,7 @@ const BookingManagement = () => {
                   </td>
                   <td>{booking.customerName}</td>
                   <td>{booking.oasis}</td>
+                  <td>{booking.bookingSource === "Online" ? "Online Reservation" : booking.bookingSource || "Not Recorded"}</td>
                   <td>{booking.package}</td>
                   <td>{getSessionDisplay(booking.session)}</td>
                   <td>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "-"}</td>

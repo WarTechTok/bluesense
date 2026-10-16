@@ -38,6 +38,69 @@
   gap: 10px;
 }
 
+.chart-header-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-year-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chart-year-filter select {
+  padding: 8px 10px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  background: #fff;
+  color: #333;
+  font: inherit;
+}
+
+.booking-source-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.booking-source-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.booking-source-card span {
+  color: #475569;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.booking-source-card strong {
+  color: #0066cc;
+  font-size: 26px;
+}
+
+.booking-source-card small {
+  color: #6b7280;
+}
+
+.booking-source-card.unclassified strong {
+  color: #b45309;
+}
+
 .toggle-btn {
   padding: 8px 16px;
   border: 2px solid #e0e0e0;

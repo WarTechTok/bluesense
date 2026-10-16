@@ -38,6 +38,10 @@ const bookingSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  bookingSource: {
+    type: String,
+    enum: ["Online", "Walk-in"]
+  },
   pax: {
     type: Number,
     required: true

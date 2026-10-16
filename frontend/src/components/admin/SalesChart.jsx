@@ -21,81 +21,71 @@ import './SalesChart.css';
 
 const SalesChart = () => {
   const [chartType, setChartType] = useState('mixed');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [bookings, setBookings] = useState([]);
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from({ length: Math.max(0, currentYear - 2015) + 1 }, (_, index) => currentYear - index);
+  const bookingsForYear = bookings.filter(booking =>
+    new Date(booking.bookingDate).getFullYear() === selectedYear
+  );
+  const walkInBookings = bookingsForYear.filter(booking => booking.bookingSource === 'Walk-in').length;
+  const onlineBookings = bookingsForYear.filter(booking => booking.bookingSource === 'Online').length;
+  const unclassifiedBookings = bookingsForYear.filter(booking => !booking.bookingSource).length;
 
-  // Fetch real sales data from API
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
         setLoading(true);
-
-        // Fetch all bookings
-        const bookings = await adminApi.getAllBookings();
-
-        // Process weekly data (last 7 days)
-        const last7Days = [];
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const dayName = days[date.getDay()];
-
-          const daySales = bookings
-            .filter(b => {
-              const bookingDate = new Date(b.bookingDate);
-              return (
-                bookingDate.toDateString() === date.toDateString() &&
-                (b.status === 'Confirmed' || b.status === 'Completed')
-              );
-            })
-            .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-
-          const dayBookings = bookings.filter(b => {
-            const bookingDate = new Date(b.bookingDate);
-            return (
-              bookingDate.toDateString() === date.toDateString() &&
-              (b.status === 'Confirmed' || b.status === 'Completed')
-            );
-          }).length;
-
-          last7Days.push({ date: dayName, sales: daySales, bookings: dayBookings });
-        }
-        setWeeklyData(last7Days);
-
-        // Process monthly data (last 12 months)
-        const last12Months = [];
-        for (let i = 11; i >= 0; i--) {
-          const date = new Date();
-          date.setMonth(date.getMonth() - i);
-          const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-
-          const monthSales = bookings
-            .filter(b => {
-              const bookingDate = new Date(b.bookingDate);
-              return (
-                bookingDate.getMonth() === date.getMonth() &&
-                bookingDate.getFullYear() === date.getFullYear() &&
-                (b.status === 'Confirmed' || b.status === 'Completed')
-              );
-            })
-            .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
-
-          const target = 100000; // Fixed target
-          last12Months.push({ month: monthName, sales: monthSales, target: target });
-        }
-        setMonthlyData(last12Months);
-
-        setLoading(false);
+        setBookings(await adminApi.getAllBookings());
       } catch (error) {
         console.error('Error fetching sales data:', error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchSalesData();
   }, []);
+
+  useEffect(() => {
+    const eligibleBookings = bookings.filter(booking =>
+      booking.status === 'Confirmed' || booking.status === 'Completed'
+    );
+    const last7Days = [];
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayBookings = eligibleBookings.filter(booking =>
+        new Date(booking.bookingDate).toDateString() === date.toDateString()
+      );
+
+      last7Days.push({
+        date: days[date.getDay()],
+        sales: dayBookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0),
+        bookings: dayBookings.length
+      });
+    }
+    setWeeklyData(last7Days);
+
+    const monthlySales = Array.from({ length: 12 }, (_, monthIndex) => {
+      const monthName = new Date(selectedYear, monthIndex, 1)
+        .toLocaleDateString('en-US', { month: 'short' });
+      const monthTotal = eligibleBookings
+        .filter(booking => {
+          const bookingDate = new Date(booking.bookingDate);
+          return bookingDate.getMonth() === monthIndex && bookingDate.getFullYear() === selectedYear;
+        })
+        .reduce((sum, booking) => sum + (booking.totalAmount || 0), 0);
+
+      return { month: monthName, sales: monthTotal, target: 100000 };
+    });
+    setMonthlyData(monthlySales);
+  }, [bookings, selectedYear]);
 
   // Custom tooltip for professional look
   const CustomTooltip = ({ active, payload }) => {
@@ -120,28 +110,56 @@ const SalesChart = () => {
       <div className="chart-section-header">
         <div>
           <h2>Sales Analytics & Performance</h2>
-          <p>Interactive data visualization for weekly trends and monthly performance</p>
+          <p>Weekly trends and monthly performance by selected year</p>
         </div>
-        <div className="chart-toggles">
-          <button
-            className={`toggle-btn ${chartType === 'mixed' ? 'active' : ''}`}
-            onClick={() => setChartType('mixed')}
-          >
-            <i className="fas fa-chart-line"></i> All Charts
-          </button>
-          <button
-            className={`toggle-btn ${chartType === 'line' ? 'active' : ''}`}
-            onClick={() => setChartType('line')}
-          >
-            <i className="fas fa-line-chart"></i> Line
-          </button>
-          <button
-            className={`toggle-btn ${chartType === 'bar' ? 'active' : ''}`}
-            onClick={() => setChartType('bar')}
-          >
-            <i className="fas fa-bar-chart"></i> Bar
-          </button>
+        <div className="chart-header-controls">
+          <label className="chart-year-filter">
+            Year
+            <select value={selectedYear} onChange={event => setSelectedYear(Number(event.target.value))}>
+              {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
+            </select>
+          </label>
+          <div className="chart-toggles">
+            <button
+              className={`toggle-btn ${chartType === 'mixed' ? 'active' : ''}`}
+              onClick={() => setChartType('mixed')}
+            >
+              <i className="fas fa-chart-line"></i> All Charts
+            </button>
+            <button
+              className={`toggle-btn ${chartType === 'line' ? 'active' : ''}`}
+              onClick={() => setChartType('line')}
+            >
+              <i className="fas fa-line-chart"></i> Line
+            </button>
+            <button
+              className={`toggle-btn ${chartType === 'bar' ? 'active' : ''}`}
+              onClick={() => setChartType('bar')}
+            >
+              <i className="fas fa-bar-chart"></i> Bar
+            </button>
+          </div>
         </div>
+      </div>
+
+      <div className="booking-source-summary">
+        <div className="booking-source-card">
+          <span>Walk-in Bookings</span>
+          <strong>{walkInBookings}</strong>
+          <small>{selectedYear}</small>
+        </div>
+        <div className="booking-source-card">
+          <span>Online Bookings</span>
+          <strong>{onlineBookings}</strong>
+          <small>{selectedYear}</small>
+        </div>
+        {unclassifiedBookings > 0 && (
+          <div className="booking-source-card unclassified">
+            <span>Source Not Recorded</span>
+            <strong>{unclassifiedBookings}</strong>
+            <small>Older bookings</small>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
@@ -223,7 +241,7 @@ const SalesChart = () => {
             <div className="chart-header">
               <h3>
                 <i className="fas fa-bar-chart"></i>
-                Monthly Performance
+                Monthly Performance — {selectedYear}
               </h3>
               <span className="chart-badge">Revenue vs Target</span>
             </div>
@@ -252,7 +270,7 @@ const SalesChart = () => {
             </div>
             <div className="chart-stats">
               <div className="stat-item">
-                <span className="stat-label">6-Month Total</span>
+                <span className="stat-label">Year Total</span>
                 <span className="stat-value">₱{monthlyData.reduce((sum, d) => sum + d.sales, 0).toLocaleString()}</span>
               </div>
               <div className="stat-item">
@@ -283,7 +301,7 @@ const SalesChart = () => {
             <i className="fas fa-calendar-check"></i>
             Booking Trends
           </h3>
-          <span className="chart-badge">Weekly Activity</span>
+          <span className="chart-badge">Current Week</span>
         </div>
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height={250}>
