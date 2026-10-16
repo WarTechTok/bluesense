@@ -304,6 +304,7 @@ const StaffManagement = ({ receptionistMode = false }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-start',
+          width: '100%',
           gap: '12px'
         }}>
           <div style={{
@@ -328,7 +329,7 @@ const StaffManagement = ({ receptionistMode = false }) => {
               <span style={{ fontSize: '24px' }}>👤</span>
             )}
           </div>
-          <div>
+          <div style={{ flex: 1, textAlign: 'center' }}>
             <div style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
               {row.name}
             </div>
