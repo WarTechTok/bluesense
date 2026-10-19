@@ -11,6 +11,33 @@ const {
 } = require("../utils/cloudinary");
 
 const REVIEW_FOLDER = "bluesense/reviews";
+const INAPPROPRIATE_TERMS = [
+  "asshole", "bastard", "bitch", "bullshit", "crap", "cunt", "damn",
+  "dick", "fag", "faggot", "fuck", "fucked", "fucking", "motherfucker",
+  "piss", "pissed", "pussy", "shit", "shitty", "putangina", "putang ina",
+  "tangina", "tang ina", "puta", "gago", "tanga", "bobo", "ulol",
+  "bwisit", "leche", "lintik", "hindot", "tarantado", "kupal", "yawa",
+  "pakshet", "punyeta",
+];
+
+const normalizeReviewText = (value) =>
+  String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const containsInappropriateLanguage = (text) => {
+  const words = normalizeReviewText(text).split(" ").filter(Boolean);
+
+  return INAPPROPRIATE_TERMS.some((term) => {
+    const termWords = normalizeReviewText(term).split(" ");
+    return words.some((_, index) =>
+      termWords.every((word, offset) => words[index + offset] === word),
+    );
+  });
+};
 
 // ============================================
 // SUBMIT REVIEW (customer)
@@ -29,6 +56,14 @@ const submitReview = async (req, res) => {
           success: false,
           message: "bookingId, rating, and text are required.",
         });
+    }
+
+    if (containsInappropriateLanguage(text)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please remove curse words or inappropriate language before submitting your review.",
+      });
     }
 
     // Validate booking exists and belongs to this customer

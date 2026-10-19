@@ -579,31 +579,31 @@ const BookingManagement = () => {
         <div className="stat-card">
           <h3>Pending</h3>
           <p className="stat-number">
-            {bookings.filter((b) => b.status === "Pending").length}
+            {filteredBookings.filter((b) => b.status === "Pending").length}
           </p>
         </div>
         <div className="stat-card">
           <h3>Confirmed</h3>
           <p className="stat-number">
-            {bookings.filter((b) => b.status === "Confirmed").length}
+            {filteredBookings.filter((b) => b.status === "Confirmed").length}
           </p>
         </div>
         <div className="stat-card">
           <h3>Checked-in</h3>
           <p className="stat-number">
-            {bookings.filter((b) => b.status === "Checked-in").length}
+            {filteredBookings.filter((b) => b.status === "Checked-in").length}
           </p>
         </div>
         <div className="stat-card">
           <h3>Completed</h3>
           <p className="stat-number">
-            {bookings.filter((b) => b.status === "Completed").length}
+            {filteredBookings.filter((b) => b.status === "Completed").length}
           </p>
         </div>
         <div className="stat-card">
           <h3>Cancelled</h3>
           <p className="stat-number">
-            {bookings.filter((b) => b.status === "Cancelled").length}
+            {filteredBookings.filter((b) => b.status === "Cancelled").length}
           </p>
         </div>
       </div>

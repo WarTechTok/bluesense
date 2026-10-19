@@ -6,7 +6,11 @@
 
 import React, { useState } from 'react';
 import { submitReview } from '../../services/reviews';
+import { containsInappropriateLanguage } from '../../utils/reviewModeration';
 import './LeaveReviewModal.css';
+
+const INAPPROPRIATE_LANGUAGE_ERROR =
+  'Please remove curse words or inappropriate language before submitting your review.';
 
 function StarPicker({ value, onChange }) {
   const [hovered, setHovered] = useState(0);
@@ -72,11 +76,26 @@ export default function LeaveReviewModal({ booking, onClose, onSuccess }) {
     setVideoPreview(null);
   };
 
+  const handleReviewTextChange = (e) => {
+    const nextText = e.target.value;
+    setText(nextText);
+
+    if (containsInappropriateLanguage(nextText)) {
+      setError(INAPPROPRIATE_LANGUAGE_ERROR);
+    } else if (error === INAPPROPRIATE_LANGUAGE_ERROR) {
+      setError('');
+    }
+  };
+
   const handleSubmit = async () => {
     setError('');
     if (!rating) { setError('Please select a star rating.'); return; }
     if (text.trim().length < 10) { setError('Review must be at least 10 characters.'); return; }
     if (text.trim().length > 500) { setError('Review must not exceed 500 characters.'); return; }
+    if (containsInappropriateLanguage(text)) {
+      setError(INAPPROPRIATE_LANGUAGE_ERROR);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -135,9 +154,11 @@ export default function LeaveReviewModal({ booking, onClose, onSuccess }) {
               className="lrm-textarea"
               placeholder="Share your experience (minimum 10 characters, maximum 500)..."
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={handleReviewTextChange}
               maxLength={500}
               rows={4}
+              aria-invalid={containsInappropriateLanguage(text)}
+              aria-describedby={containsInappropriateLanguage(text) ? 'lrm-review-error' : undefined}
             />
             <span className={`lrm-charcount ${charCount > 480 ? 'warning' : ''}`}>
               {charCount}/500
@@ -203,7 +224,7 @@ export default function LeaveReviewModal({ booking, onClose, onSuccess }) {
             </label>
           </div>
 
-          {error && <div className="lrm-error">{error}</div>}
+          {error && <div id="lrm-review-error" className="lrm-error" role="alert">{error}</div>}
         </div>
 
         <div className="lrm-footer">
