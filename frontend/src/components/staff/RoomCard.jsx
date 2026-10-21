@@ -1,17 +1,26 @@
 import React from 'react';
 
 function RoomCard({ room, onViewDetails, getRoomStatusColor, getRatingColor }) {
+  const hasValue = (value) => value !== null && value !== undefined && String(value).trim() !== '';
+  const rating = hasValue(room.rating) && Number.isFinite(Number(room.rating))
+    ? Number(room.rating)
+    : null;
+  const lastCleanedDate = room.lastCleaned ? new Date(room.lastCleaned) : null;
+  const hasLastCleaned = lastCleanedDate && !Number.isNaN(lastCleanedDate.getTime());
+
   return (
     <div className="room-card">
       <div className="room-card-header">
         <div className="room-title-section">
           <h3>{room.name}</h3>
-          <span
-            className="room-status-badge"
-            style={{ backgroundColor: getRoomStatusColor(room.status) }}
-          >
-            {room.status}
-          </span>
+          {hasValue(room.status) && (
+            <span
+              className="room-status-badge"
+              style={{ backgroundColor: getRoomStatusColor(room.status) }}
+            >
+              {room.status}
+            </span>
+          )}
         </div>
       </div>
 
@@ -24,23 +33,27 @@ function RoomCard({ room, onViewDetails, getRoomStatusColor, getRatingColor }) {
           </div>
         </div>
 
-        <div className="detail-item">
-          <i className="fas fa-bed"></i>
-          <div>
-            <label>Type:</label>
-            <span>{room.roomType || 'Standard'}</span>
+        {hasValue(room.roomType) && (
+          <div className="detail-item">
+            <i className="fas fa-bed"></i>
+            <div>
+              <label>Type:</label>
+              <span>{room.roomType}</span>
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="detail-item">
-          <i className="fas fa-star"></i>
-          <div>
-            <label>Cleanliness Rating:</label>
-            <span style={{ color: getRatingColor(room.rating) }}>
-              {room.rating ?? '—'}/5 <i className="fas fa-star"></i>
-            </span>
+        {rating !== null && (
+          <div className="detail-item">
+            <i className="fas fa-star"></i>
+            <div>
+              <label>Cleanliness Rating:</label>
+              <span style={{ color: getRatingColor(rating) }}>
+                {rating}/5 <i className="fas fa-star"></i>
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
         {room.floor && (
           <div className="detail-item">
@@ -52,17 +65,17 @@ function RoomCard({ room, onViewDetails, getRoomStatusColor, getRatingColor }) {
           </div>
         )}
 
-        {room.lastCleaned && (
+        {hasLastCleaned && (
           <div className="detail-item">
             <i className="fas fa-calendar"></i>
             <div>
               <label>Last Cleaned:</label>
-              <span>{new Date(room.lastCleaned).toLocaleDateString()}</span>
+              <span>{lastCleanedDate.toLocaleDateString()}</span>
             </div>
           </div>
         )}
 
-        {room.notes && (
+        {hasValue(room.notes) && (
           <div className="detail-item full-width">
             <i className="fas fa-sticky-note"></i>
             <div>
