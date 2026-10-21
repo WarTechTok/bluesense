@@ -35,6 +35,8 @@ const Tasks = () => {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [locationTypeFilter, setLocationTypeFilter] = useState('');
+  const [oasisFilter, setOasisFilter] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
@@ -145,7 +147,7 @@ const Tasks = () => {
   const fetchTasks = async (status = '') => {
     try {
       setLoading(true);
-      const data = await staffApi.getTasks(status ? { status } : {});
+      const data = await staffApi.getTasks({ ...(status ? { status } : {}), limit: 1000 });
       setTasks(data.tasks || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
@@ -158,6 +160,16 @@ const Tasks = () => {
     setFilter(status);
     fetchTasks(status);
   };
+
+  const visibleTasks = tasks.filter((task) => {
+    const roomName = task.roomId?.name || '';
+    const isPool = /pool/i.test(roomName);
+    const matchesLocationType = !locationTypeFilter
+      || (locationTypeFilter === 'Pool' ? isPool : !isPool);
+    const matchesOasis = !oasisFilter || task.roomId?.oasis === oasisFilter;
+
+    return matchesLocationType && matchesOasis;
+  });
 
   const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
     setConfirmationModal({
@@ -365,30 +377,57 @@ const Tasks = () => {
 
       {/* Filter Section */}
       <div className="filter-section">
-        <select
-          value={filter}
-          onChange={(e) => handleFilterChange(e.target.value)}
-          className="filter-select"
-        >
-          <option value="">All Tasks</option>
-          <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
-        </select>
+        <label className="task-filter">
+          <span>Task status</span>
+          <select
+            value={filter}
+            onChange={(e) => handleFilterChange(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Tasks</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </label>
+        <label className="task-filter">
+          <span>Location type</span>
+          <select
+            value={locationTypeFilter}
+            onChange={(e) => setLocationTypeFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">Room or Pool</option>
+            <option value="Room">Room</option>
+            <option value="Pool">Pool</option>
+          </select>
+        </label>
+        <label className="task-filter">
+          <span>Oasis</span>
+          <select
+            value={oasisFilter}
+            onChange={(e) => setOasisFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="">All Oases</option>
+            <option value="Oasis 1">Oasis 1</option>
+            <option value="Oasis 2">Oasis 2</option>
+          </select>
+        </label>
       </div>
 
       {/* Tasks Grid */}
       <div className="tasks-container">
         {loading ? (
           <div className="loading">Loading tasks...</div>
-        ) : tasks.length === 0 ? (
+        ) : visibleTasks.length === 0 ? (
           <div className="empty-state">
             <i className="fas fa-inbox"></i>
-            <h2>No tasks assigned</h2>
-            <p>Check back later for new cleaning assignments</p>
+            <h2>{tasks.length === 0 ? 'No tasks assigned' : 'No tasks match these filters'}</h2>
+            <p>{tasks.length === 0 ? 'Check back later for new cleaning assignments' : 'Try changing the location or Oasis filter'}</p>
           </div>
         ) : (
-          tasks.map((task) => (
+          visibleTasks.map((task) => (
             <TaskCard
               key={task._id}
               task={task}

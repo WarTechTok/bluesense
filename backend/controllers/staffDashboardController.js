@@ -249,7 +249,7 @@ exports.getTasks = async (req, res) => {
 
     // Fetch tasks with room details
     const tasks = await TaskAssignment.find(filter)
-      .populate('roomId', 'name capacity status')
+      .populate('roomId', 'name capacity status oasis')
       .populate('assignedBy', 'name email')
       .sort({ dueDate: 1 })
       .limit(parseInt(limit))
