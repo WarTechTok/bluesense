@@ -40,12 +40,16 @@ export function calculateChemicals(oasisId, currentPH, currentORP) {
 
   // --- ORP ---
   // Target: 700–800 mV. Dose toward 750 mV (midpoint).
-  // Note: ORP > 800 means over-chlorinated — no liquid chlorine needed.
-  if (currentORP != null && currentORP < 700) {
-    // Liquid Chlorine: 1 gal per 10,000 gal raises ORP ~50 mV
-    const delta = 750 - currentORP;
-    const gals = Math.ceil((delta / 50) * 1 * units * 10) / 10;
-    orpSuggestion = `⚠️ Add ${gals} gal Liquid Chlorine`;
+  if (currentORP != null) {
+    if (currentORP < 700) {
+      // Liquid Chlorine: 1 gal per 10,000 gal raises ORP ~50 mV
+      const delta = 750 - currentORP;
+      const gals = Math.ceil((delta / 50) * 1 * units * 10) / 10;
+      orpSuggestion = `⚠️ Add ${gals} gal Liquid Chlorine`;
+    } else if (currentORP > 800) {
+      // Kapag sobrang taas ng ORP (over-chlorinated)
+      orpSuggestion = `⚠️ ORP is high. Do not add chlorine. Partially drain and refill water.`;
+    }
   }
 
   return { phSuggestion, orpSuggestion };
