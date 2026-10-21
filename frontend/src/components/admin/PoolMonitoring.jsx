@@ -4,6 +4,7 @@ import { getLatestReading, getHistory } from "../../services/api";
 import apiCall from "../../services/apiClient";
 import * as adminApi from "../../services/admin";
 import MessageModal from "../modals/MessageModal";
+import { calculateChemicals } from "../../utils/chemicals"; // <-- IDINAGDAG
 import "./PoolMonitoring.css";
 
 const OASIS_OPTIONS = [
@@ -153,7 +154,6 @@ const PoolMonitoring = () => {
       reading.temperature !== null &&
       reading.temperature !== undefined &&
       (reading.temperature < 26 || reading.temperature > 28);
-    // FIXED: WHO ORP range is 650–850 mV (750–850 is GOOD, >850 is HIGH)
     const orpBad =
       reading.orp !== null &&
       reading.orp !== undefined &&
@@ -178,6 +178,13 @@ const PoolMonitoring = () => {
   const statusInfo = getStatusInfo(latestReading);
   const activeOasis = OASIS_OPTIONS.find((o) => o.id === selectedOasis);
 
+  // <-- IDINAGDAG NA CHEMICAL SUGGESTIONS
+  const { phSuggestion, orpSuggestion } = calculateChemicals(
+    selectedOasis,
+    latestReading?.ph ?? null,
+    latestReading?.orp ?? null,
+  );
+
   const getChartColor = () => {
     if (selectedChart === "ph") return "#0284c7";
     if (selectedChart === "temperature") return "#f59e0b";
@@ -195,7 +202,6 @@ const PoolMonitoring = () => {
   const getYAxisSteps = () => {
     if (selectedChart === "ph") return [7.0, 7.2, 7.5, 7.8, 8.0];
     if (selectedChart === "temperature") return [20, 24, 26, 28, 32];
-    // FIXED: ORP chart steps show the WHO ranges clearly
     if (selectedChart === "orp") return [400, 650, 750, 850, 1000];
     return [1, 2, 3];
   };
@@ -215,7 +221,6 @@ const PoolMonitoring = () => {
     return item.turbidityLabel;
   };
 
-  // FIXED: ORP dot color uses 850 as upper threshold
   const getDotColor = (item) => {
     if (selectedChart === "ph")
       return item.ph < 7.2 || item.ph > 7.8 ? "#ef4444" : "#0284c7";
@@ -564,6 +569,12 @@ const PoolMonitoring = () => {
                     : "#10b981",
               }}
             />
+            {/* IDINAGDAG: pH SUGGESTION */}
+            {phSuggestion && (
+              <div style={{ marginTop: "6px", padding: "4px 8px", background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "600", color: "#c2410c", lineHeight: "1.3" }}>
+                {phSuggestion}
+              </div>
+            )}
           </div>
 
           <div className="pm-reading-card">
@@ -657,7 +668,6 @@ const PoolMonitoring = () => {
             />
           </div>
 
-          {/* FIXED: ORP Card - WHO range 650-850, GOOD is 750-850 */}
           <div className="pm-reading-card">
             <div className="pm-reading-icon" style={{ background: "#fdf4ff" }}>
               <svg
@@ -715,6 +725,12 @@ const PoolMonitoring = () => {
                       : "#10b981",
               }}
             />
+            {/* IDINAGDAG: ORP SUGGESTION */}
+            {orpSuggestion && (
+              <div style={{ marginTop: "6px", padding: "4px 8px", background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: "6px", fontSize: "0.75rem", fontWeight: "600", color: "#7e22ce", lineHeight: "1.3" }}>
+                {orpSuggestion}
+              </div>
+            )}
           </div>
 
           <div className="pm-reading-card">
@@ -1013,6 +1029,32 @@ const PoolMonitoring = () => {
               >
                 ✕
               </button>
+            </div>
+
+            {/* IDINAGDAG: CHEMICAL REQUIREMENTS SA MODAL */}
+            <div
+              style={{
+                background: "#fff7ed",
+                border: "1px solid #fed7aa",
+                borderRadius: "8px",
+                padding: "12px",
+                marginBottom: "16px",
+                fontSize: "0.85rem",
+              }}
+            >
+              <strong style={{ color: "#92400e", display: "block", marginBottom: "8px" }}>
+                🧪 Required Chemicals
+              </strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                <span style={{ color: "#374151" }}>
+                  <strong>pH —</strong>{" "}
+                  {phSuggestion ?? <span style={{ color: "#16a34a" }}>✓ Neutral</span>}
+                </span>
+                <span style={{ color: "#374151" }}>
+                  <strong>ORP —</strong>{" "}
+                  {orpSuggestion ?? <span style={{ color: "#16a34a" }}>✓ Neutral</span>}
+                </span>
+              </div>
             </div>
 
             <div style={{ marginBottom: "16px" }}>
