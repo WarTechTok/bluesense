@@ -152,9 +152,24 @@ export const getTaskDetails = async (taskId) => {
  */
 export const updateTaskStatus = async (taskId, updateData) => {
   try {
-    const config = updateData instanceof FormData
-      ? { headers: { 'Content-Type': 'multipart/form-data' } }
-      : {};
+    let config = {};
+
+    if (updateData instanceof FormData) {
+      // IMPORTANT: Do NOT set 'Content-Type' manually for FormData.
+      // Axios must derive it automatically so it can append the required
+      // multipart boundary (e.g. "multipart/form-data; boundary=----Xyz…").
+      // Hardcoding 'multipart/form-data' without the boundary causes the
+      // server's body parser to reject the request and the file is lost.
+      //
+      // We also delete the instance-level default so it doesn't override
+      // the per-request auto-detection.
+      config = {
+        headers: {
+          'Content-Type': undefined, // let axios set multipart + boundary
+        },
+      };
+    }
+
     const res = await apiClient.put(`/tasks/${taskId}/status`, updateData, config);
     return res.data;
   } catch (error) {
