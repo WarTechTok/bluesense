@@ -17,6 +17,7 @@ const formatDateInput = (date) => {
 const SalesTracking = () => {
   const PAGE_SIZE = 10;
   const [sales, setSales] = useState([]);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setDate(date.getDate() - 7);
@@ -24,21 +25,30 @@ const SalesTracking = () => {
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedYear, setSelectedYear] = useState('');
-  const [totalSales, setTotalSales] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRangeText, setDateRangeText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.max(1, Math.ceil(sales.length / PAGE_SIZE));
-  const paginatedSales = sales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const filteredSales = paymentMethodFilter === 'all'
+    ? sales
+    : sales.filter(sale =>
+      [sale.paymentMethod, sale.finalPaymentMethod]
+        .some(method => method?.toLowerCase() === paymentMethodFilter.toLowerCase())
+    );
+  const totalPages = Math.max(1, Math.ceil(filteredSales.length / PAGE_SIZE));
+  const paginatedSales = filteredSales.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalSales = filteredSales.reduce((total, sale) => total + (sale.amount || 0), 0);
   const currentYear = new Date().getFullYear();
   const yearOptions = Array.from({ length: Math.max(0, currentYear - 2015) + 1 }, (_, index) => currentYear - index);
-  const oasisOneSales = sales.filter(sale => sale.location?.toLowerCase() === 'oasis 1').length;
-  const oasisTwoSales = sales.filter(sale => sale.location?.toLowerCase() === 'oasis 2').length;
-  const cashSales = sales.filter(sale => sale.paymentMethod?.toLowerCase() === 'cash').length;
-  const eWalletSales = sales.filter(sale =>
+  const oasisOneSales = filteredSales.filter(sale => sale.location?.toLowerCase() === 'oasis 1').length;
+  const oasisTwoSales = filteredSales.filter(sale => sale.location?.toLowerCase() === 'oasis 2').length;
+  const cashSales = filteredSales.filter(sale =>
+    [sale.paymentMethod, sale.finalPaymentMethod].some(method => method?.toLowerCase() === 'cash')
+  ).length;
+  const eWalletSales = filteredSales.filter(sale =>
     ['gcash', 'maya', 'gotyme', 'seabank'].includes(sale.paymentMethod?.toLowerCase())
+    || ['gcash', 'maya', 'gotyme', 'seabank'].includes(sale.finalPaymentMethod?.toLowerCase())
   ).length;
 
   const fetchSales = useCallback(async () => {
@@ -68,7 +78,6 @@ const SalesTracking = () => {
       console.log('📊 Sales list after sort:', salesList.length);
       
       setSales(salesList);
-      setTotalSales(data.total || 0);
       
       // Format date range text for display
       const start = new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -89,7 +98,7 @@ const SalesTracking = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate]);
+  }, [startDate, endDate, paymentMethodFilter]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -152,6 +161,22 @@ const SalesTracking = () => {
               {yearOptions.map(year => <option key={year} value={year}>{year}</option>)}
             </select>
           </div>
+          <div className="date-input-group">
+            <label htmlFor="sales-payment-method-filter">Payment Method:</label>
+            <select
+              id="sales-payment-method-filter"
+              value={paymentMethodFilter}
+              onChange={(e) => setPaymentMethodFilter(e.target.value)}
+              className="date-input"
+            >
+              <option value="all">All Payment Methods</option>
+              <option value="Cash">Cash</option>
+              <option value="GCash">GCash</option>
+              <option value="Maya">Maya</option>
+              <option value="GoTyme">GoTyme</option>
+              <option value="SeaBank">SeaBank</option>
+            </select>
+          </div>
         </div>
         
         <div className="date-range-picker">
@@ -200,7 +225,7 @@ const SalesTracking = () => {
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <div className="stat-title">Transactions</div>
-            <div className="stat-value">{sales.length}</div>
+            <div className="stat-value">{filteredSales.length}</div>
             <div className="stat-period">Total bookings</div>
           </div>
         </div>
@@ -209,7 +234,7 @@ const SalesTracking = () => {
           <div className="stat-content">
             <div className="stat-title">Average Sale</div>
             <div className="stat-value">
-              {sales.length > 0 ? formatCurrency(totalSales / sales.length) : formatCurrency(0)}
+              {filteredSales.length > 0 ? formatCurrency(totalSales / filteredSales.length) : formatCurrency(0)}
             </div>
             <div className="stat-period">Per transaction</div>
           </div>
@@ -252,8 +277,8 @@ const SalesTracking = () => {
       <div className="sales-table-container">
         <div className="table-header">
           <h3>Sales Details</h3>
-          {sales.length > 0 && (
-            <div className="table-info">Showing {sales.length} transactions</div>
+          {filteredSales.length > 0 && (
+            <div className="table-info">Showing {filteredSales.length} transactions</div>
           )}
         </div>
         
@@ -272,8 +297,8 @@ const SalesTracking = () => {
           <>
             <div className="table-top-controls">
               <div className="showing-summary">
-                Showing {sales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
-                -{Math.min(currentPage * PAGE_SIZE, sales.length)} of {sales.length}
+                Showing {filteredSales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+                -{Math.min(currentPage * PAGE_SIZE, filteredSales.length)} of {filteredSales.length}
               </div>
               <div className="pagination-controls">
                 <button
@@ -307,7 +332,7 @@ const SalesTracking = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {sales.length === 0 ? (
+                  {filteredSales.length === 0 ? (
                     <tr className="no-data-row">
                       <td colSpan="6">
                         <div className="no-data">
@@ -329,7 +354,11 @@ const SalesTracking = () => {
                           <td className="reference-code">{referenceCode}</td>
                           <td className="location">{location}</td>
                           <td className="customer-name">{customerName}</td>
-                          <td>{sale.paymentMethod || 'N/A'}</td>
+                          <td>
+                            {sale.finalPaymentMethod
+                              ? `${sale.paymentMethod || 'N/A'} / Final: ${sale.finalPaymentMethod}`
+                              : sale.paymentMethod || 'N/A'}
+                          </td>
                           <td className="amount">{formatCurrency(sale.amount || 0)}</td>
                           <td className="date">{sale.date ? new Date(sale.date).toLocaleDateString() : 'N/A'}</td>
                         </tr>
@@ -342,8 +371,8 @@ const SalesTracking = () => {
 
             <div className="table-bottom-controls">
               <div className="showing-summary">
-                Showing {sales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
-                -{Math.min(currentPage * PAGE_SIZE, sales.length)} of {sales.length}
+                Showing {filteredSales.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}
+                -{Math.min(currentPage * PAGE_SIZE, filteredSales.length)} of {filteredSales.length}
               </div>
               <div className="pagination-controls">
                 <button
