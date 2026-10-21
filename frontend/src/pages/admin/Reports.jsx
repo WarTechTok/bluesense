@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import ConfirmationModal from "../../components/admin/ConfirmationModal";
+import Modal from "../../components/admin/Modal";
 import "./ManagementPages.css";
 import * as adminApi from '../../services/admin';
 import * as XLSX from "xlsx";
@@ -32,6 +33,7 @@ const Reports = () => {
     confirmText: 'Confirm',
     cancelText: 'Cancel'
   });
+  const [selectedInspection, setSelectedInspection] = useState(null);
 
   // Set default dates on component mount
   useEffect(() => {
@@ -62,6 +64,35 @@ const Reports = () => {
       confirmText,
       cancelText
     });
+  };
+
+  const closeInspectionReport = async (inspectionId) => {
+    try {
+      await adminApi.reviewInspectionReport(inspectionId);
+      setReportData((current) => Array.isArray(current)
+        ? current.filter((inspection) => inspection._id !== inspectionId)
+        : current);
+      setSelectedInspection((current) => current?._id === inspectionId ? null : current);
+    } catch (error) {
+      console.error('Error closing inspection report:', error);
+      showConfirmationModal(
+        'Error',
+        error.response?.data?.error || 'Failed to close the inspection report.',
+        null,
+        'OK'
+      );
+    }
+  };
+
+  const confirmCloseInspectionReport = (inspection) => {
+    setSelectedInspection(null);
+    showConfirmationModal(
+      'Close Inspection Report',
+      'Mark this report as reviewed? It will be removed from the pending inspection report list.',
+      () => closeInspectionReport(inspection._id),
+      'Mark Reviewed',
+      'Cancel'
+    );
   };
 
   const downloadFile = (content, fileName, mimeType) => {
@@ -590,7 +621,7 @@ const Reports = () => {
   const getNoDataColSpan = () => {
     if (reportType === "booking") return "14";
     if (reportType === "sales") return "5";
-    if (reportType === "inspection") return "8";
+    if (reportType === "inspection") return "9";
     if (reportType === "pool-monitoring") return "6";
     return "3";
   };
@@ -841,6 +872,7 @@ const Reports = () => {
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Items Needed</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Status</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Rating</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Actions</th>
                     </>
                   )}
                   {reportType === "pool-monitoring" && (
@@ -932,6 +964,20 @@ const Reports = () => {
                             <td>{row.itemsNeeded || "N/A"}</td>
                             <td>{row.status || "N/A"}</td>
                             <td>{row.rating || "N/A"}</td>
+                            <td className="inspection-report-actions">
+                              <button
+                                className="btn-secondary btn-small"
+                                onClick={() => setSelectedInspection(row)}
+                              >
+                                View Details
+                              </button>
+                              <button
+                                className="btn-primary btn-small"
+                                onClick={() => confirmCloseInspectionReport(row)}
+                              >
+                                Close Report
+                              </button>
+                            </td>
                           </>
                         )}
                         {reportType === "pool-monitoring" && (
@@ -963,6 +1009,61 @@ const Reports = () => {
           confirmText={confirmationModal.confirmText}
           cancelText={confirmationModal.cancelText}
         />
+      )}
+
+      {selectedInspection && (
+        <Modal onClose={() => setSelectedInspection(null)}>
+          <div className="modal-header">
+            <h2>Inspection Report Details</h2>
+            <button className="modal-close" onClick={() => setSelectedInspection(null)}>×</button>
+          </div>
+          <div className="modal-body inspection-report-details">
+            {selectedInspection.proofImages?.length > 0 ? (
+              selectedInspection.proofImages.map((image, index) => (
+                <a key={`${image}-${index}`} href={image} target="_blank" rel="noreferrer">
+                <img
+                  src={image}
+                  alt={`Inspection proof ${index + 1}`}
+                  className="inspection-proof-image"
+                  style={{ maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
+                />
+              </a>
+              ))
+            ) : selectedInspection.proofImage ? (
+              <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer">
+              <img
+                src={selectedInspection.proofImage}
+                alt="Inspection proof"
+                className="inspection-proof-image"
+                style={{ maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', display: 'block', margin: '0 auto 20px' }}
+              />
+              </a>
+            ) : (
+              <p>No proof image was submitted.</p>
+            )}
+            <dl>
+              <dt>Room</dt><dd>{selectedInspection.roomName || 'N/A'}</dd>
+              <dt>Inspected by</dt><dd>{selectedInspection.inspectedBy || 'N/A'}</dd>
+              <dt>Date</dt><dd>{selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}</dd>
+              <dt>Cleanliness</dt><dd>{selectedInspection.cleanliness || selectedInspection.condition || 'N/A'}</dd>
+              <dt>Furniture condition</dt><dd>{selectedInspection.furnitureCondition || 'N/A'}</dd>
+              <dt>Cleaning needed</dt><dd>{selectedInspection.cleaningNeeded || 'N/A'}</dd>
+              <dt>Electricity</dt><dd>{selectedInspection.electricityStatus || 'N/A'}</dd>
+              <dt>Plumbing</dt><dd>{selectedInspection.plumbingStatus || 'N/A'}</dd>
+              <dt>Damage found</dt><dd>{selectedInspection.damageFound || 'No'}</dd>
+              <dt>Damage description</dt><dd>{selectedInspection.damageDescription || 'None'}</dd>
+              <dt>Maintenance required</dt><dd>{selectedInspection.maintenanceRequired ? 'Yes' : 'No'}</dd>
+              <dt>Maintenance notes</dt><dd>{selectedInspection.maintenanceNotes || 'None'}</dd>
+              <dt>Items needed</dt><dd>{selectedInspection.itemsNeeded || 'None'}</dd>
+              <dt>Rating</dt><dd>{selectedInspection.rating || 'N/A'}</dd>
+              <dt>Additional notes</dt><dd>{selectedInspection.notes || 'None'}</dd>
+            </dl>
+          </div>
+          <div className="modal-footer">
+            <button className="btn-cancel-modal" onClick={() => setSelectedInspection(null)}>Close</button>
+            <button className="btn-submit" onClick={() => confirmCloseInspectionReport(selectedInspection)}>Mark Reviewed</button>
+          </div>
+        </Modal>
       )}
     </div>
   );

@@ -45,6 +45,16 @@ export const getInspectionReport = async (startDate, endDate) => {
   }
 };
 
+export const reviewInspectionReport = async (inspectionId) => {
+  try {
+    const res = await apiClient.patch(`/reports/inspections/${inspectionId}/review`);
+    return res.data;
+  } catch (error) {
+    console.error('Error closing inspection report:', error);
+    throw error;
+  }
+};
+
 export const getPoolMonitoringReport = async (startDate, endDate, oasis) => {
   try {
     const res = await apiClient.get('/reports/pool-monitoring', { params: { startDate, endDate, oasis } });

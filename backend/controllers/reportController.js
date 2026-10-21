@@ -3,11 +3,13 @@
 // REPORTS CONTROLLER - Generate business analytics reports
 // ============================================
 
+const mongoose = require('mongoose');
 const Reservation = require('../models/Reservation');
 const Sale = require('../models/Sale');
 const Booking = require('../models/Booking');
 const Inventory = require('../models/Inventory');
 const Staff = require('../models/Staff');
+const Room = require('../models/Room');
 const InspectionRecord = require('../models/InspectionRecord');
 const Readings = require('../models/reading');
 
@@ -195,7 +197,7 @@ exports.getInventoryUsageReport = async (req, res) => {
 exports.getInspectionReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    const query = {};
+    const query = { status: { $in: ['Submitted', 'Action-Required'] } };
 
     if (startDate && endDate) {
       query.inspectionDate = buildDateRange(startDate, endDate);
@@ -204,29 +206,98 @@ exports.getInspectionReport = async (req, res) => {
     const inspections = await InspectionRecord.find(query)
       .populate('room', 'name')
       .populate('inspectedBy', 'name email')
+      .populate('taskId', 'title taskType description')
       .sort({ inspectionDate: -1 });
 
     const formattedInspections = inspections.map((inspection) => ({
       _id: inspection._id,
+      roomId: inspection.room?._id?.toString() || inspection.room?.toString(),
+      inspectedById: inspection.inspectedBy?._id?.toString() || inspection.inspectedBy?.toString(),
       date: inspection.inspectionDate || inspection.createdAt,
       roomName: inspection.room?.name || 'Unknown Room',
       inspectedBy: inspection.inspectedBy?.name || 'Unknown Staff',
+      task: inspection.taskId ? {
+        title: inspection.taskId.title,
+        taskType: inspection.taskId.taskType,
+        description: inspection.taskId.description
+      } : null,
+      roomStatusBeforeInspection: inspection.roomStatusBeforeInspection,
       condition: inspection.cleanliness || inspection.furnitureCondition || 'Good',
+      cleanliness: inspection.cleanliness,
+      furnitureCondition: inspection.furnitureCondition,
+      cleaningNeeded: inspection.cleaningNeeded,
+      electricityStatus: inspection.electricityStatus,
+      plumbingStatus: inspection.plumbingStatus,
       damageFound: inspection.damagesFound || inspection.damageFound ? 'Yes' : 'No',
       damageDescription: inspection.damageDescription || 'No damage reported',
+      maintenanceRequired: inspection.maintenanceRequired,
+      maintenanceNotes: inspection.maintenanceNotes,
       itemsNeeded: Array.isArray(inspection.itemsNeeded)
         ? inspection.itemsNeeded.join(', ')
         : (inspection.itemsNeeded || ''),
       notes: inspection.notes || 'No additional notes',
       status: inspection.status || 'Submitted',
       rating: inspection.rating || 5,
-      proofImage: inspection.photosPath?.[0] || null
+      createdAt: inspection.createdAt,
+      updatedAt: inspection.updatedAt,
+      reviewedAt: inspection.reviewedAt,
+      proofImage: inspection.photosPath?.[0] || null,
+      proofImages: inspection.photosPath || []
     }));
 
     res.json(formattedInspections);
   } catch (error) {
     console.error('❌ Error in getInspectionReport:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.reviewInspectionReport = async (req, res) => {
+  try {
+    const { inspectionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(inspectionId)) {
+      return res.status(400).json({ error: 'Invalid inspection ID' });
+    }
+
+    const inspection = await InspectionRecord.findById(inspectionId);
+    if (!inspection) {
+      return res.status(404).json({ error: 'Inspection report not found' });
+    }
+    if (inspection.status === 'Reviewed') {
+      await Room.findByIdAndUpdate(inspection.room, {
+        $pull: {
+          assignedStaff: {
+            staffId: inspection.inspectedBy,
+            assignedDate: { $lte: inspection.createdAt }
+          }
+        }
+      });
+      return res.json({ success: true, inspection });
+    }
+    if (!['Submitted', 'Action-Required'].includes(inspection.status)) {
+      return res.status(409).json({ error: 'This inspection report cannot be closed' });
+    }
+
+    inspection.status = 'Reviewed';
+    inspection.reviewedAt = new Date();
+    if (mongoose.Types.ObjectId.isValid(req.user.id)) {
+      inspection.reviewedBy = req.user.id;
+    }
+    await inspection.save();
+
+    await Room.findByIdAndUpdate(inspection.room, {
+      $pull: {
+        assignedStaff: {
+          staffId: inspection.inspectedBy,
+          assignedDate: { $lte: inspection.createdAt }
+        }
+      }
+    });
+
+    return res.json({ success: true, inspection });
+  } catch (error) {
+    console.error('Error closing inspection report:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
 

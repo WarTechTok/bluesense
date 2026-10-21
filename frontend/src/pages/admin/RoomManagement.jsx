@@ -9,6 +9,8 @@ import './RoomCards.css';
 const RoomManagement = () => {
   const [rooms, setRooms] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [inspectionReports, setInspectionReports] = useState([]);
+  const [selectedInspection, setSelectedInspection] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isStaffModalOpen, setIsStaffModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
@@ -55,16 +57,27 @@ const RoomManagement = () => {
     }
   }, []);
 
+  const fetchInspectionReports = useCallback(async () => {
+    try {
+      const reports = await adminApi.getInspectionReport();
+      setInspectionReports(Array.isArray(reports) ? reports : []);
+    } catch (error) {
+      console.error('Error fetching pending inspection reports:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRooms();
     fetchStaff();
+    fetchInspectionReports();
 
     const refreshInterval = window.setInterval(() => {
       fetchRooms();
+      fetchInspectionReports();
     }, 5000);
 
     return () => window.clearInterval(refreshInterval);
-  }, [fetchRooms, fetchStaff]);
+  }, [fetchRooms, fetchStaff, fetchInspectionReports]);
 
   const showConfirmationModal = (title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') => {
     setConfirmationModal({
@@ -239,24 +252,21 @@ const RoomManagement = () => {
     }
   };
 
-  const handleRemoveStaff = async (roomId, staffId, staffName) => {
-    showConfirmationModal(
-      'Remove Staff',
-      `Are you sure you want to remove ${staffName} from this room?`,
-      async () => {
-        try {
-          await adminApi.removeStaffFromRoom(roomId, staffId);
-          fetchRooms();
-          showConfirmationModal('Success', 'Staff removed successfully!', null, 'OK');
-        } catch (error) {
-          console.error('Error removing staff:', error);
-          const errorMsg = error.response?.data?.error || error.message || 'Error removing staff';
-          showFrontModalError('Error', errorMsg);
-        }
-      },
-      'Yes, Remove',
-      'Cancel'
+  const getInspectionForAssignment = (roomId, staffId) =>
+    inspectionReports.find((report) =>
+      report.roomId === roomId && report.inspectedById === staffId
     );
+
+  const handleCloseInspectionReport = async (inspection) => {
+    try {
+      await adminApi.reviewInspectionReport(inspection._id);
+      setSelectedInspection(null);
+      await Promise.all([fetchRooms(), fetchInspectionReports()]);
+    } catch (error) {
+      console.error('Error closing inspection report:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to close inspection report';
+      showFrontModalError('Error', errorMsg);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -368,14 +378,24 @@ const RoomManagement = () => {
                 <div className="assigned-staff">
                   <h5>👤 Assigned Staff</h5>
                   {room.assignedStaff.map((assignment, idx) => (
-                    <div key={idx} className="staff-assignment">
+                    <div key={assignment.staffId?._id || idx} className="staff-assignment">
                       <span>{assignment.staffId?.name || 'Unknown'}</span>
-                      <button 
-                        className="btn-small btn-remove"
-                        onClick={() => handleRemoveStaff(room._id, assignment.staffId._id, assignment.staffId?.name)}
-                      >
-                        Remove
-                      </button>
+                      {(() => {
+                        const inspection = getInspectionForAssignment(
+                          room._id,
+                          assignment.staffId?._id
+                        );
+                        return (
+                          <button
+                            className="btn-small btn-secondary"
+                            disabled={!inspection}
+                            title={inspection ? 'View submitted inspection report' : 'Waiting for staff to submit an inspection report'}
+                            onClick={() => inspection && setSelectedInspection(inspection)}
+                          >
+                            {inspection ? 'View Details' : 'Waiting for Report'}
+                          </button>
+                        );
+                      })()}
                     </div>
                   ))}
                 </div>
@@ -576,6 +596,65 @@ const RoomManagement = () => {
           <div className="modal-footer">
             <button className="btn-secondary" onClick={() => setIsStaffModalOpen(false)}>Cancel</button>
             <button className="btn-primary" onClick={handleAssignStaff}>Assign Staff</button>
+          </div>
+        </Modal>
+      )}
+
+      {selectedInspection && (
+        <Modal onClose={() => setSelectedInspection(null)}>
+          <div className="modal-header">
+            <h3>Inspection Report Details</h3>
+            <button className="modal-close" onClick={() => setSelectedInspection(null)}>✕</button>
+          </div>
+          <div className="modal-body">
+            {selectedInspection.proofImages?.length > 0 ? (
+              selectedInspection.proofImages.map((image, index) => (
+                <a key={`${image}-${index}`} href={image} target="_blank" rel="noreferrer">
+                  <img
+                    src={image}
+                    alt={`Inspection proof ${index + 1}`}
+                    style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', margin: '0 auto 20px' }}
+                  />
+                </a>
+              ))
+            ) : selectedInspection.proofImage ? (
+              <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer">
+                <img
+                  src={selectedInspection.proofImage}
+                  alt="Inspection proof"
+                  style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', margin: '0 auto 20px' }}
+                />
+              </a>
+            ) : (
+              <p>No proof image was submitted.</p>
+            )}
+            <dl>
+              <dt>Room</dt><dd>{selectedInspection.roomName || 'N/A'}</dd>
+              <dt>Inspected by</dt><dd>{selectedInspection.inspectedBy || 'N/A'}</dd>
+              <dt>Date</dt><dd>{selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}</dd>
+              <dt>Task</dt><dd>{selectedInspection.task?.title || selectedInspection.task?.taskType || 'N/A'}</dd>
+              <dt>Task description</dt><dd>{selectedInspection.task?.description || 'None'}</dd>
+              <dt>Room status before inspection</dt><dd>{selectedInspection.roomStatusBeforeInspection || 'N/A'}</dd>
+              <dt>Cleanliness</dt><dd>{selectedInspection.cleanliness || selectedInspection.condition || 'N/A'}</dd>
+              <dt>Furniture condition</dt><dd>{selectedInspection.furnitureCondition || 'N/A'}</dd>
+              <dt>Cleaning needed</dt><dd>{selectedInspection.cleaningNeeded || 'N/A'}</dd>
+              <dt>Electricity status</dt><dd>{selectedInspection.electricityStatus || 'N/A'}</dd>
+              <dt>Plumbing status</dt><dd>{selectedInspection.plumbingStatus || 'N/A'}</dd>
+              <dt>Damage found</dt><dd>{selectedInspection.damageFound || 'No'}</dd>
+              <dt>Damage description</dt><dd>{selectedInspection.damageDescription || 'None'}</dd>
+              <dt>Maintenance required</dt><dd>{selectedInspection.maintenanceRequired ? 'Yes' : 'No'}</dd>
+              <dt>Maintenance notes</dt><dd>{selectedInspection.maintenanceNotes || 'None'}</dd>
+              <dt>Items needed</dt><dd>{selectedInspection.itemsNeeded || 'None'}</dd>
+              <dt>Report status</dt><dd>{selectedInspection.status || 'Submitted'}</dd>
+              <dt>Rating</dt><dd>{selectedInspection.rating ?? 'N/A'} / 10</dd>
+              <dt>Additional notes</dt><dd>{selectedInspection.notes || 'None'}</dd>
+            </dl>
+          </div>
+          <div className="modal-footer">
+            <button className="btn-cancel-modal" onClick={() => setSelectedInspection(null)}>Close</button>
+            <button className="btn-submit" onClick={() => handleCloseInspectionReport(selectedInspection)}>
+              Mark Reviewed & Remove Staff
+            </button>
           </div>
         </Modal>
       )}

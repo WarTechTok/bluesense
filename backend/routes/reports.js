@@ -38,6 +38,8 @@ router.get('/inventory-usage', authenticate, reportController.getInventoryUsageR
 // ============================================
 router.get('/inspections', authenticate, authorizeAdminOrReceptionist, reportController.getInspectionReport);
 
+router.patch('/inspections/:inspectionId/review', authenticate, authorize('admin'), reportController.reviewInspectionReport);
+
 // GET POOL MONITORING REPORT - water quality history from sensor readings
 // Accessible to admins and receptionist staff
 // Query params: startDate, endDate, oasis

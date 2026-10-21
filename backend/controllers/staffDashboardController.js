@@ -317,6 +317,11 @@ exports.updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
     const { status, notes, actualHours } = req.body;
+    const validStatuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
+
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid task status' });
+    }
 
     // Get staff document
     const staff = await getStaffDocument(req.user);
@@ -351,13 +356,6 @@ exports.updateTaskStatus = async (req, res) => {
 
     task.updatedAt = new Date();
     await task.save();
-
-    // ============================================
-    // KEEP ROOM ASSIGNMENT VISIBLE THROUGH TASK EXECUTION
-    // ============================================
-    // Staff must still see the room as assigned while they start work and
-    // complete the follow-up inspection. The room assignment is therefore
-    // not cleared here; it is cleared when the inspection proof is submitted.
 
     // Create notification for admin when task is completed
     if (status === 'Completed') {
@@ -518,19 +516,34 @@ exports.getAssignedRooms = async (req, res) => {
 
     const staffMongoId = staff._id;
 
-    // Show rooms in the staff Assigned Rooms tab only after the task has
-    // actually been started. The room assignment is created on admin-side
-    // assignment, but the staff-side room list should be driven by the task's
-    // active workflow state.
-    const taskAssignments = await TaskAssignment.find(
-      getActiveRoomTaskFilter(staffMongoId)
-    )
+    const taskAssignments = await TaskAssignment.find({
+      staffId: staffMongoId,
+      status: { $in: ['In Progress', 'Completed'] }
+    })
       .populate('roomId', '_id name capacity price status description')
-      .sort({ startedAt: -1 });
+      .sort({ startedAt: -1, completedAt: -1 });
 
-    const rooms = taskAssignments
-      .map((task) => task.roomId)
-      .filter(Boolean);
+    const inspections = await InspectionRecord.find({
+      inspectedBy: staffMongoId,
+      room: { $in: taskAssignments.map(task => task.roomId?._id).filter(Boolean) }
+    }).select('taskId room createdAt');
+    const roomsWithPendingInspection = new Map();
+
+    taskAssignments.forEach((task) => {
+      if (!task.roomId) return;
+      const reportSince = task.completedAt || task.startedAt || task.createdAt;
+      const hasInspection = inspections.some((inspection) => {
+        if (inspection.taskId) return inspection.taskId.toString() === task._id.toString();
+        return inspection.room.toString() === task.roomId._id.toString()
+          && inspection.createdAt >= reportSince;
+      });
+
+      if (!hasInspection) {
+        roomsWithPendingInspection.set(task.roomId._id.toString(), task.roomId);
+      }
+    });
+
+    const rooms = Array.from(roomsWithPendingInspection.values());
 
     res.json({
       rooms: rooms || [],
@@ -670,13 +683,31 @@ exports.createInspectionRecord = async (req, res) => {
       return res.status(404).json({ error: 'Room not found' });
     }
 
-    // The staff room list is derived from in-progress tasks, so use the same
-    // assignment source here instead of Room.assignedStaff.
-    const activeRoomTask = await TaskAssignment.findOne(
-      getActiveRoomTaskFilter(staffMongoId, room._id)
-    );
+    const roomTasks = await TaskAssignment.find({
+      staffId: staffMongoId,
+      roomId: room._id,
+      status: { $in: ['In Progress', 'Completed'] }
+    }).sort({ updatedAt: -1 });
+
+    let activeRoomTask = null;
+    for (const task of roomTasks) {
+      const existingTaskInspection = await InspectionRecord.findOne({ taskId: task._id }).select('_id');
+      if (existingTaskInspection) continue;
+
+      const hasLegacyInspection = await InspectionRecord.exists({
+        inspectedBy: staffMongoId,
+        room: room._id,
+        createdAt: { $gte: task.completedAt || task.startedAt || task.createdAt },
+        taskId: null
+      });
+      if (!hasLegacyInspection) {
+        activeRoomTask = task;
+        break;
+      }
+    }
+
     if (!activeRoomTask) {
-      return res.status(403).json({ error: 'No active task assigns this room to you' });
+      return res.status(403).json({ error: 'No task awaiting an inspection report assigns this room to you' });
     }
 
     let uploadedPhotoUrl = null;
@@ -695,6 +726,7 @@ exports.createInspectionRecord = async (req, res) => {
       room: roomId,
       roomStatusBeforeInspection: room.status,
       inspectedBy: staffMongoId,
+      taskId: activeRoomTask._id,
       cleanliness: condition,
       furnitureCondition: condition,
       cleaningNeeded: cleaningNeeded || 'No',
@@ -708,23 +740,6 @@ exports.createInspectionRecord = async (req, res) => {
     });
 
     await inspection.save();
-
-    // Once the inspection proof is filed, clear the room assignment so the
-    // admin/receptionist view reflects that the staff member has completed the
-    // inspection cycle for that room.
-    try {
-      await Room.findByIdAndUpdate(
-        roomId,
-        {
-          $pull: {
-            assignedStaff: { staffId: staffMongoId }
-          }
-        },
-        { new: true }
-      );
-    } catch (cleanupError) {
-      console.error('⚠️ Error clearing room assignment after inspection submission:', cleanupError);
-    }
 
     let maintenanceRecord = null;
 

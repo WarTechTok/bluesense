@@ -29,6 +29,12 @@ const inspectionRecordSchema = new mongoose.Schema({
     ref: 'Staff',
     required: true
   },
+
+  taskId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TaskAssignment',
+    default: null
+  },
   
   inspectionDate: {
     type: Date,
@@ -103,6 +109,17 @@ const inspectionRecordSchema = new mongoose.Schema({
     type: String,
     enum: ['Draft', 'Submitted', 'Reviewed', 'Action-Required'],
     default: 'Submitted'
+  },
+
+  reviewedAt: {
+    type: Date,
+    default: null
+  },
+
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
   
   // ============================================
