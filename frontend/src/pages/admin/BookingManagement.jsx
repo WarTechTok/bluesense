@@ -174,10 +174,10 @@ const BookingManagement = () => {
     setVerificationModalOpen(true);
   };
 
-  const handleVerifyPayment = async (bookingId) => {
+  const handleVerifyPayment = async (bookingId, finalPaymentMethod) => {
     try {
       const booking = bookings.find((b) => b._id === bookingId);
-      await adminApi.verifyPayment(bookingId);
+      await adminApi.verifyPayment(bookingId, finalPaymentMethod);
 
       fetchBookings();
       const message =
@@ -193,6 +193,7 @@ const BookingManagement = () => {
         null,
         "OK",
       );
+      throw error;
     }
   };
 

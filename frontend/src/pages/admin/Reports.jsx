@@ -19,6 +19,7 @@ const Reports = () => {
   const [reportStatusFilter, setReportStatusFilter] = useState("all");
   const [reportOasisFilter, setReportOasisFilter] = useState("all");
   const [reportSourceFilter, setReportSourceFilter] = useState("all");
+  const [reportPaymentMethodFilter, setReportPaymentMethodFilter] = useState("all");
   const [dateSortDirection, setDateSortDirection] = useState(null); // 'asc' or 'desc' or null
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -244,6 +245,14 @@ const Reports = () => {
           allBookings = allBookings.filter((booking) => !booking.bookingSource);
         } else if (reportSourceFilter !== "all") {
           allBookings = allBookings.filter((booking) => booking.bookingSource === reportSourceFilter);
+        }
+
+        if (reportPaymentMethodFilter !== "all") {
+          const selectedMethod = reportPaymentMethodFilter.toLowerCase();
+          allBookings = allBookings.filter((booking) =>
+            [booking.paymentMethod, booking.finalPaymentMethod]
+              .some((method) => method?.toLowerCase() === selectedMethod)
+          );
         }
 
         // Sort by booking number
@@ -667,6 +676,21 @@ const Reports = () => {
                   <option value="Online">Online Reservation</option>
                   <option value="Walk-in">Walk-in</option>
                   <option value="unrecorded">Source Not Recorded</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Payment Method</label>
+                <select
+                  value={reportPaymentMethodFilter}
+                  onChange={(e) => setReportPaymentMethodFilter(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Payment Methods</option>
+                  <option value="Cash">Cash</option>
+                  <option value="GCash">GCash</option>
+                  <option value="Maya">Maya</option>
+                  <option value="GoTyme">GoTyme</option>
+                  <option value="SeaBank">SeaBank</option>
                 </select>
               </div>
             </>

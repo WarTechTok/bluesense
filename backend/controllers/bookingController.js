@@ -525,8 +525,6 @@ const createBooking = async (req, res) => {
       specialRequests,
       paymentMethod,
       paymentType,
-      status,
-      paymentStatus,
     } = req.body;
 
     // Upload payment proof to Cloudinary (buffer from memoryStorage)
@@ -689,7 +687,7 @@ const createBooking = async (req, res) => {
       paymentMethod,
       paymentType:     paymentType || "downpayment",
       paymentProof:    paymentProof || null,
-      status:          status || "Pending",
+      status:          "Pending",
       paymentStatus:   "Pending", // always Pending until admin verifies proof
       bookingReference,
       bookingNumber:   nextBookingNumber,
@@ -781,6 +779,7 @@ const updateBooking = async (req, res) => {
       totalPrice,
       downpayment,
       paymentMethod,
+      paymentType,
       paymentStatus,
       status,
       specialRequests,
@@ -808,6 +807,7 @@ const updateBooking = async (req, res) => {
     if (totalPrice      !== undefined) updateData.totalPrice      = totalPrice;
     if (downpayment     !== undefined) updateData.downpayment     = downpayment;
     if (paymentMethod   !== undefined) updateData.paymentMethod   = paymentMethod;
+    if (paymentType     !== undefined) updateData.paymentType     = paymentType;
     if (paymentStatus   !== undefined) updateData.paymentStatus   = paymentStatus;
     if (status          !== undefined) updateData.status          = status;
     if (specialRequests !== undefined) updateData.specialRequests = specialRequests;
@@ -1175,6 +1175,7 @@ const getBookedDatesWithSessions = async (req, res) => {
 const verifyPayment = async (req, res) => {
   try {
     const { id }  = req.params;
+    const { finalPaymentMethod } = req.body || {};
     const userId  = req.user?.id;
 
     const booking = await Booking.findById(id);
@@ -1187,6 +1188,13 @@ const verifyPayment = async (req, res) => {
     let isRemainingPayment = false;
 
     if (booking.paymentStatus === "Partial") {
+      const allowedPaymentMethods = ["Cash", "GCash", "Maya", "GoTyme", "SeaBank"];
+      if (!allowedPaymentMethods.includes(finalPaymentMethod)) {
+        return res.status(400).json({
+          success: false,
+          message: "Select a valid payment method for the final payment.",
+        });
+      }
       // Second verify: customer paid the remaining balance → fully paid
       paymentStatus      = "Paid";
       isRemainingPayment = true;
@@ -1216,6 +1224,8 @@ const verifyPayment = async (req, res) => {
       // First verify: promote to Confirmed and record who approved
       updateFields.status      = "Confirmed";
       updateFields.confirmedBy = userId;
+    } else {
+      updateFields.finalPaymentMethod = finalPaymentMethod;
     }
     if (paymentStatus === "Paid") {
       // Record total as fully paid for accounting

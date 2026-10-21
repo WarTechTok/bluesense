@@ -79,9 +79,9 @@ export const updatePaymentStatus = async (id, paymentStatus) => {
   }
 };
 
-export const verifyPayment = async (id) => {
+export const verifyPayment = async (id, finalPaymentMethod) => {
   try {
-    const res = await bookingsApiClient.patch(`/bookings/${id}/verify`);
+    const res = await bookingsApiClient.patch(`/bookings/${id}/verify`, { finalPaymentMethod });
     return res.data;
   } catch (error) {
     console.error('Error verifying payment:', error);

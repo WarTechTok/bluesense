@@ -1,6 +1,6 @@
 // src/components/admin/PaymentVerificationModal.jsx
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './PaymentVerificationModal.css';
 
 // Add the backend URL constant
@@ -10,6 +10,15 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
   const [isVerifying, setIsVerifying] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [showFinalPaymentMethodModal, setShowFinalPaymentMethodModal] = useState(false);
+  const [finalPaymentMethod, setFinalPaymentMethod] = useState('');
+
+  useEffect(() => {
+    if (isOpen) {
+      setShowFinalPaymentMethodModal(false);
+      setFinalPaymentMethod('');
+    }
+  }, [isOpen, booking?._id]);
 
   if (!isOpen || !booking) return null;
 
@@ -49,15 +58,24 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
     return fullUrl;
   };
 
-  const handleVerifyClick = async () => {
+  const verifyPayment = async (method) => {
     setIsVerifying(true);
     try {
-      await onVerify(booking._id);
+      await onVerify(booking._id, method);
       setIsVerifying(false);
+      setShowFinalPaymentMethodModal(false);
       onClose();
     } catch (error) {
       setIsVerifying(false);
     }
+  };
+
+  const handleVerifyClick = () => {
+    if (booking.paymentStatus === 'Partial') {
+      setShowFinalPaymentMethodModal(true);
+      return;
+    }
+    verifyPayment();
   };
 
   return (
@@ -121,14 +139,18 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
               </div>
               <div className="info-item">
                 <label>Payment Type:</label>
-                <span>{booking.paymentType === 'fullpayment' ? 'Full Payment' : 'Down Payment'}</span>
+                <span>
+                  {booking.paymentStatus === 'Partial'
+                    ? 'Final Balance'
+                    : booking.paymentType === 'fullpayment' ? 'Full Payment' : 'Down Payment'}
+                </span>
               </div>
               <div className="info-item">
                 <label>Amount:</label>
                 <span className="amount">
-                  ₱{booking.paymentType === 'fullpayment' 
-                    ? booking.totalAmount?.toLocaleString() 
-                    : booking.downpayment?.toLocaleString()}
+                  ₱{(booking.paymentStatus === 'Partial'
+                    ? booking.totalAmount - booking.downpayment
+                    : booking.paymentType === 'fullpayment' ? booking.totalAmount : booking.downpayment)?.toLocaleString()}
                 </span>
               </div>
               <div className="info-item">
@@ -139,6 +161,10 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
               </div>
               {booking.paymentStatus === 'Partial' && (
                 <>
+                  <div className="info-item">
+                    <label>Down Payment Received:</label>
+                    <span className="amount">₱{booking.downpayment?.toLocaleString()}</span>
+                  </div>
                   <div className="info-item">
                     <label>Remaining Balance:</label>
                     <span className="amount">₱{(booking.totalAmount - booking.downpayment)?.toLocaleString()}</span>
@@ -246,6 +272,61 @@ const PaymentVerificationModal = ({ isOpen, booking, onClose, onVerify, onReject
           </button>
         </div>
       </div>
+      {showFinalPaymentMethodModal && (
+        <div
+          className="final-payment-method-overlay"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!isVerifying) setShowFinalPaymentMethodModal(false);
+          }}
+        >
+          <div
+            className="final-payment-method-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="final-payment-method-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="final-payment-method-title">Final Payment Method</h2>
+            <p>
+              Select how the remaining balance of ₱
+              {(booking.totalAmount - booking.downpayment).toLocaleString()} was paid.
+            </p>
+            <label htmlFor="final-payment-method">Payment method</label>
+            <select
+              id="final-payment-method"
+              value={finalPaymentMethod}
+              onChange={(e) => setFinalPaymentMethod(e.target.value)}
+              disabled={isVerifying}
+            >
+              <option value="">Select a payment method</option>
+              <option value="Cash">Cash</option>
+              <option value="GCash">GCash</option>
+              <option value="Maya">Maya</option>
+              <option value="GoTyme">GoTyme</option>
+              <option value="SeaBank">SeaBank</option>
+            </select>
+            <div className="final-payment-method-actions">
+              <button
+                type="button"
+                className="btn-close"
+                onClick={() => setShowFinalPaymentMethodModal(false)}
+                disabled={isVerifying}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-verify"
+                onClick={() => verifyPayment(finalPaymentMethod)}
+                disabled={!finalPaymentMethod || isVerifying}
+              >
+                {isVerifying ? 'Verifying...' : 'Verify Final Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

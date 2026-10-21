@@ -73,6 +73,11 @@ const bookingSchema = new mongoose.Schema({
     enum: ["Cash", "GCash", "Maya", "GoTyme", "SeaBank"],
     // Not required at model level — Reserved bookings don't have payment yet.
   },
+  finalPaymentMethod: {
+    type: String,
+    enum: ["Cash", "GCash", "Maya", "GoTyme", "SeaBank"],
+    default: null
+  },
   paymentType: {
     type: String,
     enum: ["downpayment", "fullpayment"],

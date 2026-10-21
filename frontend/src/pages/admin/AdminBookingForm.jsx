@@ -73,7 +73,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
     reservationDate: "",
     specialRequests: "",
     paymentMethod: "GCash",
-    paymentStatus: "Partial",  // Valid values: "Pending", "Paid", "Partial", "Rejected"
+    paymentType: "downpayment",
   });
 
   const [errors, setErrors] = useState({});
@@ -117,7 +117,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       reservationDate: "",
       specialRequests: "",
       paymentMethod: "GCash",
-      paymentStatus: "Partial",  // Valid values: "Pending", "Paid", "Partial", "Rejected"
+      paymentType: "downpayment",
     });
     setErrors({});
     setStep(1);
@@ -192,7 +192,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         reservationDate: editingBooking.bookingDate || "",
         specialRequests: editingBooking.specialRequests || "",
         paymentMethod: editingBooking.paymentMethod || "GCash",
-        paymentStatus: editingBooking.paymentStatus === "Paid" ? "Paid" : "Partial",
+        paymentType: editingBooking.paymentType || "downpayment",
       });
       setStep(1);
 
@@ -479,7 +479,7 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
       console.log("  - totalPrice:", totalPrice, typeof totalPrice);
       console.log("  - downpayment:", downpayment, typeof downpayment);
       console.log("  - paymentMethod:", formData.paymentMethod, typeof formData.paymentMethod);
-      console.log("  - paymentStatus:", formData.paymentStatus, typeof formData.paymentStatus);
+      console.log("  - paymentType:", formData.paymentType, typeof formData.paymentType);
       console.log("===============================\n");
 
       // Validation
@@ -495,9 +495,6 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         return;
       }
 
-      // Always auto-confirm regardless of payment status
-      const bookingStatus = "Confirmed";
-
       const bookingPayload = {
         customerName: formData.customerName,
         customerContact: formData.customerContact,
@@ -510,8 +507,9 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
         totalPrice: totalPrice,
         downpayment: downpayment,
         paymentMethod: formData.paymentMethod,
-        paymentStatus: formData.paymentStatus,
-        status: bookingStatus,
+        paymentType: formData.paymentType,
+        paymentStatus: editingBooking?.paymentStatus || "Pending",
+        status: editingBooking?.status || "Pending",
         specialRequests: formData.specialRequests,
         addons: Object.keys(selectedAddOns).length > 0 ? selectedAddOns : {},
       };
@@ -871,13 +869,14 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
             </div>
 
             <div className="form-group">
-              <label>Payment Status</label>
+              <label>Initial Payment Type</label>
               <select
-                value={formData.paymentStatus}
-                onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
+                value={formData.paymentType}
+                disabled={!!editingBooking}
+                onChange={(e) => setFormData({ ...formData, paymentType: e.target.value })}
               >
-                <option value="Partial">Partial</option>
-                <option value="Paid">Fully Paid</option>
+                <option value="downpayment">Downpayment</option>
+                <option value="fullpayment">Full Payment</option>
               </select>
             </div>
           </div>
@@ -959,23 +958,27 @@ function AdminBookingForm({ onClose, onBookingCreated, editingBooking }) {
                   </div>
                 )}
                 <div className="review-item">
-                  <span className="label">Down Payment:</span>
-                  <span className="value">₱{downpayment.toLocaleString()}</span>
+                  <span className="label">{formData.paymentType === "fullpayment" ? "Amount Due Now:" : "Down Payment:"}</span>
+                  <span className="value">₱{(formData.paymentType === "fullpayment" ? totalPrice : downpayment).toLocaleString()}</span>
                 </div>
                 <div className="review-item">
                   <span className="label">Payment Method:</span>
                   <span className="value">{formData.paymentMethod}</span>
                 </div>
                 <div className="review-item">
-                  <span className="label">Payment Status:</span>
-                  <span className={`value payment-status-${formData.paymentStatus.toLowerCase()}`}>
-                    {formData.paymentStatus}
-                  </span>
+                  <span className="label">Initial Payment Type:</span>
+                  <span className="value">{formData.paymentType === "fullpayment" ? "Full Payment" : "Downpayment"}</span>
                 </div>
                 <div className="review-item status-auto-update">
                   <span className="label">Booking Status:</span>
-                  <span className={`value booking-status-confirmed`}>
-                    🟢 Confirmed (Auto-confirmed)
+                  <span className={`value booking-status-${(editingBooking?.status || "Pending").toLowerCase()}`}>
+                    {editingBooking ? editingBooking.status : "Pending (payment verification required)"}
+                  </span>
+                </div>
+                <div className="review-item">
+                  <span className="label">Payment Status:</span>
+                  <span className={`value payment-status-${(editingBooking?.paymentStatus || "Pending").toLowerCase()}`}>
+                    {editingBooking?.paymentStatus || "Pending"}
                   </span>
                 </div>
               </div>
