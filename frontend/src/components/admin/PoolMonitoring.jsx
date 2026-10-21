@@ -248,7 +248,7 @@ const PoolMonitoring = () => {
       .join(" ");
   };
 
-  const handleAssignStaff = async () => {
+    const handleAssignStaff = async () => {
     if (!selectedStaff) {
       setMessageModal({
         isOpen: true,
@@ -265,13 +265,22 @@ const PoolMonitoring = () => {
       const normalizedDescription =
         taskDescription.trim() || `Pool task for ${activeOasis?.label}`;
 
+      // Dito natin isasama yung Chemical Amounts sa text para sa staff
+      const chemicalNotes = `
+🧪 REQUIRED CHEMICALS:
+pH: ${phSuggestion ? phSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
+ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
+      `.trim();
+
+      const fullDescription = `${normalizedDescription}\n\n${chemicalNotes}`;
+
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 1);
 
       await adminApi.createTaskAssignment({
         staffId: selectedStaff,
         title: `${taskType} Required - ${activeOasis?.label}`,
-        description: `${normalizedDescription}\n\nPool readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, Turbidity ${latestReading?.turbidity}, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}`,
+        description: fullDescription, // Ito na yung ipapasa sa database
         priority: "High",
         status: "Pending",
         taskType,
@@ -284,7 +293,7 @@ const PoolMonitoring = () => {
           userId: selectedStaff,
           email: staffMember.email,
           subject: `🏊 Pool Maintenance Assignment - ${activeOasis?.label}`,
-          message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}. Current readings: pH ${latestReading?.ph?.toFixed(2)}, Temperature ${latestReading?.temperature?.toFixed(1)}°C, ORP ${latestReading?.orp !== null && latestReading?.orp !== undefined ? Math.round(latestReading.orp) + " mV" : "N/A"}. Please check the pool and take necessary corrective actions.`,
+          message: `You have been assigned to address pool water quality issues at ${activeOasis?.label}.\n\n${chemicalNotes}\n\nPlease check the pool and take necessary corrective actions.`,
           type: "Task Assignment",
         });
       }
