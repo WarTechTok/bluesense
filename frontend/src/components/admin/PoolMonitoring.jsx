@@ -44,6 +44,8 @@ const PoolMonitoring = () => {
   const [taskType, setTaskType] = useState("Cleaning");
   const [taskDescription, setTaskDescription] = useState("");
   const [isAssigning, setIsAssigning] = useState(false);
+  const [poolTasks, setPoolTasks] = useState([]);
+  const [selectedPoolTask, setSelectedPoolTask] = useState(null);
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     type: "success",
@@ -97,13 +99,53 @@ const PoolMonitoring = () => {
     }
   }, []);
 
+  const fetchPoolTasks = useCallback(async () => {
+    if (!selectedOasis) return;
+    const oasis = OASIS_OPTIONS.find((option) => option.id === selectedOasis)?.name;
+    if (!oasis) return;
+
+    try {
+      const tasks = await adminApi.getPoolMonitoringTasks(oasis);
+      setPoolTasks(Array.isArray(tasks) ? tasks : []);
+    } catch (error) {
+      console.error("Failed to fetch pool monitoring assignments:", error);
+    }
+  }, [selectedOasis]);
+
   useEffect(() => {
     if (!selectedOasis) return;
     fetchPoolReadings();
     fetchStaff();
-    const interval = setInterval(fetchPoolReadings, 30000);
-    return () => clearInterval(interval);
-  }, [selectedOasis, fetchPoolReadings, fetchStaff]);
+    fetchPoolTasks();
+    const readingsInterval = setInterval(fetchPoolReadings, 30000);
+    const tasksInterval = setInterval(fetchPoolTasks, 10000);
+    return () => {
+      clearInterval(readingsInterval);
+      clearInterval(tasksInterval);
+    };
+  }, [selectedOasis, fetchPoolReadings, fetchStaff, fetchPoolTasks]);
+
+  const handleReviewPoolTask = async (task) => {
+    try {
+      await adminApi.reviewPoolMonitoringTask(task._id);
+      setSelectedPoolTask(null);
+      await fetchPoolTasks();
+      setMessageModal({
+        isOpen: true,
+        type: "success",
+        title: "Report Reviewed",
+        message: "The completion report was reviewed and the assignment has been closed.",
+      });
+    } catch (error) {
+      console.error("Failed to review pool monitoring report:", error);
+      setMessageModal({
+        isOpen: true,
+        type: "error",
+        title: "Review Failed",
+        message: error.response?.data?.error || "Could not close the pool monitoring assignment.",
+      });
+    }
+  };
 
   const getFilteredHistory = () => {
     const today = new Date();
@@ -284,8 +326,11 @@ ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
         priority: "High",
         status: "Pending",
         taskType,
+        locationType: "Pool",
+        oasis: activeOasis?.name,
         dueDate: dueDate.toISOString(),
       });
+      await fetchPoolTasks();
 
       if (staffMember?.email) {
         await adminApi.sendNotification({
@@ -462,6 +507,41 @@ ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
           </button>
         </div>
       </div>
+
+      <section className="pm-assignments">
+        <div className="pm-assignments-heading">
+          <div>
+            <h3>Staff Assignments</h3>
+            <p>Completed water-monitoring reports stay here until reviewed.</p>
+          </div>
+          <span className="pm-assignment-count">{poolTasks.length}</span>
+        </div>
+        {poolTasks.length === 0 ? (
+          <p className="pm-assignments-empty">No open staff assignments for {activeOasis.name}.</p>
+        ) : (
+          <div className="pm-assignment-list">
+            {poolTasks.map((task) => (
+              <div className="pm-assignment-row" key={task._id}>
+                <div className="pm-assignment-info">
+                  <strong>{task.title}</strong>
+                  <span>{task.staffId?.name || 'Assigned staff'} · {task.taskType}</span>
+                  {task.status === 'Completed' && task.completedAt && (
+                    <span>Completed {new Date(task.completedAt).toLocaleString()}</span>
+                  )}
+                </div>
+                <span className={`pm-task-status pm-task-status-${task.status.toLowerCase().replace(/\s+/g, '-')}`}>
+                  {task.status}
+                </span>
+                {task.status === 'Completed' && (
+                  <button className="pm-task-review-btn" onClick={() => setSelectedPoolTask(task)}>
+                    View Details
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="pm-pool-hero">
         <img
@@ -1219,6 +1299,52 @@ ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {selectedPoolTask && (
+        <div className="pm-report-overlay" onClick={() => setSelectedPoolTask(null)}>
+          <section className="pm-report-modal" onClick={(event) => event.stopPropagation()}>
+            <header className="pm-report-header">
+              <div>
+                <span className="pm-report-eyebrow">Water Monitoring Completion Report</span>
+                <h3>{selectedPoolTask.title}</h3>
+              </div>
+              <button type="button" onClick={() => setSelectedPoolTask(null)} aria-label="Close report">×</button>
+            </header>
+            <div className="pm-report-content">
+              <dl>
+                <dt>Oasis</dt><dd>{selectedPoolTask.oasis || activeOasis.name}</dd>
+                <dt>Submitted by</dt><dd>{selectedPoolTask.staffId?.name || 'Unknown staff'}</dd>
+                <dt>Task type</dt><dd>{selectedPoolTask.taskType}</dd>
+                <dt>Status</dt><dd>{selectedPoolTask.status}</dd>
+                <dt>Due date</dt><dd>{selectedPoolTask.dueDate ? new Date(selectedPoolTask.dueDate).toLocaleString() : 'N/A'}</dd>
+                <dt>Completed at</dt><dd>{selectedPoolTask.completedAt ? new Date(selectedPoolTask.completedAt).toLocaleString() : 'N/A'}</dd>
+              </dl>
+              <h4>Assigned task details</h4>
+              <p>{selectedPoolTask.description || 'No task description provided.'}</p>
+              <h4>Staff completion report</h4>
+              <p>{selectedPoolTask.completionNotes || 'No completion report was provided.'}</p>
+              <h4>Proof image</h4>
+              {selectedPoolTask.completionProofUrl ? (
+                <a href={selectedPoolTask.completionProofUrl} target="_blank" rel="noreferrer">
+                  <img
+                    src={selectedPoolTask.completionProofUrl}
+                    alt="Staff pool monitoring proof"
+                    className="pm-report-proof"
+                  />
+                </a>
+              ) : (
+                <p>No proof image was submitted.</p>
+              )}
+            </div>
+            <footer className="pm-report-footer">
+              <button type="button" className="pm-report-cancel" onClick={() => setSelectedPoolTask(null)}>Close</button>
+              <button type="button" className="pm-report-review" onClick={() => handleReviewPoolTask(selectedPoolTask)}>
+                Review & Remove Staff
+              </button>
+            </footer>
+          </section>
         </div>
       )}
 

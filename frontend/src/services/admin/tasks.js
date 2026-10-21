@@ -44,3 +44,23 @@ export const updateTaskStatus = async (taskId, status) => {
     throw error;
   }
 };
+
+export const getPoolMonitoringTasks = async (oasis) => {
+  try {
+    const res = await apiClient.get('/tasks/pool-monitoring', { params: { oasis } });
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching Pool Monitoring tasks:', error);
+    throw error;
+  }
+};
+
+export const reviewPoolMonitoringTask = async (taskId) => {
+  try {
+    const res = await apiClient.patch(`/tasks/pool-monitoring/${taskId}/review`);
+    return res.data;
+  } catch (error) {
+    console.error('Error reviewing Pool Monitoring task:', error);
+    throw error;
+  }
+};

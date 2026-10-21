@@ -67,7 +67,7 @@ router.get('/tasks/:taskId', authenticate, authorize('staff'), staffDashboardCon
  * Update task status
  * Body: { status, notes?, actualHours? }
  */
-router.put('/tasks/:taskId/status', authenticate, authorize('staff'), staffDashboardController.updateTaskStatus);
+router.put('/tasks/:taskId/status', authenticate, authorize('staff'), uploadInspectionProof, staffDashboardController.updateTaskStatus);
 
 /**
  * DELETE /api/staff/dashboard/tasks/:taskId

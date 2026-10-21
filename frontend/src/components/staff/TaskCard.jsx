@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 function TaskCard({ task, onViewDetails, onStatusChange, onDelete, getStatusColor, getPriorityColor }) {
+  const [completionNotes, setCompletionNotes] = useState('');
+  const [completionProof, setCompletionProof] = useState(null);
+  const taskText = `${task.title || ''} ${task.description || ''}`;
+  const isPoolTask = task.locationType === 'Pool'
+    || (!task.roomId && /\bpool\b/i.test(taskText));
+  const oasisFromText = taskText.match(/Oasis\s*([12])/i)?.[1];
+  const oasis = task.oasis
+    || task.roomId?.oasis
+    || (oasisFromText ? `Oasis ${oasisFromText}` : null);
+
   return (
     <div className="task-card">
       <div className="task-card-header">
@@ -27,8 +37,11 @@ function TaskCard({ task, onViewDetails, onStatusChange, onDelete, getStatusColo
         <div className="detail-item">
           <i className="fas fa-door-open"></i>
           <div>
-            <label>Room:</label>
-            <span>{task.roomId?.name || 'Unknown Room'}</span>
+            <label>{isPoolTask ? 'Pool:' : 'Room:'}</label>
+            <span>
+              {task.roomId?.name || (isPoolTask ? 'Water Monitoring' : 'Unknown Room')}
+              {oasis && ` — ${oasis}`}
+            </span>
           </div>
         </div>
 
@@ -68,26 +81,53 @@ function TaskCard({ task, onViewDetails, onStatusChange, onDelete, getStatusColo
             <i className="fas fa-play"></i> Start Work
           </button>
         )}
-        {task.status === 'In Progress' && (
+        {task.status === 'In Progress' && (isPoolTask ? (
+          <div className="task-completion-report">
+            <label htmlFor={`completion-report-${task._id}`}>Completion report for admin</label>
+            <textarea
+              id={`completion-report-${task._id}`}
+              value={completionNotes}
+              onChange={(event) => setCompletionNotes(event.target.value)}
+              placeholder="Describe the water monitoring work completed and any findings"
+              rows="3"
+            />
+            <label htmlFor={`completion-proof-${task._id}`}>Proof image</label>
+            <input
+              id={`completion-proof-${task._id}`}
+              type="file"
+              accept="image/*"
+              onChange={(event) => setCompletionProof(event.target.files?.[0] || null)}
+            />
+            <button
+              className="btn btn-success"
+              disabled={!completionNotes.trim() || !completionProof}
+              onClick={() => onStatusChange(task._id, 'Completed', completionNotes.trim(), completionProof)}
+            >
+              <i className="fas fa-check"></i> Submit Report & Complete
+            </button>
+          </div>
+        ) : (
           <button
             className="btn btn-success"
             onClick={() => onStatusChange(task._id, 'Completed')}
           >
             <i className="fas fa-check"></i> Mark Complete
           </button>
-        )}
+        ))}
         <button
           className="btn btn-secondary"
           onClick={() => onViewDetails(task)}
         >
           <i className="fas fa-eye"></i> View Details
         </button>
-        <button
-          className="btn btn-danger"
-          onClick={() => onDelete(task._id)}
-        >
-          <i className="fas fa-trash-alt"></i> Delete
-        </button>
+        {(!isPoolTask || task.reviewedAt) && (
+          <button
+            className="btn btn-danger"
+            onClick={() => onDelete(task._id)}
+          >
+            <i className="fas fa-trash-alt"></i> Delete
+          </button>
+        )}
       </div>
     </div>
   );

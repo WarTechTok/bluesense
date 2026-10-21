@@ -316,7 +316,7 @@ exports.getTaskDetails = async (req, res) => {
 exports.updateTaskStatus = async (req, res) => {
   try {
     const { taskId } = req.params;
-    const { status, notes, actualHours } = req.body;
+    const { status, notes, completionNotes, actualHours } = req.body;
     const validStatuses = ['Pending', 'In Progress', 'Completed', 'Cancelled'];
 
     if (status && !validStatuses.includes(status)) {
@@ -341,9 +341,39 @@ exports.updateTaskStatus = async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
+    if (completionNotes !== undefined && typeof completionNotes !== 'string') {
+      return res.status(400).json({ error: 'Completion report must be text' });
+    }
+
+    const isPoolTask = task.locationType === 'Pool'
+      || (/\bpool\b/i.test(`${task.title} ${task.description || ''}`)
+        && /Oasis\s*[12]/i.test(`${task.title} ${task.description || ''}`));
+    if (
+      status === 'Completed'
+      && isPoolTask
+      && (!(completionNotes || task.completionNotes || '').trim() || (!req.file && !task.completionProofUrl))
+    ) {
+      return res.status(400).json({
+        error: 'A completion report and proof image are required for pool monitoring tasks'
+      });
+    }
+
+    if (req.file) {
+      try {
+        const uploadResult = await uploadToCloud(req.file.buffer);
+        task.completionProofUrl = uploadResult.url;
+      } catch (uploadError) {
+        console.error('Error uploading pool task completion proof:', uploadError);
+        return res.status(400).json({ error: 'Failed to upload completion proof image' });
+      }
+    }
+
     // Update fields
     task.status = status || task.status;
     if (notes) task.notes = notes;
+    if (completionNotes !== undefined) {
+      task.completionNotes = completionNotes.trim();
+    }
     if (actualHours) task.actualHours = actualHours;
 
     // Set timestamps
@@ -405,6 +435,13 @@ exports.deleteTask = async (req, res) => {
 
     if (task.staffId.toString() !== staffMongoId.toString()) {
       return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const isPoolTask = task.locationType === 'Pool'
+      || (/\bpool\b/i.test(`${task.title} ${task.description || ''}`)
+        && /Oasis\s*[12]/i.test(`${task.title} ${task.description || ''}`));
+    if (isPoolTask && !task.reviewedAt) {
+      return res.status(409).json({ error: 'Pool assignments can only be removed after admin review' });
     }
 
     await TaskAssignment.findByIdAndDelete(taskId);

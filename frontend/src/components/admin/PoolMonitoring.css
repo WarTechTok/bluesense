@@ -12,6 +12,253 @@
   box-shadow: 0 2px 16px rgba(2, 132, 199, 0.06);
 }
 
+.pm-assignments {
+  padding: 24px 32px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.pm-assignments-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pm-assignments-heading h3 {
+  margin: 0 0 4px;
+  color: #1e293b;
+  font-size: 1.05rem;
+}
+
+.pm-assignments-heading p,
+.pm-assignments-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+.pm-assignment-count {
+  display: inline-flex;
+  min-width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 700;
+}
+
+.pm-assignment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pm-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pm-assignment-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pm-assignment-info strong {
+  color: #1e293b;
+  overflow-wrap: anywhere;
+}
+
+.pm-assignment-info span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.pm-task-status {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.pm-task-status-completed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.pm-task-status-in-progress {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.pm-task-review-btn,
+.pm-report-review {
+  border: 0;
+  border-radius: 8px;
+  background: #0284c7;
+  color: #fff;
+  font-weight: 700;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+.pm-task-review-btn:hover,
+.pm-report-review:hover {
+  background: #0369a1;
+}
+
+.pm-report-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.pm-report-modal {
+  width: min(100%, 620px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+}
+
+.pm-report-header,
+.pm-report-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+}
+
+.pm-report-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.pm-report-header h3 {
+  margin: 4px 0 0;
+  color: #1e293b;
+}
+
+.pm-report-header button {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 1.7rem;
+  cursor: pointer;
+}
+
+.pm-report-eyebrow {
+  color: #0284c7;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pm-report-content {
+  padding: 20px 22px;
+}
+
+.pm-report-content dl {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) 1.5fr;
+  gap: 10px 16px;
+  margin: 0 0 20px;
+}
+
+.pm-report-content dt {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pm-report-content dd {
+  margin: 0;
+  color: #1e293b;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pm-report-content h4 {
+  margin: 18px 0 6px;
+  color: #1e293b;
+}
+
+.pm-report-content p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pm-report-proof {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  margin: 8px auto 0;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.pm-report-footer {
+  justify-content: flex-end;
+  border-top: 1px solid #e2e8f0;
+}
+
+.pm-report-cancel {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-weight: 600;
+  padding: 9px 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .pm-assignments {
+    padding: 20px 16px;
+  }
+
+  .pm-assignment-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .pm-assignment-info {
+    flex-basis: 100%;
+  }
+
+  .pm-report-content dl {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .pm-report-content dd {
+    margin-bottom: 8px;
+  }
+}
+
 /* ── Live badge ── */
 .pm-live-badge {
   display: inline-flex;

@@ -162,11 +162,17 @@ const Tasks = () => {
   };
 
   const visibleTasks = tasks.filter((task) => {
-    const roomName = task.roomId?.name || '';
-    const isPool = /pool/i.test(roomName);
+    const taskText = `${task.title || ''} ${task.description || ''}`;
+    const oasisFromText = taskText.match(/Oasis\s*([12])/i)?.[1];
+    const taskOasis = task.oasis
+      || task.roomId?.oasis
+      || (oasisFromText ? `Oasis ${oasisFromText}` : null);
+    const isPool = task.locationType === 'Pool'
+      || (!task.roomId && /\bpool\b/i.test(taskText))
+      || /pool/i.test(task.roomId?.name || '');
     const matchesLocationType = !locationTypeFilter
       || (locationTypeFilter === 'Pool' ? isPool : !isPool);
-    const matchesOasis = !oasisFilter || task.roomId?.oasis === oasisFilter;
+    const matchesOasis = !oasisFilter || taskOasis === oasisFilter;
 
     return matchesLocationType && matchesOasis;
   });
@@ -185,24 +191,39 @@ const Tasks = () => {
     });
   };
 
-  const handleStatusChange = async (taskId, newStatus) => {
+  const handleStatusChange = async (taskId, newStatus, completionNotes = '', proofImage = null) => {
     try {
-      await staffApi.updateTaskStatus(taskId, { status: newStatus });
+      const currentTask = tasks.find((task) => task._id === taskId);
+      const isPoolTask = currentTask?.locationType === 'Pool'
+        || (!currentTask?.roomId && /\bpool\b/i.test(`${currentTask?.title || ''} ${currentTask?.description || ''}`));
+      const updateData = isPoolTask && newStatus === 'Completed'
+        ? (() => {
+          const formData = new FormData();
+          formData.append('status', newStatus);
+          formData.append('completionNotes', completionNotes);
+          formData.append('inspectionImage', proofImage);
+          return formData;
+        })()
+        : { status: newStatus, completionNotes };
+      const response = await staffApi.updateTaskStatus(taskId, updateData);
 
       setTasks(prev => prev.map(task =>
         task._id === taskId
-          ? { ...task, status: newStatus }
+          ? { ...task, status: newStatus, completionNotes, completionProofUrl: response.task?.completionProofUrl || task.completionProofUrl }
           : task
       ));
 
       setSelectedTask(null);
 
-      showConfirmationModal('Success', '✅ Task status updated successfully!', () => {
+      const successMessage = newStatus === 'Completed' && isPoolTask
+        ? '✅ Completion report submitted. The assignment will remain open until an admin or receptionist reviews it.'
+        : '✅ Task status updated successfully!';
+      showConfirmationModal('Success', successMessage, () => {
         if (newStatus === 'In Progress') {
           navigate('/staff/rooms');
         }
 
-        if (newStatus === 'Completed') {
+        if (newStatus === 'Completed' && !isPoolTask) {
           navigate('/staff/inspections');
         }
       }, 'OK');

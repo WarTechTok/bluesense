@@ -197,6 +197,34 @@
   grid-column: 1 / -1;
 }
 
+.task-completion-report {
+  display: flex;
+  flex: 1 1 100%;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-completion-report label {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-completion-report textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font: inherit;
+  resize: vertical;
+}
+
+.task-completion-report .btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 /* Task Actions */
 .task-actions {
   display: flex;

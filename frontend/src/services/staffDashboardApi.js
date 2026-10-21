@@ -152,7 +152,10 @@ export const getTaskDetails = async (taskId) => {
  */
 export const updateTaskStatus = async (taskId, updateData) => {
   try {
-    const res = await apiClient.put(`/tasks/${taskId}/status`, updateData);
+    const config = updateData instanceof FormData
+      ? { headers: { 'Content-Type': 'multipart/form-data' } }
+      : {};
+    const res = await apiClient.put(`/tasks/${taskId}/status`, updateData, config);
     return res.data;
   } catch (error) {
     console.error('Error updating task status:', error);

@@ -18,7 +18,19 @@ const TaskAssignmentSchema = new mongoose.Schema({
   roomId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Room',
-    required: true
+    default: null
+  },
+
+  locationType: {
+    type: String,
+    enum: ['Room', 'Pool'],
+    default: 'Room'
+  },
+
+  oasis: {
+    type: String,
+    enum: ['Oasis 1', 'Oasis 2'],
+    default: null
   },
 
   // Task title
@@ -87,6 +99,27 @@ const TaskAssignmentSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
+  },
+
+  completionNotes: {
+    type: String,
+    default: ''
+  },
+
+  completionProofUrl: {
+    type: String,
+    default: ''
+  },
+
+  reviewedAt: {
+    type: Date,
+    default: null
+  },
+
+  reviewedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
 
   // Admin who assigned this task
