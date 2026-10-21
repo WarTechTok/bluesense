@@ -16,27 +16,34 @@ export function calculateChemicals(oasisId, currentPH, currentORP) {
   // --- pH ---
   if (currentPH != null) {
     if (currentPH > 7.6) {
+      // HIGH pH: Muriatic Acid (Available)
       const delta = currentPH - 7.5;
       const flOz = Math.ceil((delta / 0.5) * 26 * units * 10) / 10;
       phSuggestion = `⚠️ Add ${flOz} fl oz Muriatic Acid`;
     } else if (currentPH < 7.4) {
+      // LOW pH: Soda Ash (Available na!)
+      // Note: 1 kg = 35.27 oz. Ginamit natin ang kilograms as base sa inventory mo.
       const delta = 7.5 - currentPH;
-      const oz = Math.ceil((delta / 0.1) * 6 * units * 10) / 10;
-      phSuggestion = `⚠️ Add ${oz} oz Soda Ash`;
+      const ozNeeded = (delta / 0.1) * 6 * units; // Compute ounces
+      const kgNeeded = (ozNeeded / 35.27).toFixed(2); // Convert to kg
+      phSuggestion = `⚠️ Add ${kgNeeded} kg Soda Ash`;
     }
   }
 
   // --- ORP ---
   if (currentORP != null) {
     if (currentORP < 700) {
+      // LOW ORP: Chlorine or Winrox (Available)
       const delta = 750 - currentORP;
       const gals = Math.ceil((delta / 50) * 1 * units * 10) / 10;
-      orpSuggestion = `⚠️ Add ${gals} gal Liquid Chlorine`;
+      orpSuggestion = `⚠️ Add ${gals} gal Chlorine or Winrox`;
     } else if (currentORP > 850) {
-      // Over-chlorinated (Kapag lumagpas ng 850mV)
+      // HIGH ORP: Sodium Thiosulfate (Available na!)
+      // Note: 1 kg = 35.27 oz. Ginamit natin ang kilograms as base sa inventory mo.
       const delta = currentORP - 750;
-      const ozThio = Math.ceil((delta / 50) * 1.4 * units * 10) / 10;
-      orpSuggestion = `⚠️ Add ${ozThio} oz Sodium Thiosulfate to neutralize excess chlorine.`;
+      const ozThio = (delta / 50) * 1.4 * units; // Compute ounces
+      const kgThio = (ozThio / 35.27).toFixed(2); // Convert to kg
+      orpSuggestion = `⚠️ Add ${kgThio} kg Sodium Thiosulfate`;
     }
   }
 
