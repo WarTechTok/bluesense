@@ -14,6 +14,8 @@ import {
 } from '../../services/admin/gallery';
 import './GalleryManagement.css';
 
+const MAX_GALLERY_IMAGES = 20; // <-- BAGONG DAGDAG: Limit ng images
+
 // ── Layout options (mirrors public Gallery page) ─────────────
 const LAYOUT_OPTIONS = [
   { id: 'grid',       label: 'Grid',      icon: 'fas fa-th' },
@@ -176,7 +178,8 @@ const EditModal = ({ image, onSave, onClose, loading }) => {
 };
 
 // ── Upload Panel ──────────────────────────────────────────────
-const UploadPanel = ({ onUpload, uploading }) => {
+// Idinagdag ang limitReached prop
+const UploadPanel = ({ onUpload, uploading, limitReached }) => {
   const [dragOver, setDragOver] = useState(false);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -203,7 +206,7 @@ const UploadPanel = ({ onUpload, uploading }) => {
   };
 
   const handleSubmit = async () => {
-    if (!file || !title.trim()) return;
+    if (!file || !title.trim() || limitReached) return;
     await onUpload(file, title.trim(), description.trim());
     setFile(null);
     setPreview(null);
@@ -220,7 +223,7 @@ const UploadPanel = ({ onUpload, uploading }) => {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
-        onClick={() => !preview && fileInputRef.current?.click()}
+        onClick={() => !preview && !limitReached && fileInputRef.current?.click()}
       >
         {preview ? (
           <div className="gm-drop-preview">
@@ -276,9 +279,11 @@ const UploadPanel = ({ onUpload, uploading }) => {
       <button
         className="gm-btn gm-btn-primary gm-upload-btn"
         onClick={handleSubmit}
-        disabled={!file || !title.trim() || uploading}
+        disabled={!file || !title.trim() || uploading || limitReached}
       >
-        {uploading ? (
+        {limitReached ? (
+          <><i className="fas fa-ban" /> Limit Reached (20)</>
+        ) : uploading ? (
           <><i className="fas fa-spinner fa-spin" /> Uploading…</>
         ) : (
           <><i className="fas fa-upload" /> Upload Image</>
@@ -386,6 +391,12 @@ const GalleryManagement = () => {
 
   // ── Upload ────────────────────────────────
   const handleUpload = async (file, title, description) => {
+    // IDINAGDAG: Check kung naabot na ang 20 limit
+    if (images.length >= MAX_GALLERY_IMAGES) {
+      showToast(`Maximum limit of ${MAX_GALLERY_IMAGES} images reached. Delete an image to upload a new one.`, 'error');
+      return;
+    }
+
     setUploading(true);
     try {
       const newImage = await uploadGalleryImage(file, title, description);
@@ -488,7 +499,12 @@ const GalleryManagement = () => {
           {/* Layout picker — admin only, shown here instead of public page */}
           <LayoutPicker current={activeLayout} onSave={handleSaveLayout} />
 
-          <UploadPanel onUpload={handleUpload} uploading={uploading} />
+          {/* IDINAGDAG: limitReached prop */}
+          <UploadPanel 
+            onUpload={handleUpload} 
+            uploading={uploading} 
+            limitReached={images.length >= MAX_GALLERY_IMAGES} 
+          />
 
           <div className="gm-hint-box">
             <i className="fas fa-info-circle" />
