@@ -9,77 +9,98 @@ function RoomDetailsModal({ room, onClose, getRoomStatusColor, getRatingColor })
   const hasLastCleaned = lastCleanedDate && !Number.isNaN(lastCleanedDate.getTime());
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>✕</button>
-        <h2>
-          <i className="fas fa-door-open" style={{ marginRight: '8px', color: '#0284c7' }}></i>
-          {room.name || 'Room Details'}
-        </h2>
+    <div className="rdm-overlay" onClick={onClose}>
+      <div className="rdm-content" onClick={(e) => e.stopPropagation()}>
 
-        <div className="modal-details">
-          <div className="details-grid">
-            {hasValue(room.name) && (
-              <div className="detail-card">
-                <label className="detail-label">Room Name</label>
-                <span className="detail-value">{room.name}</span>
-              </div>
-            )}
-            {hasValue(room.status) && (
-              <div className="detail-card">
-                <label className="detail-label">Status</label>
-                <span
-                  className="detail-value"
-                  style={{
-                    color: getRoomStatusColor(room.status),
-                    backgroundColor: `${getRoomStatusColor(room.status)}20`,
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                  }}
-                >
-                  {room.status}
-                </span>
-              </div>
-            )}
-            {hasValue(room.roomType) && (
-              <div className="detail-card">
-                <label className="detail-label">Type</label>
-                <span className="detail-value">{room.roomType}</span>
-              </div>
-            )}
-            {rating !== null && (
-              <div className="detail-card">
-                <label className="detail-label">Cleanliness Rating</label>
-                <span className="detail-value rating-badge" style={{ color: getRatingColor(rating) }}>
-                  {rating}/5 <i className="fas fa-star" style={{ marginLeft: '6px' }}></i>
-                </span>
-              </div>
-            )}
+        {/* Header */}
+        <div className="rdm-header">
+          <div className="rdm-header-meta">
+            <span className="rdm-badge">Room Details</span>
+            <h2 className="rdm-title">
+              <i className="fas fa-door-open rdm-title-icon" aria-hidden="true"></i>
+              {room.name || 'Room Details'}
+            </h2>
+          </div>
+          <button className="rdm-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="rdm-body">
+
+          <div className="rdm-section">
+            <p className="rdm-section-title">Overview</p>
+            <div className="rdm-grid rdm-grid--2">
+
+              {hasValue(room.name) && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Room Name</span>
+                  <span className="rdm-value">{room.name}</span>
+                </div>
+              )}
+
+              {hasValue(room.status) && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Status</span>
+                  <span
+                    className="rdm-status-chip"
+                    style={{
+                      color: getRoomStatusColor(room.status),
+                      backgroundColor: `${getRoomStatusColor(room.status)}18`,
+                    }}
+                  >
+                    {room.status}
+                  </span>
+                </div>
+              )}
+
+              {hasValue(room.roomType) && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Type</span>
+                  <span className="rdm-value">{room.roomType}</span>
+                </div>
+              )}
+
+              {rating !== null && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Cleanliness Rating</span>
+                  <span className="rdm-value rdm-value--accent" style={{ color: getRatingColor(rating) }}>
+                    {rating}<span className="rdm-value--muted"> / 5</span>
+                    <i className="fas fa-star" style={{ marginLeft: '5px', fontSize: '0.75rem' }}></i>
+                  </span>
+                </div>
+              )}
+
+              {hasValue(room.floor) && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Floor</span>
+                  <span className="rdm-value">{room.floor}</span>
+                </div>
+              )}
+
+              {hasLastCleaned && (
+                <div className="rdm-card">
+                  <span className="rdm-label">Last Cleaned</span>
+                  <span className="rdm-value rdm-value--sm">{lastCleanedDate.toLocaleDateString()}</span>
+                </div>
+              )}
+
+            </div>
           </div>
 
-          {hasValue(room.floor) && (
-            <div className="detail-card full-width">
-              <label className="detail-label">Floor</label>
-              <span className="detail-value">{room.floor}</span>
-            </div>
-          )}
-
-          {hasLastCleaned && (
-            <div className="detail-card full-width">
-              <label className="detail-label">Last Cleaned</label>
-              <span className="detail-value">{lastCleanedDate.toLocaleDateString()}</span>
-            </div>
-          )}
-
           {hasValue(room.notes) && (
-            <div className="detail-card full-width">
-              <label className="detail-label">Notes</label>
-              <span className="detail-value">{room.notes}</span>
+            <div className="rdm-section">
+              <p className="rdm-section-title">Notes</p>
+              <p className="rdm-notes-block">{room.notes}</p>
             </div>
           )}
+
+        </div>{/* end rdm-body */}
+
+        {/* Footer */}
+        <div className="rdm-footer">
+          <button className="rdm-btn-close" onClick={onClose}>Close</button>
         </div>
+
       </div>
     </div>
   );
