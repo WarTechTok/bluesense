@@ -35,6 +35,7 @@ const Inspections = () => {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [selectedInspection, setSelectedInspection] = useState(null);
+  const [inspectionActionMessage, setInspectionActionMessage] = useState('');
   const [confirmationModal, setConfirmationModal] = useState({
     isOpen: false,
     title: '',
@@ -202,6 +203,32 @@ const Inspections = () => {
       confirmText,
       cancelText
     });
+  };
+
+  const handleDeleteInspection = (inspection) => {
+    const roomName = (inspection.room || inspection.roomId)?.name || 'this room';
+    setInspectionActionMessage('');
+    showConfirmationModal(
+      'Delete Inspection?',
+      `Delete the inspection for ${roomName}? Any maintenance request linked to this inspection will also be deleted. This action cannot be undone.`,
+      async () => {
+        try {
+          await staffApi.deleteInspectionRecord(inspection._id);
+          setInspections((previousInspections) =>
+            previousInspections.filter((item) => item._id !== inspection._id)
+          );
+          if (selectedInspection?._id === inspection._id) {
+            setSelectedInspection(null);
+          }
+        } catch (error) {
+          console.error('Error deleting inspection:', error);
+          setInspectionActionMessage(
+            error.response?.data?.error || 'Failed to delete inspection. Please try again.'
+          );
+        }
+      },
+      'Delete'
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -636,6 +663,11 @@ const Inspections = () => {
       {/* Inspections History */}
       <div className="inspections-section">
         <h2>Inspection History</h2>
+        {inspectionActionMessage && (
+          <div className="inspection-action-error" role="alert">
+            {inspectionActionMessage}
+          </div>
+        )}
         {loading ? (
           <div className="loading">Loading inspection records...</div>
         ) : inspections.length === 0 ? (
@@ -668,6 +700,14 @@ const Inspections = () => {
                       title="View inspection"
                     >
                       <i className="fas fa-eye"></i>
+                    </button>
+                    <button
+                      className="btn-delete"
+                      onClick={() => handleDeleteInspection(inspection)}
+                      aria-label="Delete inspection"
+                      title="Delete inspection"
+                    >
+                      <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
