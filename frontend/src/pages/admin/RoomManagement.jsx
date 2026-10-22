@@ -254,7 +254,7 @@ const RoomManagement = () => {
 
   const getInspectionForAssignment = (roomId, staffId) =>
     inspectionReports.find((report) =>
-      report.roomId === roomId && report.inspectedById === staffId
+      report.roomId === roomId?.toString() && report.inspectedById === staffId?.toString()
     );
 
   const handleCloseInspectionReport = async (inspection) => {
