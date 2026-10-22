@@ -46,6 +46,8 @@ const PoolMonitoring = () => {
   const [isAssigning, setIsAssigning] = useState(false);
   const [poolTasks, setPoolTasks] = useState([]);
   const [selectedPoolTask, setSelectedPoolTask] = useState(null);
+  // Controls the Staff Assignments list modal (replaces the inline section)
+  const [isAssignmentsModalOpen, setIsAssignmentsModalOpen] = useState(false);
   const [messageModal, setMessageModal] = useState({
     isOpen: false,
     type: "success",
@@ -508,40 +510,134 @@ ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
         </div>
       </div>
 
-      <section className="pm-assignments">
-        <div className="pm-assignments-heading">
-          <div>
-            <h3>Staff Assignments</h3>
-            <p>Completed water-monitoring reports stay here until reviewed.</p>
-          </div>
-          <span className="pm-assignment-count">{poolTasks.length}</span>
-        </div>
-        {poolTasks.length === 0 ? (
-          <p className="pm-assignments-empty">No open staff assignments for {activeOasis.name}.</p>
-        ) : (
-          <div className="pm-assignment-list">
-            {poolTasks.map((task) => (
-              <div className="pm-assignment-row" key={task._id}>
-                <div className="pm-assignment-info">
-                  <strong>{task.title}</strong>
-                  <span>{task.staffId?.name || 'Assigned staff'} · {task.taskType}</span>
-                  {task.status === 'Completed' && task.completedAt && (
-                    <span>Completed {new Date(task.completedAt).toLocaleString()}</span>
-                  )}
-                </div>
-                <span className={`pm-task-status pm-task-status-${task.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                  {task.status}
-                </span>
-                {task.status === 'Completed' && (
-                  <button className="pm-task-review-btn" onClick={() => setSelectedPoolTask(task)}>
-                    View Details
-                  </button>
-                )}
+      {/* ── Staff Assignments toggle button ─────────────────────────────── */}
+      <button
+        className="pm-assignments-toggle-btn"
+        onClick={() => setIsAssignmentsModalOpen(true)}
+        aria-label={`View ${poolTasks.length} staff assignment${poolTasks.length !== 1 ? 's' : ''}`}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        Staff Assignments
+        <span className="pm-assignments-toggle-count">{poolTasks.length}</span>
+      </button>
+
+      {/* ── Staff Assignments modal ──────────────────────────────────────── */}
+      {isAssignmentsModalOpen && (
+        <div
+          className="pm-sa-overlay"
+          onClick={() => setIsAssignmentsModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Staff Assignments"
+        >
+          <div
+            className="pm-sa-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal header */}
+            <div className="pm-sa-header">
+              <div>
+                <h3 className="pm-sa-title">Staff Assignments</h3>
+                <p className="pm-sa-subtitle">
+                  Completed water-monitoring reports for {activeOasis.name} — pending review.
+                </p>
               </div>
-            ))}
+              <button
+                className="pm-sa-close-btn"
+                onClick={() => setIsAssignmentsModalOpen(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal body — scrollable list */}
+            <div className="pm-sa-body">
+              {poolTasks.length === 0 ? (
+                <p className="pm-sa-empty">
+                  No open staff assignments for {activeOasis.name}.
+                </p>
+              ) : (
+                <table className="pm-sa-table">
+                  <thead>
+                    <tr>
+                      <th>Task Title</th>
+                      <th>Staff Name</th>
+                      <th>Task Type</th>
+                      <th>Date Completed</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {poolTasks.map((task) => (
+                      <tr key={task._id}>
+                        <td className="pm-sa-cell-title" data-label="Task Title">{task.title}</td>
+                        <td data-label="Staff Name">{task.staffId?.name || '—'}</td>
+                        <td data-label="Task Type">{task.taskType}</td>
+                        <td data-label="Date Completed">
+                          {task.completedAt
+                            ? new Date(task.completedAt).toLocaleDateString(undefined, {
+                                month: 'short', day: 'numeric', year: 'numeric',
+                              })
+                            : '—'}
+                        </td>
+                        <td data-label="Status">
+                          <span
+                            className={`pm-task-status pm-task-status-${task.status
+                              .toLowerCase()
+                              .replace(/\s+/g, '-')}`}
+                          >
+                            {task.status}
+                          </span>
+                        </td>
+                        <td data-label="">
+                          {task.status === 'Completed' && (
+                            <button
+                              className="pm-task-review-btn"
+                              onClick={() => {
+                                setSelectedPoolTask(task);
+                                setIsAssignmentsModalOpen(false);
+                              }}
+                            >
+                              View Details
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Modal footer */}
+            <div className="pm-sa-footer">
+              <button
+                className="pm-sa-close-footer-btn"
+                onClick={() => setIsAssignmentsModalOpen(false)}
+              >
+                Close
+              </button>
+            </div>
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
       <div className="pm-pool-hero">
         <img
@@ -1302,51 +1398,98 @@ ORP: ${orpSuggestion ? orpSuggestion.replace('⚠️ ', '') : '✓ Neutral'}
         </div>
       )}
 
-      {selectedPoolTask && (
-        <div className="pm-report-overlay" onClick={() => setSelectedPoolTask(null)}>
-          <section className="pm-report-modal" onClick={(event) => event.stopPropagation()}>
-            <header className="pm-report-header">
-              <div>
-                <span className="pm-report-eyebrow">Water Monitoring Completion Report</span>
-                <h3>{selectedPoolTask.title}</h3>
+      {selectedPoolTask && (() => {
+        const proofUrl = selectedPoolTask.completionProofUrl
+          || (Array.isArray(selectedPoolTask.photosPath) && selectedPoolTask.photosPath[0])
+          || null;
+        const fmtDate = (d) => d ? new Date(d).toLocaleString('en-PH', {
+          year: 'numeric', month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        }) : 'N/A';
+        return (
+          <div className="pm-report-overlay" onClick={() => setSelectedPoolTask(null)}>
+            <section className="pm-report-modal" onClick={(event) => event.stopPropagation()}>
+              <header className="pm-report-header">
+                <div>
+                  <span className="pm-report-eyebrow">Water Monitoring Completion Report</span>
+                  <h3>{selectedPoolTask.title}</h3>
+                </div>
+                <button type="button" onClick={() => setSelectedPoolTask(null)} aria-label="Close report">×</button>
+              </header>
+
+              <div className="pm-report-content">
+                {/* Info grid */}
+                <dl>
+                  <dt>Oasis</dt>
+                  <dd>{selectedPoolTask.oasis || activeOasis.name}</dd>
+                  <dt>Submitted by</dt>
+                  <dd>{selectedPoolTask.staffId?.name || 'Unknown staff'}</dd>
+                  <dt>Task type</dt>
+                  <dd>{selectedPoolTask.taskType}</dd>
+                  <dt>Status</dt>
+                  <dd style={{ fontWeight: 700, color: selectedPoolTask.status === 'Completed' ? '#16a34a' : '#0284c7' }}>
+                    {selectedPoolTask.status}
+                  </dd>
+                  <dt>Due date</dt>
+                  <dd>{fmtDate(selectedPoolTask.dueDate)}</dd>
+                  <dt>Completed at</dt>
+                  <dd>{fmtDate(selectedPoolTask.completedAt)}</dd>
+                </dl>
+
+                {/* Task description */}
+                <h4>Assigned task details</h4>
+                <p style={{ whiteSpace: 'pre-wrap' }}>
+                  {selectedPoolTask.description || 'No task description provided.'}
+                </p>
+
+                {/* Completion notes */}
+                <h4>Staff completion report</h4>
+                {selectedPoolTask.completionNotes ? (
+                  <p style={{ whiteSpace: 'pre-wrap', background: '#f0f9ff', padding: '10px 14px', borderRadius: '8px', borderLeft: '3px solid #0284c7' }}>
+                    {selectedPoolTask.completionNotes}
+                  </p>
+                ) : (
+                  <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No completion report was provided.</p>
+                )}
+
+                {/* Proof image */}
+                <h4>Proof image</h4>
+                {proofUrl ? (
+                  <a href={proofUrl} target="_blank" rel="noreferrer" style={{ display: 'block' }}>
+                    <img
+                      src={proofUrl}
+                      alt="Staff pool monitoring proof"
+                      className="pm-report-proof"
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                    />
+                    <span style={{ display: 'none', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.875rem' }}>
+                      Image could not be loaded.
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.8rem', color: '#0284c7', marginTop: '6px' }}>
+                      Tap to open full image ↗
+                    </span>
+                  </a>
+                ) : (
+                  <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No proof image was submitted.</p>
+                )}
               </div>
-              <button type="button" onClick={() => setSelectedPoolTask(null)} aria-label="Close report">×</button>
-            </header>
-            <div className="pm-report-content">
-              <dl>
-                <dt>Oasis</dt><dd>{selectedPoolTask.oasis || activeOasis.name}</dd>
-                <dt>Submitted by</dt><dd>{selectedPoolTask.staffId?.name || 'Unknown staff'}</dd>
-                <dt>Task type</dt><dd>{selectedPoolTask.taskType}</dd>
-                <dt>Status</dt><dd>{selectedPoolTask.status}</dd>
-                <dt>Due date</dt><dd>{selectedPoolTask.dueDate ? new Date(selectedPoolTask.dueDate).toLocaleString() : 'N/A'}</dd>
-                <dt>Completed at</dt><dd>{selectedPoolTask.completedAt ? new Date(selectedPoolTask.completedAt).toLocaleString() : 'N/A'}</dd>
-              </dl>
-              <h4>Assigned task details</h4>
-              <p>{selectedPoolTask.description || 'No task description provided.'}</p>
-              <h4>Staff completion report</h4>
-              <p>{selectedPoolTask.completionNotes || 'No completion report was provided.'}</p>
-              <h4>Proof image</h4>
-              {selectedPoolTask.completionProofUrl ? (
-                <a href={selectedPoolTask.completionProofUrl} target="_blank" rel="noreferrer">
-                  <img
-                    src={selectedPoolTask.completionProofUrl}
-                    alt="Staff pool monitoring proof"
-                    className="pm-report-proof"
-                  />
-                </a>
-              ) : (
-                <p>No proof image was submitted.</p>
-              )}
-            </div>
-            <footer className="pm-report-footer">
-              <button type="button" className="pm-report-cancel" onClick={() => setSelectedPoolTask(null)}>Close</button>
-              <button type="button" className="pm-report-review" onClick={() => handleReviewPoolTask(selectedPoolTask)}>
-                Review & Remove Staff
-              </button>
-            </footer>
-          </section>
-        </div>
-      )}
+
+              <footer className="pm-report-footer">
+                <button type="button" className="pm-report-cancel" onClick={() => setSelectedPoolTask(null)}>Close</button>
+                <button
+                  type="button"
+                  className="pm-report-review"
+                  onClick={() => handleReviewPoolTask(selectedPoolTask)}
+                  disabled={selectedPoolTask.status !== 'Completed'}
+                  title={selectedPoolTask.status !== 'Completed' ? 'Task must be Completed first' : ''}
+                >
+                  Review &amp; Remove Staff
+                </button>
+              </footer>
+            </section>
+          </div>
+        );
+      })()}
 
       <MessageModal
         isOpen={messageModal.isOpen}

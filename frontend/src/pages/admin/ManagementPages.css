@@ -1886,3 +1886,326 @@
 .bookings-table th {
   color: #000000 !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   Inspection Report Modal (IRM)
+═══════════════════════════════════════════════════════ */
+
+/* ── Header ── */
+.irm-modal-header {
+  padding: 18px 22px !important;
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  border-radius: 12px 12px 0 0;
+  border-bottom: none !important;
+}
+
+.irm-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.irm-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.75);
+  text-transform: uppercase;
+}
+
+.irm-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.irm-modal-header .modal-close {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.irm-modal-header .modal-close:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Body ── */
+.irm-body {
+  padding: 0 0 4px 0 !important;
+  background: #f8fafc;
+}
+
+/* ── Image banner ── */
+.irm-image-banner {
+  background: #0f172a;
+  overflow: hidden;
+  max-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.irm-image-single {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  overflow: hidden;
+  position: relative;
+}
+
+.irm-image-single img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.irm-image-single:hover img {
+  transform: scale(1.02);
+}
+
+.irm-image-strip {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  max-height: 220px;
+  overflow-x: auto;
+}
+
+/* Single image in strip: stretch to fill full width */
+.irm-image-strip:has(.irm-image-thumb:only-child) .irm-image-thumb {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.irm-image-strip:has(.irm-image-thumb:only-child) .irm-image-thumb img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.irm-image-thumb {
+  position: relative;
+  flex: 0 0 auto;
+  height: 220px;
+  overflow: hidden;
+  display: block;
+}
+
+.irm-image-thumb img {
+  height: 220px;
+  width: auto;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.irm-image-thumb:hover img {
+  transform: scale(1.04);
+}
+
+.irm-expand-hint {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 3px 7px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.irm-image-single:hover .irm-expand-hint,
+.irm-image-thumb:hover .irm-expand-hint {
+  opacity: 1;
+}
+
+.irm-no-image {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 36px 0;
+  color: #94a3b8;
+  font-size: 0.82rem;
+}
+
+.irm-no-image span {
+  font-size: 2rem;
+  opacity: 0.45;
+}
+
+.irm-no-image p {
+  margin: 0;
+}
+
+/* ── Sections ── */
+.irm-section {
+  padding: 16px 20px 0;
+}
+
+.irm-section:last-of-type {
+  padding-bottom: 8px;
+}
+
+.irm-section-title {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0284c7;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* ── Info grids ── */
+.irm-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.irm-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.irm-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.irm-card {
+  background: #ffffff;
+  border: 1px solid #e8edf3;
+  border-radius: 8px;
+  padding: 10px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.irm-card--span2 {
+  grid-column: span 2;
+}
+
+.irm-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.irm-value {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.irm-value--sm {
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.irm-value--normal {
+  font-weight: 400;
+  color: #475569;
+}
+
+.irm-value--accent {
+  font-size: 1rem;
+  color: #0284c7;
+}
+
+.irm-value--muted {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+/* ── Status chip ── */
+.irm-status-chip {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+  text-transform: capitalize;
+}
+
+.irm-status--submitted {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.irm-status--reviewed {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.irm-status--pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+/* ── Notes block ── */
+.irm-notes-block {
+  margin: 0;
+  padding: 11px 14px;
+  background: #f1f5f9;
+  border-left: 3px solid #0284c7;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.82rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+/* ── Confirm button ── */
+.irm-btn-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 20px;
+  background: #059669;
+  border: none;
+  border-radius: 40px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.28);
+  white-space: nowrap;
+}
+
+.irm-btn-confirm:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.38);
+}
+
+.irm-btn-confirm:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
+}
+
+/* ── Responsive ── */
+@media (max-width: 560px) {
+  .irm-grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .irm-grid--2 {
+    grid-template-columns: 1fr;
+  }
+  .irm-card--span2 {
+    grid-column: span 1;
+  }
+}

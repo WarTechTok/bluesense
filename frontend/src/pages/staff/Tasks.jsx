@@ -48,10 +48,14 @@ const Tasks = () => {
   });
 
   useEffect(() => {
-    fetchTasks();
+    // Initial load — show the spinner.
+    fetchTasks(filter, true);
 
+    // Background auto-refresh — pass showSpinner=false so the task cards are
+    // never unmounted.  Unmounting destroys the local textarea / file-input
+    // state inside each TaskCard even though the task IDs haven't changed.
     const interval = window.setInterval(() => {
-      fetchTasks(filter);
+      fetchTasks(filter, false);
     }, 10000);
 
     return () => window.clearInterval(interval);
@@ -140,25 +144,34 @@ const Tasks = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
-  const fetchTasks = async (status = '') => {
+  /**
+   * Fetch tasks from the API.
+   *
+   * @param {string}  status      - Optional status filter.
+   * @param {boolean} showSpinner - Pass `true` only for the initial / manual
+   *                                load. Background auto-refresh calls pass
+   *                                `false` so the loading spinner never
+   *                                unmounts the task cards, which would
+   *                                destroy their local form state (typed text
+   *                                and selected file).
+   */
+  const fetchTasks = async (status = '', showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const data = await staffApi.getTasks({ ...(status ? { status } : {}), limit: 1000 });
       setTasks(data.tasks || []);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
   const handleFilterChange = (status) => {
     setFilter(status);
-    fetchTasks(status);
+    // User changed the filter: show spinner and fetch immediately.
+    // The interval useEffect will also re-run because `filter` changed.
+    fetchTasks(status, true);
   };
 
   const visibleTasks = tasks.filter((task) => {

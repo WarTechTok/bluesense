@@ -254,7 +254,7 @@ const RoomManagement = () => {
 
   const getInspectionForAssignment = (roomId, staffId) =>
     inspectionReports.find((report) =>
-      report.roomId === roomId && report.inspectedById === staffId
+      report.roomId === roomId?.toString() && report.inspectedById === staffId?.toString()
     );
 
   const handleCloseInspectionReport = async (inspection) => {
@@ -600,62 +600,175 @@ const RoomManagement = () => {
         </Modal>
       )}
 
+      {/* ── Inspection Report Modal ─────────────────────────────────────── */}
       {selectedInspection && (
         <Modal onClose={() => setSelectedInspection(null)}>
-          <div className="modal-header">
-            <h3>Inspection Report Details</h3>
+
+          {/* Header */}
+          <div className="modal-header irm-modal-header">
+            <div className="irm-header-meta">
+              <span className="irm-badge">Inspection Report</span>
+              <h3 className="irm-title">Room Review</h3>
+            </div>
             <button className="modal-close" onClick={() => setSelectedInspection(null)}>✕</button>
           </div>
-          <div className="modal-body">
-            {selectedInspection.proofImages?.length > 0 ? (
-              selectedInspection.proofImages.map((image, index) => (
-                <a key={`${image}-${index}`} href={image} target="_blank" rel="noreferrer">
-                  <img
-                    src={image}
-                    alt={`Inspection proof ${index + 1}`}
-                    style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', margin: '0 auto 20px' }}
-                  />
+
+          {/* Scrollable body */}
+          <div className="modal-body irm-body">
+
+            {/* Proof image banner */}
+            <div className="irm-image-banner">
+              {selectedInspection.proofImages?.length > 0 ? (
+                <div className="irm-image-strip">
+                  {selectedInspection.proofImages.map((img, i) => (
+                    <a key={`${img}-${i}`} href={img} target="_blank" rel="noreferrer" className="irm-image-thumb">
+                      <img src={img} alt={`Proof ${i + 1}`} />
+                      <span className="irm-expand-hint">↗ Full size</span>
+                    </a>
+                  ))}
+                </div>
+              ) : selectedInspection.proofImage ? (
+                <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer" className="irm-image-single">
+                  <img src={selectedInspection.proofImage} alt="Inspection proof" />
+                  <span className="irm-expand-hint">↗ Full size</span>
                 </a>
-              ))
-            ) : selectedInspection.proofImage ? (
-              <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer">
-                <img
-                  src={selectedInspection.proofImage}
-                  alt="Inspection proof"
-                  style={{ display: 'block', maxWidth: '100%', maxHeight: '420px', objectFit: 'contain', margin: '0 auto 20px' }}
-                />
-              </a>
-            ) : (
-              <p>No proof image was submitted.</p>
+              ) : (
+                <div className="irm-no-image">
+                  <span>🖼️</span>
+                  <p>No proof image submitted</p>
+                </div>
+              )}
+            </div>
+
+            {/* Overview */}
+            <div className="irm-section">
+              <p className="irm-section-title">Overview</p>
+              <div className="irm-grid irm-grid--3">
+                <div className="irm-card">
+                  <span className="irm-label">Room</span>
+                  <span className="irm-value">{selectedInspection.roomName || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Inspected by</span>
+                  <span className="irm-value">{selectedInspection.inspectedBy || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Date</span>
+                  <span className="irm-value irm-value--sm">
+                    {selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Status</span>
+                  <span className={`irm-status-chip irm-status--${(selectedInspection.status || 'submitted').toLowerCase()}`}>
+                    {selectedInspection.status || 'Submitted'}
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Rating</span>
+                  <span className="irm-value irm-value--accent">
+                    {selectedInspection.rating ?? 'N/A'}<span className="irm-value--muted"> / 10</span>
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Room status before</span>
+                  <span className="irm-value">{selectedInspection.roomStatusBeforeInspection || 'N/A'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Task */}
+            <div className="irm-section">
+              <p className="irm-section-title">Task</p>
+              <div className="irm-grid irm-grid--2">
+                <div className="irm-card">
+                  <span className="irm-label">Type</span>
+                  <span className="irm-value">{selectedInspection.task?.title || selectedInspection.task?.taskType || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Description</span>
+                  <span className="irm-value irm-value--normal">{selectedInspection.task?.description || 'None'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Condition */}
+            <div className="irm-section">
+              <p className="irm-section-title">Condition</p>
+              <div className="irm-grid irm-grid--3">
+                <div className="irm-card">
+                  <span className="irm-label">Cleanliness</span>
+                  <span className="irm-value">{selectedInspection.cleanliness || selectedInspection.condition || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Furniture</span>
+                  <span className="irm-value">{selectedInspection.furnitureCondition || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Cleaning needed</span>
+                  <span className="irm-value">{selectedInspection.cleaningNeeded || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Electricity</span>
+                  <span className="irm-value">{selectedInspection.electricityStatus || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Plumbing</span>
+                  <span className="irm-value">{selectedInspection.plumbingStatus || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Maintenance required</span>
+                  <span className="irm-value">{selectedInspection.maintenanceRequired ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Damage & Maintenance */}
+            <div className="irm-section">
+              <p className="irm-section-title">Damage &amp; Maintenance</p>
+              <div className="irm-grid irm-grid--2">
+                <div className="irm-card">
+                  <span className="irm-label">Damage found</span>
+                  <span className="irm-value">{selectedInspection.damageFound || 'No'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Items needed</span>
+                  <span className="irm-value irm-value--normal">{selectedInspection.itemsNeeded || 'None'}</span>
+                </div>
+                <div className="irm-card irm-card--span2">
+                  <span className="irm-label">Damage description</span>
+                  <span className="irm-value irm-value--normal">{selectedInspection.damageDescription || 'None'}</span>
+                </div>
+                <div className="irm-card irm-card--span2">
+                  <span className="irm-label">Maintenance notes</span>
+                  <span className="irm-value irm-value--normal">{selectedInspection.maintenanceNotes || 'None'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Additional notes */}
+            {selectedInspection.notes && selectedInspection.notes !== 'None' && (
+              <div className="irm-section">
+                <p className="irm-section-title">Additional Notes</p>
+                <p className="irm-notes-block">{selectedInspection.notes}</p>
+              </div>
             )}
-            <dl>
-              <dt>Room</dt><dd>{selectedInspection.roomName || 'N/A'}</dd>
-              <dt>Inspected by</dt><dd>{selectedInspection.inspectedBy || 'N/A'}</dd>
-              <dt>Date</dt><dd>{selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}</dd>
-              <dt>Task</dt><dd>{selectedInspection.task?.title || selectedInspection.task?.taskType || 'N/A'}</dd>
-              <dt>Task description</dt><dd>{selectedInspection.task?.description || 'None'}</dd>
-              <dt>Room status before inspection</dt><dd>{selectedInspection.roomStatusBeforeInspection || 'N/A'}</dd>
-              <dt>Cleanliness</dt><dd>{selectedInspection.cleanliness || selectedInspection.condition || 'N/A'}</dd>
-              <dt>Furniture condition</dt><dd>{selectedInspection.furnitureCondition || 'N/A'}</dd>
-              <dt>Cleaning needed</dt><dd>{selectedInspection.cleaningNeeded || 'N/A'}</dd>
-              <dt>Electricity status</dt><dd>{selectedInspection.electricityStatus || 'N/A'}</dd>
-              <dt>Plumbing status</dt><dd>{selectedInspection.plumbingStatus || 'N/A'}</dd>
-              <dt>Damage found</dt><dd>{selectedInspection.damageFound || 'No'}</dd>
-              <dt>Damage description</dt><dd>{selectedInspection.damageDescription || 'None'}</dd>
-              <dt>Maintenance required</dt><dd>{selectedInspection.maintenanceRequired ? 'Yes' : 'No'}</dd>
-              <dt>Maintenance notes</dt><dd>{selectedInspection.maintenanceNotes || 'None'}</dd>
-              <dt>Items needed</dt><dd>{selectedInspection.itemsNeeded || 'None'}</dd>
-              <dt>Report status</dt><dd>{selectedInspection.status || 'Submitted'}</dd>
-              <dt>Rating</dt><dd>{selectedInspection.rating ?? 'N/A'} / 10</dd>
-              <dt>Additional notes</dt><dd>{selectedInspection.notes || 'None'}</dd>
-            </dl>
-          </div>
+
+          </div>{/* end modal-body */}
+
+          {/* Footer */}
           <div className="modal-footer">
-            <button className="btn-cancel-modal" onClick={() => setSelectedInspection(null)}>Close</button>
-            <button className="btn-submit" onClick={() => handleCloseInspectionReport(selectedInspection)}>
-              Mark Reviewed & Remove Staff
+            <button className="btn-secondary" onClick={() => setSelectedInspection(null)}>
+              Close
+            </button>
+            <button className="irm-btn-confirm" onClick={() => handleCloseInspectionReport(selectedInspection)}>
+              <svg width="14" height="14" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }} aria-hidden="true">
+                <path d="M12.5 3.5L6 10.5L2.5 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Mark Reviewed &amp; Remove Staff
             </button>
           </div>
+
         </Modal>
       )}
 
