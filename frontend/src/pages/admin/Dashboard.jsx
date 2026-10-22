@@ -22,7 +22,8 @@ const Dashboard = () => {
     monthlyExpenses: 0,
     netTotalRevenue: 0,
     netMonthlyRevenue: 0,
-    lowStockItems: 0
+    lowStockItems: 0,
+    websiteViews: 0
   });
   const [inspectionMaintenance, setInspectionMaintenance] = useState(0);
 
@@ -44,6 +45,7 @@ const Dashboard = () => {
       
       // Fetch dashboard stats (includes revenue and expenses)
       const dashboardStats = await adminApi.getDashboardStats();
+      const websiteAnalytics = await adminApi.getWebsiteViews();
       
       // Fetch rooms
       let rooms = [];
@@ -93,7 +95,8 @@ const Dashboard = () => {
         monthlyExpenses: dashboardStats.monthlyExpenses || 0,
         netTotalRevenue: (dashboardStats.totalRevenue || 0) - (dashboardStats.totalExpenses || 0),
         netMonthlyRevenue: (dashboardStats.monthlyRevenue || 0) - (dashboardStats.monthlyExpenses || 0),
-        lowStockItems: dashboardStats.lowStockItems || 0
+        lowStockItems: dashboardStats.lowStockItems || 0,
+        websiteViews: websiteAnalytics.totalViews || 0
       });
       
     } catch (error) {
@@ -129,6 +132,18 @@ const Dashboard = () => {
       </div>
 
       <PoolMonitoring />
+
+      <div className="stats-section">
+        <h2 className="section-title">Website Traffic</h2>
+        <div className="stats-grid">
+          <StatCard
+            title="Website Views"
+            value={stats.websiteViews.toLocaleString()}
+            icon="👁"
+            color="#0284c7"
+          />
+        </div>
+      </div>
 
       {/* Financial Summary - Professional Table Format (Margin column removed) */}
       <div className="stats-section">

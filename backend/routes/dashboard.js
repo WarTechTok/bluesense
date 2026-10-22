@@ -13,6 +13,7 @@ const { authenticate, authorize } = require('../middleware/role');
  * Auth: Required (any authenticated user)
  */
 router.get('/stats', authenticate, dashboardController.getDashboardStats);
+router.get('/website-views', authenticate, authorize('admin'), dashboardController.getWebsiteViews);
 
 /**
  * GET /api/admin/dashboard/daily-chart

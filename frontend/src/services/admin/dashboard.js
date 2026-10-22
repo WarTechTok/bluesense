@@ -15,6 +15,16 @@ export const getDashboardStats = async () => {
   }
 };
 
+export const getWebsiteViews = async () => {
+  try {
+    const res = await apiClient.get('/dashboard/website-views');
+    return res.data;
+  } catch (error) {
+    console.error('Error fetching website views:', error);
+    throw error;
+  }
+};
+
 export const getDailyChartData = async () => {
   try {
     const res = await apiClient.get('/dashboard/daily-chart');

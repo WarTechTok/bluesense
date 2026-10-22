@@ -11,6 +11,7 @@ const Inventory = require('../models/Inventory');
 const Booking = require('../models/Booking');
 const InspectionRecord = require('../models/InspectionRecord');
 const Maintenance = require('../models/Maintenance');
+const WebsiteAnalytics = require('../models/WebsiteAnalytics');
 
 /**
  * Dashboard Controller
@@ -121,6 +122,16 @@ exports.getDashboardStats = async (req, res) => {
   } catch (error) {
     console.error('❌ Dashboard Error:', error);
     res.status(500).json({ error: error.message });
+  }
+};
+
+exports.getWebsiteViews = async (req, res) => {
+  try {
+    const analytics = await WebsiteAnalytics.findById('website').select('totalViews');
+    res.json({ totalViews: analytics?.totalViews || 0 });
+  } catch (error) {
+    console.error('Error fetching website views:', error);
+    res.status(500).json({ error: 'Unable to fetch website views' });
   }
 };
 

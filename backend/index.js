@@ -20,6 +20,7 @@ const bookingRoutes = require("./routes/bookings.js");
 
 // Admin Dashboard Routes
 const dashboardRoutes = require("./routes/dashboard.js");
+const analyticsRoutes = require("./routes/analytics.js");
 const staffDashboardRoutes = require("./routes/staffDashboard.js");
 const roomRoutes = require("./routes/rooms.js");
 const reservationRoutes = require("./routes/reservations.js");
@@ -192,6 +193,7 @@ app.use("/api/staff/dashboard", staffDashboardRoutes);
 
 // Admin Dashboard API Routes
 app.use("/api/admin/dashboard", dashboardRoutes);
+app.use("/api/analytics", analyticsRoutes);
 app.use("/api/admin/rooms", roomRoutes);
 app.use("/api/admin/reservations", reservationRoutes);
 app.use("/api/admin/bookings", bookingRoutes);

@@ -165,6 +165,20 @@ const Reports = () => {
     return sorted;
   }, [getDataArray, reportType, dateSortDirection]);
 
+  const packageBookingCounts = reportType === "booking" && Array.isArray(reportData)
+    ? Array.from(reportData.reduce((counts, booking) => {
+        const oasis = booking.oasis || "Unknown Oasis";
+        const packageName = booking.package || "Unspecified";
+        const key = JSON.stringify([oasis, packageName]);
+        const count = counts.get(key) || { oasis, packageName, bookings: 0 };
+        count.bookings += 1;
+        counts.set(key, count);
+        return counts;
+      }, new Map()).values()).sort((a, b) =>
+        a.oasis.localeCompare(b.oasis) || a.packageName.localeCompare(b.packageName)
+      )
+    : [];
+
   // Debug logging
   useEffect(() => {
     console.log("Current state:", { reportType, reportData, dataArray: getDataArray() });
@@ -819,6 +833,41 @@ const Reports = () => {
               <div className="stat-card">
                 <div className="stat-title">Monitoring Entries</div>
                 <div className="stat-value">{getDataArray().length}</div>
+              </div>
+            </div>
+          )}
+
+          {reportType === "booking" && (
+            <div className="package-booking-summary">
+              <h4>Bookings by Package</h4>
+              <p>Counts are based on the bookings included in this report.</p>
+              <div className="table-responsive">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Oasis</th>
+                      <th>Package</th>
+                      <th>Bookings</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {packageBookingCounts.length > 0 ? (
+                      packageBookingCounts.map(({ oasis, packageName, bookings }) => (
+                        <tr key={`${oasis}-${packageName}`}>
+                          <td>{oasis}</td>
+                          <td>{packageName}</td>
+                          <td>{bookings}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={3} className="no-data">
+                          No bookings found for the selected filters.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}

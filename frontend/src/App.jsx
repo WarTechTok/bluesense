@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -43,6 +43,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ProtectedRoute from "./components/ProtectedRoute";
 import OAuthRedirect from "./pages/OAuthRedirect";
 import PackageAddOnSessionManagement from "./pages/admin/PackageAddOnSessionManagement";
+import { recordPageView } from "./services/analytics";
 
 // ScrollToTop component - resets scroll position on page change
 function ScrollToTop() {
@@ -50,6 +51,23 @@ function ScrollToTop() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+function PageViewTracker() {
+  const { pathname } = useLocation();
+  const lastTrackedPath = useRef(null);
+
+  useEffect(() => {
+    if (/^\/(admin|staff|receptionist)(\/|$)/.test(pathname)) return;
+    if (lastTrackedPath.current === pathname) return;
+
+    lastTrackedPath.current = pathname;
+    recordPageView().catch((error) => {
+      console.error("Error recording website page view:", error);
+    });
   }, [pathname]);
 
   return null;
@@ -90,6 +108,7 @@ function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <PageViewTracker />
       <Routes>
         {/* Home - Auto-redirect if logged in */}
         <Route path="/" element={<HomeRedirect />} />
