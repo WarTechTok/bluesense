@@ -600,7 +600,7 @@ const RoomManagement = () => {
         </Modal>
       )}
 
-      {/* ── Inspection Report Modal (redesigned) ───────────────────────── */}
+      {/* ── Inspection Report Modal ─────────────────────────────────────── */}
       {selectedInspection && (
         <Modal onClose={() => setSelectedInspection(null)}>
 
@@ -616,21 +616,21 @@ const RoomManagement = () => {
           {/* Scrollable body */}
           <div className="modal-body irm-body">
 
-            {/* Proof image */}
-            <div className="irm-image-wrap">
+            {/* Proof image banner */}
+            <div className="irm-image-banner">
               {selectedInspection.proofImages?.length > 0 ? (
                 <div className="irm-image-strip">
                   {selectedInspection.proofImages.map((img, i) => (
-                    <a key={`${img}-${i}`} href={img} target="_blank" rel="noreferrer" className="irm-image-link">
-                      <img src={img} alt={`Proof ${i + 1}`} className="irm-proof-img" />
-                      <span className="irm-expand-hint">View full size ↗</span>
+                    <a key={`${img}-${i}`} href={img} target="_blank" rel="noreferrer" className="irm-image-thumb">
+                      <img src={img} alt={`Proof ${i + 1}`} />
+                      <span className="irm-expand-hint">↗ Full size</span>
                     </a>
                   ))}
                 </div>
               ) : selectedInspection.proofImage ? (
-                <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer" className="irm-image-link">
-                  <img src={selectedInspection.proofImage} alt="Inspection proof" className="irm-proof-img" />
-                  <span className="irm-expand-hint">View full size ↗</span>
+                <a href={selectedInspection.proofImage} target="_blank" rel="noreferrer" className="irm-image-single">
+                  <img src={selectedInspection.proofImage} alt="Inspection proof" />
+                  <span className="irm-expand-hint">↗ Full size</span>
                 </a>
               ) : (
                 <div className="irm-no-image">
@@ -640,37 +640,40 @@ const RoomManagement = () => {
               )}
             </div>
 
-            {/* Primary info grid */}
-            <div className="irm-grid irm-grid--3">
-              <div className="irm-card">
-                <span className="irm-label">Room</span>
-                <span className="irm-value">{selectedInspection.roomName || 'N/A'}</span>
-              </div>
-              <div className="irm-card">
-                <span className="irm-label">Inspected by</span>
-                <span className="irm-value">{selectedInspection.inspectedBy || 'N/A'}</span>
-              </div>
-              <div className="irm-card">
-                <span className="irm-label">Date</span>
-                <span className="irm-value">
-                  {selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}
-                </span>
-              </div>
-              <div className="irm-card">
-                <span className="irm-label">Status</span>
-                <span className={`irm-status-chip irm-status--${(selectedInspection.status || 'submitted').toLowerCase()}`}>
-                  {selectedInspection.status || 'Submitted'}
-                </span>
-              </div>
-              <div className="irm-card">
-                <span className="irm-label">Rating</span>
-                <span className="irm-value irm-value--blue">
-                  {selectedInspection.rating ?? 'N/A'}<span className="irm-value--gray"> / 10</span>
-                </span>
-              </div>
-              <div className="irm-card">
-                <span className="irm-label">Room status before</span>
-                <span className="irm-value">{selectedInspection.roomStatusBeforeInspection || 'N/A'}</span>
+            {/* Overview */}
+            <div className="irm-section">
+              <p className="irm-section-title">Overview</p>
+              <div className="irm-grid irm-grid--3">
+                <div className="irm-card">
+                  <span className="irm-label">Room</span>
+                  <span className="irm-value">{selectedInspection.roomName || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Inspected by</span>
+                  <span className="irm-value">{selectedInspection.inspectedBy || 'N/A'}</span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Date</span>
+                  <span className="irm-value irm-value--sm">
+                    {selectedInspection.date ? new Date(selectedInspection.date).toLocaleString() : 'N/A'}
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Status</span>
+                  <span className={`irm-status-chip irm-status--${(selectedInspection.status || 'submitted').toLowerCase()}`}>
+                    {selectedInspection.status || 'Submitted'}
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Rating</span>
+                  <span className="irm-value irm-value--accent">
+                    {selectedInspection.rating ?? 'N/A'}<span className="irm-value--muted"> / 10</span>
+                  </span>
+                </div>
+                <div className="irm-card">
+                  <span className="irm-label">Room status before</span>
+                  <span className="irm-value">{selectedInspection.roomStatusBeforeInspection || 'N/A'}</span>
+                </div>
               </div>
             </div>
 
@@ -682,7 +685,7 @@ const RoomManagement = () => {
                   <span className="irm-label">Type</span>
                   <span className="irm-value">{selectedInspection.task?.title || selectedInspection.task?.taskType || 'N/A'}</span>
                 </div>
-                <div className="irm-card irm-card--full">
+                <div className="irm-card">
                   <span className="irm-label">Description</span>
                   <span className="irm-value irm-value--normal">{selectedInspection.task?.description || 'None'}</span>
                 </div>
@@ -732,11 +735,11 @@ const RoomManagement = () => {
                   <span className="irm-label">Items needed</span>
                   <span className="irm-value irm-value--normal">{selectedInspection.itemsNeeded || 'None'}</span>
                 </div>
-                <div className="irm-card irm-card--full">
+                <div className="irm-card irm-card--span2">
                   <span className="irm-label">Damage description</span>
                   <span className="irm-value irm-value--normal">{selectedInspection.damageDescription || 'None'}</span>
                 </div>
-                <div className="irm-card irm-card--full">
+                <div className="irm-card irm-card--span2">
                   <span className="irm-label">Maintenance notes</span>
                   <span className="irm-value irm-value--normal">{selectedInspection.maintenanceNotes || 'None'}</span>
                 </div>
@@ -758,7 +761,7 @@ const RoomManagement = () => {
             <button className="btn-secondary" onClick={() => setSelectedInspection(null)}>
               Close
             </button>
-            <button className="btn-primary" onClick={() => handleCloseInspectionReport(selectedInspection)}>
+            <button className="irm-btn-confirm" onClick={() => handleCloseInspectionReport(selectedInspection)}>
               <svg width="14" height="14" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0 }} aria-hidden="true">
                 <path d="M12.5 3.5L6 10.5L2.5 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
