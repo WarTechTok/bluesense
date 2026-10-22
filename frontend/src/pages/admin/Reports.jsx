@@ -125,6 +125,14 @@ const Reports = () => {
     return lines.join("\r\n");
   };
 
+  const getBookingPaymentMethod = (booking) => {
+    const { paymentMethod, finalPaymentMethod } = booking;
+    if (paymentMethod && finalPaymentMethod && paymentMethod !== finalPaymentMethod) {
+      return `${paymentMethod} (downpayment), ${finalPaymentMethod} (final)`;
+    }
+    return finalPaymentMethod || paymentMethod || "N/A";
+  };
+
   // Helper function to get the data array based on report type
   const getDataArray = useCallback(() => {
     if (!reportData) return [];
@@ -393,6 +401,7 @@ const Reports = () => {
           "Booking Source": row.bookingSource === "Online" ? "Online Reservation" : row.bookingSource || "Not Recorded",
           "Amount": toCurrencyNumber(row.totalAmount),
           "Payment Status": row.paymentStatus || "Pending",
+          "Payment Method": getBookingPaymentMethod(row),
           "Booking Date": row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A",
           "Reservation Date": row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "N/A",
           "Time Slot": row.session || "N/A",
@@ -619,7 +628,7 @@ const Reports = () => {
 
   // Helper function to get colSpan for no data message
   const getNoDataColSpan = () => {
-    if (reportType === "booking") return "14";
+    if (reportType === "booking") return "15";
     if (reportType === "sales") return "5";
     if (reportType === "inspection") return "9";
     if (reportType === "pool-monitoring") return "6";
@@ -828,6 +837,7 @@ const Reports = () => {
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Booking Source</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Amount</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Payment Status</th>
+                      <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>Payment Method</th>
                       <th style={{ color: '#000000', backgroundColor: '#f3f4f6' }}>
                         Booking Date
                         <button
@@ -913,6 +923,7 @@ const Reports = () => {
                                 {row.paymentStatus || "Pending"}
                               </span>
                             </td>
+                            <td>{getBookingPaymentMethod(row)}</td>
                             <td>{row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "N/A"}</td>
                             <td>{row.bookingDate ? new Date(row.bookingDate).toLocaleDateString() : "N/A"}</td>
                             <td>{row.session || "N/A"}</td>
