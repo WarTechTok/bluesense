@@ -1973,6 +1973,18 @@
   overflow-x: auto;
 }
 
+/* Single image in strip: stretch to fill full width */
+.irm-image-strip:has(.irm-image-thumb:only-child) .irm-image-thumb {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.irm-image-strip:has(.irm-image-thumb:only-child) .irm-image-thumb img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
 .irm-image-thumb {
   position: relative;
   flex: 0 0 auto;
